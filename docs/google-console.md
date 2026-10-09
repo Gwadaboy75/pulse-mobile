@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Pulse Mobile signs in to Google on the phone and calls the Google Health API directly. This runbook adds one Android
+Pulse Mobile has no accounts and no sign-in of its own. The phone asks Google for one thing: permission to read and
+write the owner's Google Health data, then calls the Google Health API directly. This runbook adds one Android
 OAuth client and one iOS OAuth client to the existing Pulse Google Cloud project.
 
 Nothing else changes. The project, the OAuth consent screen, the scopes, and the verification status stay as they are
@@ -10,9 +11,9 @@ Nothing else changes. The project, the OAuth consent screen, the scopes, and the
 
 ## Scopes
 
-The app asks for the same scopes as the web app. They come from `SCOPES` and `LOGIN_SCOPES` in
-`src/server/sources/google/oauth.ts` in the pulse repo. The `googlehealth.` entries use the full URL form below.
-The three login scopes are plain names, as the code passes them.
+The app asks for the same health scopes as the web app: `SCOPES` in `src/server/sources/google/oauth.ts` in the pulse
+repo. It does not ask for `LOGIN_SCOPES` (`openid`, `email`, `profile`): the web app needed them for its accounts, and
+Pulse Mobile has none.
 
 | # | Scope (full form as Google lists it) | Group |
 |---|---|---|
@@ -29,9 +30,6 @@ The three login scopes are plain names, as the code passes them.
 | 11 | `https://www.googleapis.com/auth/googlehealth.mindfulness.writeonly` | `SCOPES` write |
 | 12 | `https://www.googleapis.com/auth/googlehealth.logged_symptoms.writeonly` | `SCOPES` write |
 | 13 | `https://www.googleapis.com/auth/googlehealth.reproductive_health.writeonly` | `SCOPES` write |
-| 14 | `openid` | `LOGIN_SCOPES` |
-| 15 | `email` | `LOGIN_SCOPES` |
-| 16 | `profile` | `LOGIN_SCOPES` |
 
 The consent screen lists these scopes under Google Auth Platform › Data access. Do not add or remove any scope in the
 console for this work. If a scope is missing from the list, stop and tell the developer.
@@ -44,11 +42,10 @@ console for this work. If a scope is missing from the list, stop and tell the de
    required before you create a client.
 3. Open the EAS project for Pulse Mobile (`in.portlabs.pulse`). You need its Android keystore fingerprint (step A1).
 
-**Open question for the developer.** Google's native-app docs say "Custom URI schemes are no longer supported on Android
-and Chrome apps." The Expo Google guide points to Google sign-in libraries for Android (Credential Manager). The plan
-assumes `expo-auth-session` with native client IDs works on both platforms. The developer must confirm the Android
-sign-in path before you create the Android client. Do not hunt for a console toggle for custom URI schemes. None was
-found in the current docs.
+**Open question for the developer, not for this runbook.** Google's native-app docs say "Custom URI schemes are no
+longer supported on Android and Chrome apps." So on Android the app will use Google's own Android library instead of a
+browser redirect. That changes the app's code, not the console: every Android option needs the same Android client
+(package name plus SHA-1). Create it now.
 
 ## Android client
 
@@ -76,8 +73,8 @@ A2. Create the Android client.
 
 A3. Custom URI scheme setting.
 
-Google's current docs say custom URI schemes are no longer supported on Android. The pages checked do not describe a
-console setting that enables them. Do nothing here until the developer confirms the Android sign-in path.
+Nothing to do. Google's current docs say custom URI schemes are no longer supported on Android, and no console setting
+enables them. The app uses Google's Android library instead, which needs only the client from step A2.
 
 A4. Play Store release (later, not now).
 
@@ -155,7 +152,7 @@ clients, and none is needed. Do not send any client secret, Google account passw
 
 If you added a Play App Signing client (step A4), also send its client ID.
 
-## Sign-in flow
+## Connect flow (iOS)
 
 ```mermaid
 flowchart LR
@@ -166,11 +163,12 @@ flowchart LR
   E --> F[("expo-secure-store<br/>keeps the refresh token")]
 ```
 
-The app creates the PKCE verifier and challenge on the phone. The token exchange needs no client secret.
+The app creates the PKCE verifier and challenge on the phone. The token exchange needs no client secret. On Android
+the developer's chosen Google library replaces the browser and redirect steps; the result is the same: a token kept on
+the phone.
 
 ## Checklist
 
-- [ ] Developer confirmed the Android sign-in path (custom URI schemes question).
 - [ ] Android client created with package `in.portlabs.pulse` and the EAS development SHA-1.
 - [ ] iOS client created with bundle ID `in.portlabs.pulse`.
 - [ ] Reversed client ID recorded.
