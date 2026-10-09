@@ -18,5 +18,9 @@ for name in "${LIB[@]}"; do
   done
 done
 
-git status --short src/core src/lib
+# time.ts is byte-identical too; it sits at src/time.ts so ported ../time imports match pulse's src/server layout.
+cp "$pulse/src/server/time.ts" src/time.ts
+cp "$pulse/src/server/time.test.ts" src/time.test.ts
+
+git status --short src/core src/lib src/time.ts src/time.test.ts
 pnpm typecheck && pnpm test
