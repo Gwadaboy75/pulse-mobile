@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Guide for coding agents (and humans) working on Pulse Mobile: the React Native (Expo) version of Pulse, where every byte lives on the phone. The app signs in to Google with a native OAuth client, pulls Fitbit Air data from the Google Health API, keeps it in SQLite, and turns it into recovery, strain, sleep, Pulse Age, stress, Energy Bank and journal insights with Pulse's own scoring code. There is no server, no web interface and no accounts: one install is one person. The plan is `docs/plan.md`. Read it before you start a stream.
+Guide for coding agents (and humans) working on Pulse Mobile: the React Native (Expo) version of Pulse, where every byte lives on the phone. The app asks Google only for permission to the owner's Google Health data (a native OAuth client), pulls Fitbit Air data from the Google Health API, keeps it in SQLite, and turns it into recovery, strain, sleep, Pulse Age, stress, Energy Bank and journal insights with Pulse's own scoring code. There is no server, no web interface and no accounts: one install is one person. The plan is `docs/plan.md`. Read it before you start a stream.
 
 ## Expo has changed: do not trust your training data
 
@@ -59,6 +59,7 @@ Not every folder exists yet. The plan says in which phase each one arrives.
 
 ## Rules
 
+- **No auth.** No accounts, no login screen, no user ids. Google OAuth exists only to grant access to Google Health data, with health scopes only: never `openid`, `email` or `profile`, and never store a Google account's email, name or picture.
 - **No I/O in `src/core`.** Pure TypeScript only: no database, no network, no clock reads, no React.
 - **Only `src/data/repos` touches SQLite.** Everything else takes plain rows in and out. `src/data/db.ts` is imported by repositories only.
 - **No secrets in logs.** Never log tokens, API response bodies or the coach key. The Google tokens and the coach provider key live only in `expo-secure-store`. Never in SQLite, never in a fixture.

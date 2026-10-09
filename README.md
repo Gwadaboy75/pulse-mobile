@@ -2,7 +2,7 @@
 
 Pulse Mobile is the React Native app version of [Pulse](https://github.com/adityaongit/pulse): recovery, strain, sleep, Pulse Age, stress, Energy Bank and journal insights from your Fitbit Air data, on your phone.
 
-There is no server. The app signs in to Google with a native OAuth client (PKCE, no client secret), pulls your data from the Google Health API itself, keeps it in SQLite on the phone and scores it with Pulse's own scoring code. Secrets stay in the phone's secure store, and nothing is sent anywhere except to Google and, if you set one up, your own AI provider for the coach.
+There is no server. The app has no accounts and no sign-in of its own. It asks Google only for permission to your Google Health data (a native OAuth client, PKCE, no client secret), pulls your data from the Google Health API itself, keeps it in SQLite on the phone and scores it with Pulse's own scoring code. Secrets stay in the phone's secure store, and nothing is sent anywhere except to Google and, if you set one up, your own AI provider for the coach.
 
 ```mermaid
 flowchart LR
@@ -39,7 +39,7 @@ Expo changes every SDK, so check the current docs first: fetch https://docs.expo
    - Details: https://docs.expo.dev/troubleshooting/expo-go-version-mismatch.md
 2. **A development build, once native modules beyond Expo Go arrive.** `expo-dev-client` is already installed. Build one with `npx eas-cli@latest build --profile development` (no Xcode or Android Studio needed), or locally with `pnpm ios` or `pnpm android` (needs Xcode or Android Studio). Then `pnpm start` and open the project in that build. Docs: https://docs.expo.dev/develop/development-builds/introduction.md
 
-Google sign-in needs OAuth clients tied to the app's bundle id and Android package `in.portlabs.pulse`: see [docs/google-console.md](docs/google-console.md).
+Connecting Google Health needs OAuth clients tied to the app's bundle id and Android package `in.portlabs.pulse`: see [docs/google-console.md](docs/google-console.md).
 
 ## Commands
 

@@ -61,3 +61,14 @@ Both come from the owner's domain, portlabs.in, written in reverse. They are har
 ## Vitest with better-sqlite3
 
 Tests run in Node, not on a phone. `better-sqlite3` is a Node SQLite binding, and drizzle has an adapter for it, so repository and migration tests run the real SQL quickly and in CI. The device itself is checked by hand.
+
+## `expo start --go`
+
+Once `expo-dev-client` is installed, `npx expo start` serves a development build by default. Add `--go` to open the
+project in Expo Go instead. On iPhone, the App Store's Expo Go stops at SDK 54, so this SDK 57 app needs `eas go`
+(TestFlight) or a development build; on Android, Expo Go for SDK 57 comes from expo.dev/go.
+
+## SQLite foreign keys
+
+SQLite turns foreign keys off for every new connection. `src/data/db.ts` runs `PRAGMA foreign_keys = ON` right after
+opening the database, so deleting a sleep session also deletes its segments.
