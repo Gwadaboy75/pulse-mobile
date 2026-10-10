@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
-import { router, type Href } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { deltaTone, type ChipTone, type DeltaDir, type GoodDirection, type Tone } from "@/lib/bands";
 import { formatValue, MISSING, statSentence, type FormatKey } from "@/lib/format";
@@ -15,6 +14,7 @@ import { Text } from "../Text";
 import { useTheme } from "../theme";
 import { CAPTION, DeltaMark, LABEL, MetricTags, StatusChip, ValueUnit } from "./primitives";
 import { Sparkline } from "./Sparkline";
+import { push } from "../navigate";
 
 export type SleepStatus = "poor" | "sufficient" | "optimal";
 
@@ -63,7 +63,8 @@ function compute(p: KeyStatRowProps, value: number | null, meta?: MetricMeta, re
 
 /** The row's outer element: a link, a button, or a plain view. It reads as one sentence to a screen reader and hides its parts. */
 function Frame({ p, className, children, sentence, style }: { p: KeyStatRowProps; className: string; children: ReactNode; sentence: string; style?: object }) {
-  const press = p.href ? () => router.push(p.href as Href) : p.onSelect;
+  const href = p.href;
+  const press = href ? () => push(href) : p.onSelect;
   if (press)
     return (
       <Pressable accessibilityRole={p.href ? "link" : "button"} accessibilityLabel={sentence} onPress={press} className={cn(className, "active:scale-[0.96]")} style={style}>

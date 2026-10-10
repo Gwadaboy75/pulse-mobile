@@ -2,13 +2,13 @@
 // link in a card header, the 56 px gradient banner rows.
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
-import { router, type Href } from "expo-router";
 import type { LucideIcon } from "lucide-react-native";
 import { useCardStyle } from "@/ui/Card";
 import { Gradient } from "@/ui/Gradient";
 import { Icon } from "@/ui/Icon";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
+import { push } from "@/ui/navigate";
 
 /** The 48 px secondary button at a card's foot ("+ Add activity", "Behaviour insights"): the web's CARD_BUTTON. */
 export const CARD_BUTTON = "h-12 w-full flex-row items-center justify-center gap-2 rounded-xl bg-secondary active:scale-[0.96]";
@@ -26,7 +26,7 @@ export function CardButtonContent({ icon, label }: { icon: LucideIcon; label: st
 /** A card button that opens a route. */
 export function CardButtonLink({ href, icon, label, className }: { href: string; icon: LucideIcon; label: string; className?: string }) {
   return (
-    <Pressable accessibilityRole="link" onPress={() => router.push(href as Href)} className={`${CARD_BUTTON} ${className ?? ""}`}>
+    <Pressable accessibilityRole="link" onPress={() => push(href)} className={`${CARD_BUTTON} ${className ?? ""}`}>
       <CardButtonContent icon={icon} label={label} />
     </Pressable>
   );
@@ -35,7 +35,7 @@ export function CardButtonLink({ href, icon, label, className }: { href: string;
 /** The 32 px icon link in a card's header (open all activities, Journal, the Sleep Planner): 44 px to touch. */
 export function IconLink({ href, label, icon }: { href: string; label: string; icon: LucideIcon }) {
   return (
-    <Pressable accessibilityRole="link" accessibilityLabel={label} onPress={() => router.push(href as Href)} hitSlop={6} className="size-8 items-center justify-center rounded-md active:opacity-70">
+    <Pressable accessibilityRole="link" accessibilityLabel={label} onPress={() => push(href)} hitSlop={6} className="size-8 items-center justify-center rounded-md active:opacity-70">
       <Icon icon={icon} size={18} tone="foreground-secondary" strokeWidth={1.75} />
     </Pressable>
   );

@@ -1,5 +1,5 @@
 import { View } from "react-native";
-import { router, type Href } from "expo-router";
+
 import { DATA_COLORS, ZONE_COLOR, type DataColor } from "@/lib/bands";
 import { durationWords, hmm } from "@/lib/format";
 import type { Metric } from "@/lib/reasons";
@@ -10,6 +10,7 @@ import { EmptyState } from "../shells/EmptyState";
 import { MetricState } from "../shells/MetricState";
 import { Skeleton, SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
+import { push } from "../navigate";
 
 /** `zone` 0-5 orders the rows (0 is time under Zone 1: `min` 0, `max` the bpm below Zone 1); `label` names it ("Zone 1"). */
 export type ZoneRow = {
@@ -134,7 +135,7 @@ function Note({ note, link }: { note?: string; link?: { label: string; href: str
       {link && (
         <>
           {" "}
-          <Text accessibilityRole="link" onPress={() => router.push(link.href as Href)} className="text-foreground-secondary underline">
+          <Text accessibilityRole="link" onPress={() => push(link.href)} className="text-foreground-secondary underline">
             {link.label}
           </Text>
         </>

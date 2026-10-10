@@ -1,6 +1,7 @@
 import type { ComponentProps } from "react";
-import { router, type Href, type Stack } from "expo-router";
+import { router, type Stack } from "expo-router";
 import type { Palette } from "../palette";
+import { push } from "../navigate";
 
 // Task sheets (check-in, the log sheets, info cards) are ROUTES presented by the platform: Expo Router's native stack
 // shows them as `presentation: "formSheet"`, a UISheetPresentationController on iOS and a native bottom sheet on
@@ -47,7 +48,7 @@ export function sheetOptions(size: SheetSize, c: Palette): Options {
 
 /** Opens a sheet over the current screen. `href` is the sheet's route ("/checkin"), with its params if any. */
 export function openSheet(href: string) {
-  router.push(href as Href);
+  push(href);
 }
 
 /** Closes the sheet on top (the X). With nothing to go back to (a deep link) it lands on Home. */

@@ -1,11 +1,12 @@
 import { View } from "react-native";
-import { router, type Href } from "expo-router";
+
 import type { LucideIcon } from "lucide-react-native";
 import { Button } from "../Button";
 import { cn } from "../cn";
 import { Icon } from "../Icon";
 import { Text } from "../Text";
 import { openSheet } from "./sheets";
+import { push } from "../navigate";
 
 export type EmptyStateProps = {
   icon?: LucideIcon;
@@ -26,7 +27,7 @@ export function EmptyState({ icon, body, action, className }: EmptyStateProps) {
         <Button
           variant="secondary"
           className="mt-2"
-          onPress={() => (action.sheet ? openSheet(action.sheet) : action.href ? router.push(action.href as Href) : action.onClick?.())}
+          onPress={() => (action.sheet ? openSheet(action.sheet) : action.href ? push(action.href) : action.onClick?.())}
         >
           {action.label}
         </Button>

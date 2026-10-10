@@ -1,5 +1,5 @@
 import { Pressable, View } from "react-native";
-import { router, type Href } from "expo-router";
+
 import Svg, { Defs, LinearGradient, Path, Polygon, RadialGradient, Stop } from "react-native-svg";
 import { ChevronRight } from "lucide-react-native";
 import { BAND_WORD, DATA_COLORS, dialColor, recoveryBand, STRESS_COLOR, STRESS_WORD, stressLevel, type DataColor } from "@/lib/bands";
@@ -16,6 +16,7 @@ import { Text } from "../Text";
 import { useTheme } from "../theme";
 import { ARC_FROM, ARC_SWEEP } from "./MiniRing";
 import { capTrim, MetricTags, type TagKind } from "./primitives";
+import { push } from "../navigate";
 
 export type DialSize = "sm" | "md" | "lg";
 export type DialVariant = "recovery" | "strain" | "sleep" | "stat" | "gauge";
@@ -279,7 +280,7 @@ export function ScoreDial(props: ScoreDialProps) {
       <Pressable
         accessibilityRole="link"
         accessibilityLabel={`${aria}. Open ${r.label} details`}
-        onPress={() => router.push(href as Href)}
+        onPress={() => push(href)}
         className="min-w-24 items-center gap-1 rounded-xl p-1 active:scale-[0.96]"
       >
         {content}

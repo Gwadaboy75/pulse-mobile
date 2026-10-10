@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
-import { router, type Href } from "expo-router";
 import { BookOpen, CalendarRange, ChevronRight, Code, HeartPulse, Maximize2, Timer } from "lucide-react-native";
 import { REASON_CODES, type Metric } from "@/lib/reasons";
 import { Button } from "@/ui/Button";
@@ -22,8 +21,9 @@ import { MetricState } from "@/ui/shells/MetricState";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
+import { push } from "@/ui/navigate";
 
-const go = (href: string) => router.push(href as Href);
+const go = (href: string) => push(href);
 const INFO = { title: "What shaped it", body: "Each bar is one input's effect on today's Recovery, in points." };
 const BODY = "text-[15px] leading-[22px] text-foreground-secondary";
 

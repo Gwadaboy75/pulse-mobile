@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
-import { router, useFocusEffect, useLocalSearchParams, useNavigation } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useNavigation } from "expo-router";
 import { Check, ChevronLeft, ChevronRight, LoaderCircle, Pencil, X } from "lucide-react-native";
 import { addCustomTag, loadCheckIn, saveCheckIn } from "@/actions/journal";
 import { store } from "@/data/store";
@@ -27,6 +27,7 @@ import { useTheme } from "@/ui/theme";
 import { changedEntries, heading, type Values } from "./checkin";
 import { DismissDialog, dismissIsQuiet } from "./DismissDialog";
 import { Slider } from "./Slider";
+import { push } from "@/ui/navigate";
 
 type Loaded = { day: string } & Pick<JournalVM, "tags" | "checkIn" | "strip">;
 type Confirm = { to: string | null };
@@ -227,7 +228,7 @@ export function CheckInSheet() {
             onPress={() => {
               haptic.tap();
               picked.current = true;
-              router.push("/more/behaviours" as never);
+              push("/more/behaviours");
             }}
             className="size-11 items-center justify-center rounded-full active:bg-foreground/8"
           >

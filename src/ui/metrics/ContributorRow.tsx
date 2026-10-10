@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
-import { router, type Href } from "expo-router";
 import { Triangle } from "lucide-react-native";
 import { deltaTone, type GoodDirection, type Tone } from "@/lib/bands";
 import { formatValue, isSymbolUnit, MISSING, spoken, type FormatKey } from "@/lib/format";
@@ -12,6 +11,7 @@ import { SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
 import { CAPTION, LABEL, MetricTags, ValueUnit } from "./primitives";
+import { push } from "../navigate";
 
 type Common = {
   icon?: ReactNode;
@@ -102,7 +102,7 @@ function RecoveryRow({ p, value, meta }: { p: Extract<ContributorRowProps, { var
   );
   if (p.href)
     return (
-      <Pressable accessibilityRole="link" accessibilityLabel={sentence} onPress={() => router.push(p.href as Href)} className={cn("rounded-lg py-3 active:bg-accent", p.className)}>
+      <Pressable accessibilityRole="link" accessibilityLabel={sentence} onPress={() => p.href && push(p.href)} className={cn("rounded-lg py-3 active:bg-accent", p.className)}>
         {body}
       </Pressable>
     );

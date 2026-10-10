@@ -4,7 +4,6 @@
 // from pulse src/app/(app)/activity/[id]/CoachGlance.tsx.
 import { useEffect, useState } from "react"
 import { Pressable, View } from "react-native"
-import { router, type Href } from "expo-router"
 import { ChevronUp } from "lucide-react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Mark } from "@/ui/brand"
@@ -15,6 +14,7 @@ import { Icon } from "@/ui/Icon"
 import { Text } from "@/ui/Text"
 import { useTheme } from "@/ui/theme"
 import { coachWorkoutGlance } from "./coachStub"
+import { push } from "@/ui/navigate"
 
 const session = new Map<string, string>()
 
@@ -57,7 +57,7 @@ export function CoachGlance({ id, question }: { id: string; question: string }) 
       <Pressable
         accessibilityRole="link"
         accessibilityLabel={s.text ? `Coach: ${s.text} Ask the coach about this workout.` : "Coach is analyzing this workout. Ask the coach about it."}
-        onPress={() => router.push(`/coach?q=${encodeURIComponent(question)}` as Href)}
+        onPress={() => push(`/coach?q=${encodeURIComponent(question)}`)}
         className="active:scale-[0.98]"
       >
         <Glass radius={28} className="min-h-14 flex-row items-center gap-3 py-2 pl-2 pr-3">

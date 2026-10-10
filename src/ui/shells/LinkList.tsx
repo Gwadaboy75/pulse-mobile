@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
-import { router, type Href } from "expo-router";
 import { ArrowUpRight, ChevronRight, type LucideIcon } from "lucide-react-native";
 import * as Linking from "expo-linking";
 import { CARD_CLASS, CardFill, useCardStyle } from "../Card";
@@ -8,6 +7,7 @@ import { cn } from "../cn";
 import { Icon } from "../Icon";
 import { SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
+import { push } from "../navigate";
 
 export type LinkListRow = {
   label: string;
@@ -46,7 +46,7 @@ export function LinkList({ title, rows, className }: { title: string; rows: Link
             key={r.href}
             accessibilityRole="link"
             accessibilityHint={r.external ? "Opens outside the app" : undefined}
-            onPress={() => (r.external ? Linking.openURL(r.href) : router.push(r.href as Href))}
+            onPress={() => (r.external ? Linking.openURL(r.href) : push(r.href))}
             className={cn(CARD_CLASS, ROW, "active:scale-[0.96]")}
             style={shadow}
           >

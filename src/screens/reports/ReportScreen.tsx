@@ -1,7 +1,7 @@
 // Reports `/reports/[period]` (web: (app)/reports/[period]/page.tsx, loading.tsx; spec §7.13, journey 8): `YYYY-Www` or
 // `YYYY-MM`.
 import { Pressable, View } from "react-native";
-import { router, useLocalSearchParams, type Href } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import type { DataColor } from "@/lib/bands";
 import { DAY, formatDay, formatValue, rangeLabel, type FormatKey } from "@/lib/format";
@@ -27,6 +27,7 @@ import { EmptyState } from "@/ui/shells/EmptyState";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { Skeleton, SkeletonText } from "@/ui/Skeleton";
 import { Text } from "@/ui/Text";
+import { push } from "@/ui/navigate";
 
 const WEEK = /^\d{4}-W\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -212,7 +213,7 @@ export default function ReportScreen() {
                       key={b.label}
                       accessibilityRole="link"
                       accessibilityLabel={`${b.label}: ${formatDay(b.day, DAY.long)}, Recovery ${Math.round(b.recovery)} percent${b.strain === null ? "" : `, strain ${formatValue("decimal1", b.strain)}`}`}
-                      onPress={() => router.push(dayHref("/", b.day, today) as Href)}
+                      onPress={() => push(dayHref("/", b.day, today))}
                       className="-mx-2 min-h-16 flex-row items-center gap-3 rounded-lg px-2 py-2 active:bg-accent"
                     >
                       <View accessibilityElementsHidden className="min-w-0 flex-1">

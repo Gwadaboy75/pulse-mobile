@@ -3,11 +3,11 @@
 // (rounded-2xl bg-popover p-1.5, ring, min-w-64, 8 px under the trigger, aligned to its end) in a transparent Modal.
 import { useRef, useState } from "react"
 import { Modal, Pressable, useWindowDimensions, View } from "react-native"
-import { router, type Href } from "expo-router"
 import { CalendarDays, Ellipsis, HeartPulse, type LucideIcon } from "lucide-react-native"
 import { Icon } from "@/ui/Icon"
 import { Text } from "@/ui/Text"
 import { useTheme } from "@/ui/theme"
+import { push } from "@/ui/navigate"
 
 type Anchor = { top: number; right: number }
 
@@ -20,7 +20,7 @@ export function ActivityMenu({ strainHref, settingsHref }: { strainHref: string;
   const close = () => setAnchor(null)
   const go = (href: string) => {
     close()
-    router.push(href as Href)
+    push(href)
   }
   const item = (icon: LucideIcon, label: string, href: string) => (
     <Pressable accessibilityRole="link" onPress={() => go(href)} className="h-12 flex-row items-center gap-3 rounded-xl px-3 active:bg-foreground/10">

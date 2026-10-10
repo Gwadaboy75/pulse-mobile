@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
-import { router, type Href } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { Card, CARD_CLASS, CardFill, useCardStyle } from "../Card";
 import { cn } from "../cn";
@@ -9,6 +8,7 @@ import { Text } from "../Text";
 import { cardInfo } from "./cardInfo";
 import { InfoButton, type InfoContent } from "./InfoButton";
 import { ScrollAnchor } from "./ScreenScroll";
+import { push } from "../navigate";
 
 export type SectionShellProps = {
   variant: "section" | "card";
@@ -30,7 +30,7 @@ export type SectionShellProps = {
 
 const isLinkAction = (a: SectionShellProps["action"]): a is { label: string; href: string } => !!a && typeof a === "object" && "href" in a && "label" in a && !("props" in a);
 
-const go = (href: string) => router.push(href as Href);
+const go = (href: string) => push(href);
 
 export function ActionLink({ label, href }: { label: string; href: string }) {
   return (

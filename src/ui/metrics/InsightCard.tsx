@@ -1,5 +1,5 @@
 import { Pressable, View } from "react-native";
-import { router, type Href } from "expo-router";
+
 import { ArrowRight } from "lucide-react-native";
 import { cn } from "../cn";
 import { Gradient } from "../Gradient";
@@ -7,6 +7,7 @@ import { Icon } from "../Icon";
 import { SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
+import { push } from "../navigate";
 
 export type InsightCardProps = {
   title?: string;
@@ -35,7 +36,7 @@ export function InsightCard({ title, body, action, onAnchor }: InsightCardProps)
           <Pressable
             accessibilityRole="link"
             // An in-page anchor does not leave the screen (spec §8, journey 1).
-            onPress={() => (action.href.startsWith("#") ? onAnchor?.(action.href.slice(1)) : router.push(action.href as Href))}
+            onPress={() => (action.href.startsWith("#") ? onAnchor?.(action.href.slice(1)) : push(action.href))}
             hitSlop={{ top: 14, bottom: 14, left: 4, right: 4 }}
             className="mt-auto flex-row items-center gap-1.5 self-start"
           >

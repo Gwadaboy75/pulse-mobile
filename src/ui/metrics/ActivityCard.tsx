@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
-import { router, type Href } from "expo-router";
 import { clock, formatValue, spoken } from "@/lib/format";
 import type { Metric } from "@/lib/reasons";
 import { cn } from "../cn";
@@ -9,6 +8,7 @@ import { ACTIVITY_ICON, type ActivityKind } from "../icons";
 import { Skeleton, SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
 import { capTrim } from "./primitives";
+import { push } from "../navigate";
 
 /** The chip's 20 px value, cap-trimmed as the web's CAP_TRIM. */
 const VALUE_TRIM = capTrim(20, "numeric");
@@ -69,7 +69,7 @@ export function TimelineRow({
   label: string;
 }) {
   return (
-    <Pressable accessibilityRole="link" accessibilityLabel={label} onPress={() => router.push(href as Href)} className={cn(ROW, "active:scale-[0.96] active:bg-accent")}>
+    <Pressable accessibilityRole="link" accessibilityLabel={label} onPress={() => push(href)} className={cn(ROW, "active:scale-[0.96] active:bg-accent")}>
       <View className={cn(CHIP, chipClass)}>{chip}</View>
       <View className="min-w-0 flex-1">
         <Text className="text-[15px] font-bold uppercase leading-5 tracking-[0.1em]">{name}</Text>

@@ -4,7 +4,6 @@
 // the web, through <HeaderSentinel> (HEADER_SENTINEL there).
 import { useMemo, useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
-import { router, type Href } from "expo-router";
 import { CalendarRange, Check, ChevronRight, CircleAlert, Info, Lightbulb, Maximize2, Moon, Plus, Sun, TriangleAlert } from "lucide-react-native";
 import { isDashboardKey } from "@/lib/dashboard";
 import { clock, DAY, formatDay, formatValue, MISSING, rangeLabel } from "@/lib/format";
@@ -46,6 +45,7 @@ import { HomeSkeleton } from "./HomeSkeleton";
 import { CARD_BUTTON, CardButtonContent, CardButtonLink, GradientBanner, IconLink } from "./parts";
 import { PlusKey } from "./PlusMenu";
 import { TonightPlan } from "./TonightPlan";
+import { push } from "@/ui/navigate";
 
 const STRESS_TONE: Record<StressLevel, { chip: string; text: string; word: string }> = {
   low: { chip: "bg-stress-low/15", text: "text-stress-low-text", word: "Low" },
@@ -63,7 +63,7 @@ const NO_BAND_INFO = {
   ),
 };
 
-const go = (href: string) => router.push(href as Href);
+const go = (href: string) => push(href);
 
 /** Home `/`: the day is the route's `d` (the DateSwitcher in the header changes it). */
 export function HomeScreen() {

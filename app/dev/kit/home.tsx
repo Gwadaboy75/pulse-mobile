@@ -1,6 +1,5 @@
 import { Pressable, View } from "react-native";
 import { CalendarRange, ChevronRight, HeartPulse, Brain, TrendingUp, Infinity as InfinityIcon, type LucideIcon } from "lucide-react-native";
-import { router, type Href } from "expo-router";
 import { Gradient } from "@/ui/Gradient";
 import { Icon } from "@/ui/Icon";
 import * as fx from "@/ui/fixtures/kit";
@@ -14,12 +13,13 @@ import { HeaderSentinel, PageShell } from "@/ui/shells/PageShell";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
+import { push } from "@/ui/navigate";
 
 /** PageShell layout="home" (spec §4.4, §7.1): the collapsing header's top row, the dials, and the ring row that eases in as they scroll away. */
 function Banner() {
   const { c } = useTheme();
   return (
-    <Pressable accessibilityRole="link" onPress={() => router.push("/dev/kit" as Href)} className="h-14 flex-row items-center gap-3 overflow-hidden rounded-xl px-4">
+    <Pressable accessibilityRole="link" onPress={() => push("/dev/kit")} className="h-14 flex-row items-center gap-3 overflow-hidden rounded-xl px-4">
       <Gradient from={c["banner-from"]} to={c["banner-to"]} />
       <Icon icon={CalendarRange} size={20} tone="foreground" strokeWidth={1.75} />
       <Text className="flex-1 text-base font-semibold leading-[22px]">Your week in review</Text>

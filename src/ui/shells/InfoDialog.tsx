@@ -2,11 +2,11 @@ import type { ReactNode } from "react";
 import { Modal, Pressable, ScrollView, View } from "react-native";
 import { X } from "lucide-react-native";
 import type { ChipTone } from "@/lib/bands";
-import { router, type Href } from "expo-router";
 import { Button } from "../Button";
 import { StatusChip } from "../metrics/primitives";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
+import { push } from "../navigate";
 
 export type InfoContent = {
   title: string;
@@ -51,7 +51,7 @@ export function InfoDialog({ open, onClose, title, body, icon, chip, action }: I
                 className="mt-6 h-12 w-full"
                 onPress={() => {
                   onClose();
-                  router.push(action.href as Href);
+                  push(action.href);
                 }}
               >
                 {action.label}

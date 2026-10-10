@@ -11,6 +11,7 @@ import { SectionShell } from "@/ui/shells/SectionShell";
 import { Text } from "@/ui/Text";
 import { BODY, Divider } from "../settings/controls";
 import { SCORE_DOCS, type HowSection } from "./howItWorksContent";
+import { push } from "@/ui/navigate";
 
 /** A detail this short sits beside its term ("HRV  55%"); a sentence goes under it. */
 const SHORT = 24;
@@ -61,7 +62,7 @@ export function ScoreExplainerScreen() {
         <View className="w-full gap-4">
           <Text className="text-[17px] leading-6">{doc.summary}</Text>
           {doc.href && (
-            <Button variant="secondary" onPress={() => router.push(doc.href as never)}>
+            <Button variant="secondary" onPress={() => doc.href && push(doc.href)}>
               {`Open ${doc.name}`}
             </Button>
           )}

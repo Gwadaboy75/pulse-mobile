@@ -1,7 +1,6 @@
 import { Pressable, View } from "react-native";
 import Animated, { useAnimatedStyle, useDerivedValue, type DerivedValue } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
-import { router, type Href } from "expo-router";
 import { UserRound } from "lucide-react-native";
 import { BAND_WORD, recoveryBand } from "@/lib/bands";
 import { formatValue } from "@/lib/format";
@@ -12,6 +11,7 @@ import { useTheme } from "../theme";
 import { DateSwitcher, useSelectedDay } from "./DateSwitcher";
 import { HEADER_ROW, HeaderFrame } from "./Header";
 import { useShellCalendar } from "./ShellStatus";
+import { push } from "../navigate";
 
 export type HeaderRing = { value: number | null; href: string };
 /** The day's three scores for the ring row (the dials' own view model), with their detail links. */
@@ -73,7 +73,7 @@ export function HomeHeader({ rings, progress, right, streak }: { rings?: HeaderR
         {/* Equal side tracks keep the pill centred; each is at least its content. */}
         <View className="h-11 flex-row items-center gap-2">
           <View className="flex-1 flex-row items-center">
-            <Pressable accessibilityRole="link" accessibilityLabel="Settings" onPress={() => router.push("/settings" as Href)} className="size-[34px] items-center justify-center rounded-full bg-secondary active:scale-[0.96]" style={{ zIndex: 1 }}>
+            <Pressable accessibilityRole="link" accessibilityLabel="Settings" onPress={() => push("/settings")} className="size-[34px] items-center justify-center rounded-full bg-secondary active:scale-[0.96]" style={{ zIndex: 1 }}>
               <Icon icon={UserRound} size={20} tone="foreground-secondary" strokeWidth={1.5} />
             </Pressable>
             {/* Starts under the avatar so the avatar sits on the pill's left end (spec §11 M6). Past days show no streak. */}
@@ -93,7 +93,7 @@ export function HomeHeader({ rings, progress, right, streak }: { rings?: HeaderR
             const value = ring?.value ?? null;
             return (
               <View key={key} className="flex-1 items-center">
-                <Pressable accessibilityRole="link" accessibilityLabel={ringLabel(key, label, value)} onPress={() => router.push((ring?.href ?? `/${key}`) as Href)} className="h-10 flex-row items-center justify-center gap-2 rounded-full px-2 active:scale-[0.96]">
+                <Pressable accessibilityRole="link" accessibilityLabel={ringLabel(key, label, value)} onPress={() => push(ring?.href ?? `/${key}`)} className="h-10 flex-row items-center justify-center gap-2 rounded-full px-2 active:scale-[0.96]">
                   <MiniRing variant={key} value={value} />
                   {/* 11 px, the reference app's ring-row label (spec §11 F5). */}
                   <Text className="text-[11px] font-bold uppercase leading-4 tracking-[0.1em]">{label}</Text>
