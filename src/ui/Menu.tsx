@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from "react";
-import { Modal, Pressable, View } from "react-native";
+import { Modal, Platform, Pressable, StatusBar, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cn } from "./cn";
 import { placeMenu, type Box } from "./menuPlace";
@@ -12,7 +12,8 @@ export function useMenu() {
   return {
     ref,
     anchor,
-    open: () => ref.current?.measureInWindow((x, y, w, h) => setAnchor({ x, y, w, h })),
+    // On Android, measureInWindow measures from below the status bar, while the translucent modal starts at the top of the screen.
+    open: () => ref.current?.measureInWindow((x, y, w, h) => setAnchor({ x, y: y + (Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0), w, h })),
     close: () => setAnchor(null),
   };
 }
@@ -23,9 +24,7 @@ export function useMenu() {
  * the trigger's width). Like Radix, it flips above only when it does not fit below and fits better above, and it never
  * covers its trigger. A tap outside closes it; there is no dim.
  *
- * The trigger is measured with measureInWindow and so is the modal's own root, and the panel is placed at the
- * difference: on Android, measureInWindow can leave out the status bar while a translucent modal starts under it, and
- * the same offset in both readings cancels out.
+ * The trigger and the modal's own root are both measured in window coordinates, and the panel is placed at the difference.
  */
 export function MenuPanel({ anchor, onClose, align, className, children }: { anchor: Box | null; onClose: () => void; align: "start" | "end" | "stretch"; className?: string; children: ReactNode }) {
   const insets = useSafeAreaInsets();

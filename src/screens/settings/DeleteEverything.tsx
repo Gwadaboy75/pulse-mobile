@@ -1,5 +1,5 @@
 // Settings › Profile › Delete everything. The web's "Delete account" (a quiet red-outlined pill at the foot of Account, a
-// dialog that asks for the password) without an account: the confirmation is asked twice instead of the password, then the
+// dialog that asks for the password) without an account: the confirmation is entered twice in place of the password, then the
 // database file is deleted and the app restarts into onboarding (src/actions/reset.ts).
 import { useState } from "react";
 import { View } from "react-native";

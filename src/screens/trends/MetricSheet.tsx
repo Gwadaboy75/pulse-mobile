@@ -1,7 +1,7 @@
 // The Trends metric picker (web: trends/MetricSheet.tsx + parts.tsx MetricPicker). One card row names the section and
 // metric on show; a tap opens a bottom sheet of the sections, the current one open, its metrics as wrapping chips (one
 // section at a time, so the sheet stays about a screen tall). On the phone the sheet is a route (/trends-metric); a choice
-// goes back to /trends with the new `metric`, keeping `r`. The web's 768 px popover is a laptop layout and is not ported.
+// goes back to /trends with the new `metric`, keeping `r`.
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";

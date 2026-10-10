@@ -1,5 +1,5 @@
 // The log sheets' pure logic, from pulse's (app)/journal/Log.test.tsx (the form half): what a sheet sends, and the
-// default time. The component cases (tiles, quick add, the reconnect screen) are the owner's check on the phone.
+// default time. The component cases (tiles, quick add, the reconnect screen) are checked by hand on the phone.
 import { describe, expect, it } from "vitest";
 import { dateToDay, dateToWall, defaultAt, EMPTY, num, toInput, wallNow, wallToDate } from "./form";
 

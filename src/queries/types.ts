@@ -384,7 +384,7 @@ export type MonitorVM = {
   illness: { level: string; score: number } | null;
   vitals: Vital[];
   heartRhythm: HeartRhythm;
-  /** Weight and body fat always; blood glucose and core temperature only once the owner has ever had one. */
+  /** Weight and body fat always; blood glucose and core temperature only once the person has ever had one. */
   measurements: Measurement[];
 };
 
@@ -510,7 +510,7 @@ export type SettingsVM = {
   source: {
     label: "Demo data" | "Google Health";
     status: "demo" | "not_connected" | "not_linked" | "no_device" | "connected" | "revoked";
-    /** The grant predates scopes Pulse now asks for (logging to Google, 2026-10): Settings offers a reconnect. */
+    /** A grant without the scopes Pulse asks for (logging to Google): Settings offers a reconnect. */
     needsPermissions?: boolean;
   };
   import: { done: number; total: number } | null;

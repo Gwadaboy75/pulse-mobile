@@ -48,7 +48,7 @@ export interface SettingsRepo {
   remove(key: SettingKey): Promise<void>;
   /**
    * The atomic once-a-day claim: stores `day` and returns true only when the key was unset or held an earlier day, so
-   * two concurrent runs cannot both send the alert. Claimed before sending, as pulse does. push.ts:61 `claim`
+   * two concurrent runs cannot both send the alert. Claimed before sending. push.ts:61 `claim`
    */
   claimDay(key: ClaimKey, day: string): Promise<boolean>;
 

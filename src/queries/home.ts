@@ -222,7 +222,7 @@ const hasBand = (store: Store) => store.samples.hasHr();
 
 export const dashboardDefault = async (store: Store): Promise<DashboardKey[]> => ((await hasBand(store)) ? DASHBOARD_DEFAULT : PHONE_DEFAULT);
 
-/** My Dashboard's chosen metrics in order. Keys no longer in the catalogue are skipped; none chosen means the default list. */
+/** My Dashboard's chosen metrics in order. Keys missing from the catalogue are skipped; none chosen means the default list. */
 export async function dashboardKeys(store: Store): Promise<DashboardKey[]> {
   const keys = (await store.settings.dashboardKeys()).filter(isDashboardKey);
   return keys.length ? keys : dashboardDefault(store);

@@ -1,6 +1,5 @@
 // Ported from pulse sync.test.ts, over a scripted fetch and the Store (testing/store.ts). The payloads are F1's (the
-// Google fixtures pulse's tests read from __fixtures__). Dropped: the raw archive pruning test, the per-user test (one
-// install is one person), and the recompute/score assertions (the pipeline is another stream); the dirty days and the
+// Google fixtures pulse's tests read from __fixtures__). The recompute and score assertions live with the pipeline; here the dirty days and the
 // tables stand in for them.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Store } from "../data/repos";

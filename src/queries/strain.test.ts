@@ -11,7 +11,7 @@ const dayAt = (i: number) => new Date(Date.parse(ANCHOR) + i * 86_400_000).toISO
 let ctx: QueryCtx;
 beforeAll(async () => {
   ctx = await seededCtx();
-  // seededCtx() loads what the pipeline reads; F6 was recorded with F2's Google roll-ups (daily_values) in place too.
+  // seededCtx() loads what the pipeline reads; the F6 fixture assumes F2's Google roll-ups (daily_values) in place too.
   await ctx.store.daily.upsertDailyValues(loadF2().tables.daily_values.map((r) => ({ day: r.day as string, key: r.key as string, value: r.value as number })));
 }, 120_000);
 

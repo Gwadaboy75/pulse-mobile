@@ -1,6 +1,6 @@
 // Ported from pulse src/server/actions/log.test.ts: validation, the entries built, the not-connected answer, the
-// reconnect check and the delete. "Signed out" and "demo mode" have no counterpart; what replaces demo is the answer a
-// phone with no Google token source gives (RECONNECT, nothing stored).
+// reconnect check and the delete. There is no sign-out or demo mode: a phone with no Google token
+// source answers RECONNECT and stores nothing.
 import { randomUUID } from "node:crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { testStore } from "../data/testing";

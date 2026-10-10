@@ -1,7 +1,7 @@
 // The repositories: the only code that touches SQLite. Each table belongs to exactly one repository (writes); a repository
 // may read another's table where a pulse query joins them (`logRepo.waterOn` reads daily_values and sync_state).
 //
-//   samples   hr_days, steps_days                   heavy BLOB tables (pulse's raw_payloads archive is dropped: nothing read it)
+//   samples   hr_days, steps_days                   heavy BLOB tables (no raw payload archive: nothing reads one)
 //   series    intraday_series                        per-minute series the pipeline caches
 //   scores    daily_scores, fold_checkpoints, reports, intraday_dirty   what the pipeline computes, and its "what to recompute" marks
 //   daily     daily_metrics, daily_values, health_records               Google's daily rows

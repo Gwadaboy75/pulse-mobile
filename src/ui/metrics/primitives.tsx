@@ -96,8 +96,7 @@ export function DeltaMark({ dir, tone, color }: { dir: DeltaDir; tone: Tone; col
 const SPACE_13 = 0.241 * 13;
 
 /**
- * `fit`: one line, the type scaled down to the width it is given rather than breaking inside the number (the web lets
- * it run past its column instead; a phone has no room for that at 320 px).
+ * `fit`: one line, the type scaled down to the width it is given rather than breaking inside the number (a phone has no room for text running past its column at 320 px).
  */
 export function ValueUnit({ value, unit, className, unitClassName, fit }: { value: string; unit?: string; className?: string; unitClassName?: string; fit?: boolean }) {
   return (

@@ -63,7 +63,7 @@ export function DateSwitcher({ mode, calendar, placement = "body", narrow: narro
   const step = week ? 7 : 1;
   const by = (n: number) => setDay(stepDay(d, n, today, firstDay));
 
-  // dayLabel, not pulse's pillLabel: the owner wants "THU, OCT 1", without pillLabel's periods. Back to pillLabel once pulse drops them.
+  // dayLabel, not pulse's pillLabel: the date reads "THU, OCT 1", without pillLabel's periods.
   const label = week ? rangeLabel(weekStart, weekEnd) : dayLabel(d, today);
   const bare = placement === "header";
   const stepClass = bare ? "size-9" : narrow ? "size-6" : "size-7";

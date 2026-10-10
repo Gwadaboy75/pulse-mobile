@@ -1,8 +1,7 @@
 // The Google parts of pulse's src/server/logging.ts (spec §11 LG1): a validated set of entries is checked against the
 // grant's write scopes, written to Google, mirrored in `logged_entries`, and the readable types' sync cursors are
-// rewound so the next sync fetches their totals. Not ported: the zod validation, the profile checks and the entry
-// building from a sheet's input (they belong to the log sheets and the coach, which do not exist yet; zod is not a
-// dependency here), `revalidatePath` and `requestSync` (the caller starts a sync after a successful result).
+// rewound so the next sync fetches their totals. `revalidatePath` and `requestSync` belong to the caller, which starts
+// a sync after a successful result.
 import type { Repos } from "../data/repos";
 import { createGoogleClient, type ClientDeps } from "./client";
 import { logAccess, saveEntries, type LogResult, type LogWriter, type NewEntry } from "./log";

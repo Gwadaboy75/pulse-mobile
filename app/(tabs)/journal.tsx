@@ -8,7 +8,6 @@ import { todayOf } from "@/queries/common";
 import { getJournal } from "@/queries/journal";
 import { getLog } from "@/queries/log";
 import { CheckInCard } from "@/screens/journal/CheckInCard";
-import { DayLog } from "@/screens/journal/DayLog";
 import { History } from "@/screens/journal/History";
 import { LoadError } from "@/screens/journal/LoadError";
 import { LogTiles } from "@/screens/journal/LogTiles";
@@ -62,10 +61,6 @@ function Page({ vm, log, onSelect }: { vm: Awaited<ReturnType<typeof getJournal>
 
         <CollapsibleSection id="check-in" title="Check-in">
           <CheckInCard dayLabel={date} day={d} today={today} checkIn={vm.checkIn} />
-        </CollapsibleSection>
-
-        <CollapsibleSection id="logged" title={`Logged ${d === today ? "today" : d === addDays(today, -1) ? "yesterday" : `on ${date}`}`}>
-          <DayLog vm={log} />
         </CollapsibleSection>
 
         <CollapsibleSection id="insights" title="Insights" action={<ActionLink label="See all" href="/journal/insights" />}>

@@ -35,7 +35,7 @@ describe("encoding", () => {
     expect(decodeDay(u8, e.offsets, e.values)).toEqual({ offsets, values });
     expect(e.values.length).toBe(37_000);
     expect(e.offsets.length).toBe(37_000); // every gap is under 128: one byte
-    // Pulse's integer[] + smallint[] was 4 + 2 bytes a sample (about 160 KB in the web app's note); this is 74 KB.
+    // One byte per offset and per value: 2 bytes a sample, about 74 KB.
     expect(e.offsets.length + e.values.length).toBeLessThan(75_000);
   });
 

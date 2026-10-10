@@ -37,7 +37,7 @@ const SHEET_RADIUS = RADIUS["4xl"];
  */
 export function sheetOptions(size: SheetSize, c: Palette): Options {
   // The frame shows below the content where iOS adds the home indicator's band to a content-height sheet: the colour the
-  // content's gradient ends on, so the sheet reads as one fill (with `sheet` the band was a lighter stripe).
+  // content's gradient ends on, so the sheet reads as one fill.
   const contentStyle = { backgroundColor: c["sheet-bottom"] };
   if (size === "screen") return { headerShown: false, presentation: "modal", contentStyle };
   return {

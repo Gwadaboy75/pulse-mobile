@@ -129,3 +129,37 @@ describe.skipIf(!process.env.PULSE_NIGHTLY)("local days in every zone (nightly)"
     for (const tz of Intl.supportedValuesOf("timeZone")) checkZone(tz);
   }, 300_000);
 });
+
+describe("wall's offset cache", () => {
+  // A fresh Intl reading, the way wall read every instant before the cache.
+  const formats = new Map<string, Intl.DateTimeFormat>();
+  const reference = (s: number, tz: string) => {
+    let f = formats.get(tz);
+    if (!f) formats.set(tz, (f = new Intl.DateTimeFormat("en-CA", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })));
+    const p = Object.fromEntries(f.formatToParts(new Date(s * 1000)).map((x) => [x.type, x.value]));
+    return { day: `${p.year}-${p.month}-${p.day}`, time: `${p.hour}:${p.minute}:${p.second}`, asUtc: Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) / 1000 };
+  };
+  const offset = (s: number, tz: string) => reference(s, tz).asUtc - s;
+
+  it.each([...ZONES, "Africa/Monrovia", "Asia/Kathmandu"])("%s: every second around each transition, and a spread of instants, read as Intl reads them", (tz) => {
+    // Monrovia's 1972 change from -0:44:30 is off the quarter hour; the rest are 2020–2030.
+    const from = tz === "Africa/Monrovia" ? Date.UTC(1971, 0, 1) / 1000 : Date.UTC(2020, 0, 1) / 1000;
+    const to = from + 10 * 365 * 86_400;
+    const instants: number[] = [];
+    // Every 6 hours plus an odd remainder, so readings land at every minute and second over the years.
+    for (let s = from; s < to; s += 6 * 3600 + 37) instants.push(s, s + 0.5);
+    // Each transition to the second (a change of offset within an hour, then bisected), and 15 minutes either side of it.
+    for (let s = from; s < to; s += 3600) {
+      if (offset(s, tz) === offset(s + 3600, tz)) continue;
+      let lo = s;
+      let hi = s + 3600;
+      while (hi - lo > 1) {
+        const mid = Math.floor((lo + hi) / 2);
+        if (offset(mid, tz) === offset(lo, tz)) lo = mid;
+        else hi = mid;
+      }
+      for (let t = hi - 900; t < hi + 900; t++) instants.push(t);
+    }
+    for (const s of instants) expect(wall(s, tz)).toEqual(reference(s, tz));
+  });
+});

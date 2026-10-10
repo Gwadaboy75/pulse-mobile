@@ -1,5 +1,5 @@
 // Typed loaders for the parity fixtures in fixtures/ (exported from pulse, see fixtures/README.md). Each reads
-// `<name>.json`, or `<name>.json.gz` when the file was too large to keep as plain JSON.
+// `<name>.json`, or `<name>.json.gz` when the file is too large to keep as plain JSON.
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import zlib from "node:zlib";

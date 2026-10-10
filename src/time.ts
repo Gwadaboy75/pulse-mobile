@@ -3,8 +3,8 @@
 
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
-/** Local wall-clock reading of instant `s`: the day, `HH:mm:ss`, and that wall time read as if it were UTC. */
-export function wall(s: number, tz: string) {
+/** `wall` read through Intl: the reference every cached reading must equal. */
+function intlWall(s: number, tz: string) {
   let f = formatters.get(tz);
   if (!f) {
     f = new Intl.DateTimeFormat("en-CA", {
@@ -24,6 +24,41 @@ export function wall(s: number, tz: string) {
     day: `${p.year}-${p.month}-${p.day}`,
     time: `${p.hour}:${p.minute}:${p.second}`,
     asUtc: Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) / 1000,
+  };
+}
+
+// Intl with a time zone is slow where the engine reaches the OS for it (Hermes on Android goes through Java ICU), and a
+// screen can ask for thousands of readings. So the zone's offset is read once per 15-minute slice and the wall time is
+// arithmetic. A slice whose start and end disagree holds a transition: each instant in it goes to Intl.
+const SLICE_S = 900;
+const MIXED = Number.NaN;
+const offsets = new Map<string, Map<number, number>>();
+// ponytail: a zone's cache is dropped whole past this many slices (about a year of quarter hours); an LRU if that churns.
+const MAX_SLICES = 40_000;
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** Local wall-clock reading of instant `s`: the day, `HH:mm:ss`, and that wall time read as if it were UTC. */
+export function wall(s: number, tz: string) {
+  const t = Math.floor(s);
+  // Years outside 1970..9999 keep Intl's own year format and the zones' pre-1970 local mean times.
+  if (t < 0 || t >= 253_402_300_800) return intlWall(s, tz);
+  let zone = offsets.get(tz);
+  if (!zone || zone.size > MAX_SLICES) offsets.set(tz, (zone = new Map()));
+  const slice = Math.floor(t / SLICE_S);
+  let off = zone.get(slice);
+  if (off === undefined) {
+    const start = slice * SLICE_S;
+    const a = intlWall(start, tz).asUtc - start;
+    const b = intlWall(start + SLICE_S - 1, tz).asUtc - (start + SLICE_S - 1);
+    off = a === b ? a : MIXED;
+    zone.set(slice, off);
+  }
+  if (Number.isNaN(off)) return intlWall(s, tz);
+  const d = new Date((t + off) * 1000);
+  return {
+    day: `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`,
+    time: `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`,
+    asUtc: t + off,
   };
 }
 

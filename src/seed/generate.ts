@@ -572,9 +572,8 @@ export function extrasAt(g: Day, now: number): [ExtraKey, number][] {
 }
 
 /**
- * Inserts what has happened on days `gs` by `now`. A fresh seed only (pulse's later pulls, which topped a seeded user up
- * to the next tick, do not exist here), so there is no "synced through" cut. Marks days with HR or steps intraday_dirty.
- * Returns the number of rows written. Pulse's `inChunks` (Postgres's 65,535-parameter cap) is the repositories' own job now.
+ * Inserts what has happened on days `gs` by `now`. A fresh seed only, so there is no "synced through" cut. Marks days with HR or steps intraday_dirty.
+ * Returns the number of rows written. Chunking for the parameter cap is the repositories' job.
  */
 export async function writeDays(store: Repos, gs: Day[], now: number) {
   const hr: { ts: number; v: number }[] = [];

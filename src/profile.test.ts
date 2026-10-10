@@ -1,5 +1,5 @@
-// Ported from pulse src/server/profile.test.ts. One person per install, so pulse's other-user case is gone; the seeded
-// database is a few daily rows rather than the 180-day demo (the dirty-mark count is what matters).
+// Ported from pulse src/server/profile.test.ts. One person per install, so there is no other-user case; the seeded
+// database is a few daily rows (the dirty-mark count is what matters).
 import { describe, expect, it } from "vitest";
 import { testDb, testStore } from "./data/testing";
 import { getProfile, ProfileInput, saveProfile } from "./profile";

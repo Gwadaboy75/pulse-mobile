@@ -1,7 +1,7 @@
 // The Journal (spec §7.11, journal-01..15), pulse's (app)/journal/CheckIn.tsx `CheckInSheet`: the full-screen check-in
 // over whatever screen is showing, for that screen's day (`d`); the strip and arrows inside move between days. Closing it
-// (X, Back, swipe down, Save) leaves that screen as it was (spec §11 UX2). Not ported: the offline queue (the phone
-// writes to its own database, so a save cannot be "offline") and Select Behaviors as a dialog (the pencil opens
+// (X, Back, swipe down, Save) leaves that screen as it was (spec §11 UX2). There is no offline queue (the phone
+// writes to its own database, so a save cannot be "offline") and Select Behaviors is not a dialog (the pencil opens
 // Settings' behaviours screen).
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TextInput, View } from "react-native";

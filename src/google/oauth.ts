@@ -9,8 +9,8 @@ export const FETCH_TIMEOUT_MS = 30_000;
 
 // Every read scope the API has, so one consent covers all data. Nutrition has no read-only scope:
 // `nutrition.writeonly` is the only one that lets dataPoints.list return food and hydration logs.
-// Writes (create, batchDelete) happen only for what the owner logs in Pulse (src/google/logging.ts).
-// Health scopes only: never `openid`, `email` or `profile` (pulse's LOGIN_SCOPES are dropped: no accounts here).
+// Writes (create, batchDelete) happen only for what the person logs in the app (src/google/logging.ts).
+// Health scopes only: never `openid`, `email` or `profile`, since there are no accounts here.
 export const SCOPES = [
   // Read: every screen and score. settings.readonly is what users.pairedDevices.list needs (the "no Fitbit device" check).
   "activity_and_fitness.readonly",

@@ -3,27 +3,30 @@
 // `connectGoogle()` is still a stub, so today it comes back with "isn't available in this build yet" on the explainer.
 import { useEffect, useState } from "react";
 import { ActivityIndicator, BackHandler, View } from "react-native";
-import { Button } from "@/ui/Button";
+import { Activity, Footprints, HeartPulse, Moon, Utensils, Watch, type LucideIcon } from "lucide-react-native";
+import { Card } from "@/ui/Card";
+import { Divided } from "@/ui/Divided";
+import { Icon } from "@/ui/Icon";
 import { haptic } from "@/ui/haptics";
-import { Mark } from "@/ui/brand";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { connectGoogle } from "../settings/connect";
+import { GoogleButton, TextButton } from "./buttons";
 import { Frame } from "./Frame";
 
-// What each health scope in src/google/oauth.ts SCOPES lets Pulse read, in the person's words.
-const READS: { title: string; body: string }[] = [
-  { title: "Activity and fitness", body: "Steps, workouts, calories and active minutes." },
-  { title: "Heart and body", body: "Heart rate, HRV, oxygen saturation, breathing rate, skin temperature and weight." },
-  { title: "Sleep", body: "Sleep stages and nightly timing." },
-  { title: "ECG and heart rhythm", body: "ECG readings and irregular rhythm notifications." },
-  { title: "Nutrition", body: "Food and water you log." },
-  { title: "Profile and tracker", body: "Your age, and your tracker’s battery and last sync." },
-  { title: "What Pulse writes", body: "Only what you log in Journal: food, water, weight, mindfulness, symptoms and cycle entries." },
+// What the health scopes in src/google/oauth.ts SCOPES let Pulse read, in the person's words, with the app's icons. Titles
+// only, so the screen fits without scrolling; Google's own consent screen has the detail.
+const READS: { icon: LucideIcon; title: string }[] = [
+  { icon: Footprints, title: "Activity and workouts" },
+  { icon: HeartPulse, title: "Heart rate, HRV and body" },
+  { icon: Moon, title: "Sleep" },
+  { icon: Activity, title: "ECG and heart rhythm" },
+  { icon: Utensils, title: "Food and water you log" },
+  { icon: Watch, title: "Your age and tracker" },
 ];
 
 /**
- * `onConnected` runs once Google has said yes; it may fail (clearing the sample data), and its error shows here.
+ * `onConnected` runs once Google grants access; it may fail (clearing the sample data), and its error shows here.
  * `sample`: the person is leaving sample data, so the explainer says it goes.
  */
 export function ConnectFlow({ sample, onConnected, onCancel }: { sample?: boolean; onConnected: () => Promise<string | null>; onCancel: () => void }) {
@@ -52,15 +55,14 @@ export function ConnectFlow({ sample, onConnected, onCancel }: { sample?: boolea
     return (
       // Behind Google's consent sheet: what the person sees if they look past it, or come back before answering.
       <Frame>
-        <View accessibilityLiveRegion="polite" className="flex-1 items-center justify-center gap-6">
-          <Mark size={72} />
+        <View accessibilityLiveRegion="polite" className="flex-1 items-center justify-center gap-5 pb-16">
+          <ActivityIndicator size="large" color={c["foreground-secondary"]} />
           <View className="items-center gap-2">
-            <Text accessibilityRole="header" className="text-center text-[22px] font-bold leading-7">
-              Google Health is asking for access
+            <Text accessibilityRole="header" className="text-center text-[22px] font-semibold leading-7 tracking-[-0.01em]">
+              Waiting for Google
             </Text>
-            <Text className="text-center text-[15px] leading-[22px] text-foreground-secondary">Choose what Pulse can read in Google’s window, then you’re back here.</Text>
+            <Text className="max-w-[300px] text-center text-[15px] leading-[22px] text-foreground-secondary">Choose what Pulse can read in Google’s window. You come back here when you’re done.</Text>
           </View>
-          <ActivityIndicator color={c["foreground-secondary"]} />
         </View>
       </Frame>
     );
@@ -74,30 +76,27 @@ export function ConnectFlow({ sample, onConnected, onCancel }: { sample?: boolea
               {error}
             </Text>
           )}
-          <Button size="sheet" onPress={connect}>
-            Connect Google Health
-          </Button>
-          <Button size="sheet" variant="ghost" haptic={false} onPress={onCancel}>
-            Not now
-          </Button>
+          <GoogleButton onPress={connect} />
+          <TextButton label="Not now" onPress={onCancel} />
         </>
       }
     >
       <Text accessibilityRole="header" className="text-[28px] font-bold leading-[34px] tracking-[-0.02em]">
-        How Pulse uses your health data
+        What Pulse reads
       </Text>
-      <Text className="mb-6 mt-2 text-base leading-6 text-foreground-secondary">
-        Pulse reads these from Google Health and keeps them on this phone. Google asks you which to share next.
-        {sample ? " Once you say yes, the sample data is cleared." : ""}
+      <Text className="mt-2 text-[15px] leading-[22px] text-foreground-secondary">
+        From Google Health, kept on this phone.{sample ? " Your sample data is cleared once you connect." : ""}
       </Text>
-      <View className="gap-4">
-        {READS.map((r) => (
-          <View key={r.title} className="gap-0.5">
-            <Text className="text-[15px] font-semibold leading-5">{r.title}</Text>
-            <Text className="text-[13px] leading-[18px] text-foreground-secondary">{r.body}</Text>
-          </View>
-        ))}
-      </View>
+      <Card className="mt-6 px-4 py-1">
+        <Divided>
+          {READS.map((r) => (
+            <View key={r.title} className="min-h-12 flex-row items-center gap-3.5 py-2.5">
+              <Icon icon={r.icon} size={20} tone="foreground-secondary" />
+              <Text className="min-w-0 flex-1 text-[15px] font-medium leading-5">{r.title}</Text>
+            </View>
+          ))}
+        </Divided>
+      </Card>
     </Frame>
   );
 }

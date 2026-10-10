@@ -4,8 +4,8 @@
 // text keeps key order, which journal impact's memo key depends on); floats are SQLite `real` (8-byte);
 // booleans are `integer` 0/1.
 //
-// Dropped from pulse: better-auth tables, invites, server_settings, coach_prompts, push_subscriptions, avatars, and
-// oauth_tokens (the Google tokens live in the secure store; the non-secret grant goes to `settings`; no account identity is stored).
+// No auth tables, invites or account identity: the Google tokens live in the secure store, and the non-secret grant
+// goes to `settings`.
 // Only src/data/repos may query these tables.
 import { check, customType, foreignKey, index, integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
@@ -222,7 +222,7 @@ export const dailyScores = sqliteTable("daily_scores", {
 
 /**
  * Stage 2's fold state after `day` (src/pipeline/stage2.ts): one row, so a run replays only the days after it instead
- * of the whole history. Dropped by the version, profile or first-day checks when it no longer applies.
+ * of the whole history. Discarded by the version, profile or first-day checks when it stops applying.
  */
 export const foldCheckpoints = sqliteTable(
   "fold_checkpoints",

@@ -15,14 +15,6 @@ import type { StrainTarget } from "@/core/algorithms/strainTarget";
 
 /**
  * Bump on any scoring change; a mismatch at startup reruns both stages for every day.
- * 1: U5 scorers. 2: SRI consistency in sleep performance (U7), U10 pipeline. 3: one age helper
- * (healthspan and fitness age agree with whole years on birthdays). 4: local days open at the right instant
- * where DST starts at midnight (Santiago, Havana, Azores...), so the 23-hour day is the right one. 5: Pulse Age's
- * stored key is `pulseAge` (was a brand name), so stored healthspan rows rescore. 6: Google's inputs first (its daily
- * zones, resting HR, time in zones, skin-temperature baseline and personal ranges), four named zones. 7: five
- * display zones on heart-rate reserve (Strain's and WHOOP's 50/60/70/80/90%) in place of Google's four. 8: max HR
- * no longer from Google's PEAK zone (a flat 220), so zones and Strain use the person's own or Tanaka's.
- * 10: each Healthspan factor keeps its 30-day mean beside the 6-month one (health-03's two markers).
  */
 export const SCORING_VERSION = 10;
 
@@ -80,7 +72,7 @@ export type RecoveryRow = {
   stale: string[];
   /** Terms the score used. */
   terms: string[];
-  /** The score gained a term after it was first shown. */
+  /** Set when the score's terms changed since it was last shown. */
   updated: boolean;
   inputs: { hrv: number | null; rhr: number | null; resp: number | null; sleepPerf: number | null; skinTempDev: number | null };
   baselines: { hrv: BaselineSummary; rhr: BaselineSummary; resp: BaselineSummary; skinTemp: BaselineSummary };

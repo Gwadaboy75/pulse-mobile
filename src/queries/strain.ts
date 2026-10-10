@@ -121,7 +121,7 @@ export function zoneRows(row: DayRow | undefined, seconds = row?.s1?.zoneSeconds
   const s1 = row?.s1;
   if (!s1 || s1.hrCount === 0 || !seconds) return none(hrReason(s1 ?? null));
   const rows = zoneBounds(s1.zoneLower).map((z, i) => ({ ...z, seconds: Math.round(seconds[i]) }));
-  // Zone 0: time under Zone 1, from the Zone 1 floor. Days stored before it was kept have no such row.
+  // Zone 0: time under Zone 1, from the Zone 1 floor. Older days may have no such row.
   if (below != null) rows.push({ zone: 0, label: "Zone 0", min: 0, max: rows[0].min - 1, seconds: Math.round(below) });
   return ok(rows);
 }
