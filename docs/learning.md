@@ -257,3 +257,7 @@ The web's dropdowns (Radix) open 8 px below their trigger, aligned to it, and fl
 ## Android back inside one screen: `BackHandler`
 
 Onboarding is one route with steps held in state, so the navigator's back would leave the app from the explainer. `BackHandler.addEventListener("hardwareBackPress", ...)` returns `true` to say the press is handled, and the step goes back to Welcome. The listener exists only while the explainer is shown, so it never fights the navigator on other screens.
+
+## Animating SVG on the UI thread: Reanimated `animatedProps`
+
+The welcome mark's heartbeat (`src/screens/onboarding/HeartbeatMark.tsx`) moves two `react-native-svg` rects. `Animated.createAnimatedComponent(Rect)` plus `useAnimatedProps` writes their `y` from shared values on the UI thread, so the beat never waits on JavaScript. CSS keyframes become `withRepeat(withSequence(withTiming(...)))`: each `withTiming` is one keyframe step with the web's easing, and `withDelay` stands in for `animation-delay`. `useReducedMotion()` replaces `motion-safe:` and leaves everything still.

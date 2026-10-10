@@ -6,7 +6,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ground } from "@/ui/Ground";
 import { Wordmark } from "@/ui/brand";
 
-export function Frame({ children, footer }: { children: ReactNode; footer?: ReactNode }) {
+/** `wordmark` false: the screen draws its own brand (Welcome puts the wordmark under the mark). */
+export function Frame({ children, footer, wordmark = true }: { children: ReactNode; footer?: ReactNode; wordmark?: boolean }) {
   const insets = useSafeAreaInsets();
   return (
     <View className="flex-1 bg-background">
@@ -19,12 +20,12 @@ export function Frame({ children, footer }: { children: ReactNode; footer?: Reac
         automaticallyAdjustKeyboardInsets
       >
         <View className="items-center pb-2" style={{ paddingTop: Math.max(insets.top, 32) }}>
-          <Wordmark height={16} />
+          {wordmark && <Wordmark height={16} />}
         </View>
         <View className="mx-auto w-full max-w-[400px] flex-1 px-5 pt-6">
           <View className="flex-1">{children}</View>
           {footer && (
-            <View className="mt-6 gap-2" style={{ paddingBottom: Math.max(insets.bottom, 24) }}>
+            <View className="mt-6 gap-1" style={{ paddingBottom: Math.max(insets.bottom, 24) }}>
               {footer}
             </View>
           )}

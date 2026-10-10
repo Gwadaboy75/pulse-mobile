@@ -8,7 +8,6 @@ import { ActivityIndicator, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { store } from "@/data/store";
 import { loadDemoData, type SeedProgress } from "@/seed/load";
-import { Button } from "@/ui/Button";
 import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
 import { Lock } from "lucide-react-native";
@@ -18,8 +17,9 @@ import { syncNow } from "../settings/connect";
 import { ConnectFlow } from "./Connect";
 import { Frame } from "./Frame";
 import { onboardingStart, profileSaved } from "./gate";
+import { GoogleButton, TextButton } from "./buttons";
+import { HeartbeatMark } from "./HeartbeatMark";
 import { ProfileForm, SaveButton } from "./ProfileForm";
-import { WelcomeRings } from "./WelcomeRings";
 
 type Step = "welcome" | "connect" | "profile";
 
@@ -70,9 +70,10 @@ function Welcome({ onConnect }: { onConnect: () => void }) {
   const p = progress === "starting" ? null : progress;
   return (
     <Frame
+      wordmark={false}
       footer={
         progress ? (
-          <View accessibilityLiveRegion="polite" className="h-[150px] items-center justify-center gap-3 px-6">
+          <View accessibilityLiveRegion="polite" className="h-[132px] items-center justify-center gap-3 px-6">
             <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: p?.total ?? 1, now: p?.done ?? 0 }} className="h-2 w-full overflow-hidden rounded-full bg-foreground/10">
               <View className="h-full rounded-full bg-primary" style={{ width: `${p && p.total ? Math.round((p.done / p.total) * 100) : 0}%` }} />
             </View>
@@ -85,13 +86,9 @@ function Welcome({ onConnect }: { onConnect: () => void }) {
                 {error}
               </Text>
             )}
-            <Button size="sheet" onPress={onConnect}>
-              Connect Google Health
-            </Button>
-            <Button size="sheet" variant="ghost" haptic={false} onPress={explore}>
-              Explore with sample data
-            </Button>
-            <View className="mt-3 flex-row items-center justify-center gap-1.5">
+            <GoogleButton onPress={onConnect} />
+            <TextButton label="Explore with sample data" onPress={explore} />
+            <View className="mt-2 flex-row items-center justify-center gap-1.5">
               <Icon icon={Lock} size={13} tone="muted-foreground" strokeWidth={2} />
               <Text className="text-[13px] leading-[18px] text-muted-foreground">Stays on this phone. No account, no server.</Text>
             </View>
@@ -99,15 +96,13 @@ function Welcome({ onConnect }: { onConnect: () => void }) {
         )
       }
     >
-      <View className="flex-1 justify-center gap-10 pb-4">
-        <WelcomeRings />
-        <View className="items-center gap-3">
-          <Text accessibilityRole="header" className="text-center text-[30px] font-bold leading-[36px] tracking-[-0.02em]">
+      <View className="flex-1 items-center justify-center gap-8 pb-4">
+        <HeartbeatMark />
+        <View className="items-center gap-2">
+          <Text accessibilityRole="header" className="text-center text-[24px] font-bold leading-[30px] tracking-[-0.02em]">
             Your Fitbit, scored every morning
           </Text>
-          <Text className="max-w-[320px] text-center text-[15px] leading-[22px] text-foreground-secondary">
-            Sleep, Recovery and Strain from your Google Health data, worked out on this phone.
-          </Text>
+          <Text className="max-w-[300px] text-center text-[15px] leading-[22px] text-foreground-secondary">Sleep, Recovery and Strain from Google Health, worked out on this phone.</Text>
         </View>
       </View>
     </Frame>
