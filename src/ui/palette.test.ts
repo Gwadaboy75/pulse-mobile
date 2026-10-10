@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { alpha, mix, parseColor, resolveCss } from "./color";
-import { DARK, LIGHT } from "./palette";
+import { DARK, LIGHT, VALUES } from "./palette";
 
 const css = readFileSync(new URL("../../global.css", import.meta.url), "utf8");
 const block = (selector: string) => {
@@ -10,22 +10,29 @@ const block = (selector: string) => {
 };
 const vars = (b: string) => Object.fromEntries([...b.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)].map(([, n, v]) => [n, v.trim()]));
 
-/** global.css stores "R G B" channels or rgb(r g b / a); palette.ts stores "#rrggbb" or "rgba(r, g, b, a)". */
+/**
+ * global.css stores "R G B" channels or rgb(r g b / a); palette.ts stores "#rrggbb" or "rgba(r, g, b, a)". A shadow
+ * keeps its syntax with each rgb() in the comma form; a number is a number.
+ */
+const rgba = (v: string) => v.replace(/rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)/g, "rgba($1, $2, $3, $4)");
 function asPalette(v: string) {
-  const m = /^rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)$/.exec(v);
-  if (m) return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${m[4]})`;
-  return `#${v.split(" ").map((n) => Number(n).toString(16).padStart(2, "0")).join("")}`;
+  if (/^\d+ \d+ \d+$/.test(v)) return `#${v.split(" ").map((n) => Number(n).toString(16).padStart(2, "0")).join("")}`;
+  return rgba(v);
 }
+const asValue = (v: string) => (/^-?[\d.]+$/.test(v) ? Number(v) : rgba(v));
 
 describe("global.css and palette.ts hold the same tokens", () => {
   for (const [name, selector, palette] of [["light", ":root", LIGHT], ["dark", ".dark:root", DARK]] as const) {
     it(`${name}: every token matches`, () => {
-      const fromCss = Object.fromEntries(Object.entries(vars(block(selector))).map(([k, v]) => [k, asPalette(v)]));
-      expect(fromCss).toEqual(palette);
+      const values: Record<string, unknown> = VALUES[name];
+      const entries = Object.entries(vars(block(selector)));
+      expect(Object.fromEntries(entries.filter(([k]) => !(k in values)).map(([k, v]) => [k, asPalette(v)]))).toEqual(palette);
+      expect(Object.fromEntries(entries.filter(([k]) => k in values).map(([k, v]) => [k, asValue(v)]))).toEqual(values);
     });
   }
   it("both themes define the same names", () => {
     expect(Object.keys(LIGHT)).toEqual(Object.keys(DARK));
+    expect(Object.keys(VALUES.light)).toEqual(Object.keys(VALUES.dark));
   });
 });
 

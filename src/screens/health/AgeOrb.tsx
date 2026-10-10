@@ -30,7 +30,7 @@ import Animated, { Easing, Keyframe, makeMutable, useDerivedValue, useFrameCallb
 import { AGE_LABEL, formatValue } from "@/lib/format";
 import { reasonCopy, type ReasonCode } from "@/lib/reasons";
 import { alpha, parseColor } from "@/ui/color";
-import type { TokenName } from "@/ui/palette";
+import { VALUES, type TokenName } from "@/ui/palette";
 import { MetricTags } from "@/ui/metrics/primitives";
 import { useNarrow } from "@/ui/shells/layout";
 import { ReasonPlaceholder } from "@/ui/metrics/ReasonPlaceholder";
@@ -189,7 +189,9 @@ function OrbCanvas({ delta, size, compact }: { delta: number | null; size: numbe
   const focused = useIsFocused();
   const settled = reduced || compact;
   const small = size < 160;
-  const th = ORB.theme[scheme];
+  // The web's per-theme --orb-lift, --orb-sparkle and --orb-blend (global.css): "lighter" adds the particles' light.
+  const v = VALUES[scheme];
+  const th = { lift: v["orb-lift"], sparkle: v["orb-sparkle"], additive: v["orb-blend"] === "lighter" };
 
   const g = useMemo(() => {
     const rgb = (token: Token): RGB => {

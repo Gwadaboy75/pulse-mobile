@@ -61,11 +61,6 @@ export const ORB = {
   idleSeconds: 30,
   /** Touch: particles gather toward the centre and swirl (latest-age-orb-touch-frames.jpg). */
   touch: { ease: 5, swirl: 1.1, wobble: 0.6, bulge: 0.06 },
-  /** The web's per-theme CSS variables `--orb-lift`, `--orb-sparkle` and `--orb-blend` (globals.css): the palette holds colours only. */
-  theme: {
-    dark: { lift: 1.3, sparkle: 0.12, additive: true },
-    light: { lift: 1, sparkle: 0, additive: false },
-  },
 } as const;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));

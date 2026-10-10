@@ -75,34 +75,34 @@ export default function ParityCheck() {
     setTimeout(() => void run().then(setState), 50);
   };
   return (
-    <ScrollView className="flex-1 bg-white dark:bg-black" contentContainerClassName="p-6 pt-16">
-      <Text className="text-2xl font-semibold text-black dark:text-white">F3 score parity</Text>
-      <Text className="mt-1 text-neutral-500">
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="p-6 pt-16">
+      <Text className="text-2xl font-semibold text-foreground">F3 score parity</Text>
+      <Text className="mt-1 text-muted-foreground">
         {engine} · expo-sqlite · seed from {f2.generatedFrom}
       </Text>
       {state === "idle" ? (
-        <Pressable onPress={start} className="mt-6 self-start rounded-lg bg-black px-4 py-3 dark:bg-white">
-          <Text className="font-semibold text-white dark:text-black">Run (takes a while)</Text>
+        <Pressable onPress={start} className="mt-6 self-start rounded-lg bg-foreground px-4 py-3">
+          <Text className="font-semibold text-background">Run (takes a while)</Text>
         </Pressable>
       ) : state === "running" ? (
-        <Text className="mt-6 text-black dark:text-white">Running…</Text>
+        <Text className="mt-6 text-foreground">Running…</Text>
       ) : "error" in state ? (
-        <Text selectable className="mt-6 text-red-600">
+        <Text selectable className="mt-6 text-destructive">
           ERROR: {state.error}
         </Text>
       ) : (
         <View className="mt-6">
-          <Text className={`text-xl font-semibold ${state.diff.length || state.rewrites ? "text-red-600" : "text-green-600"}`}>
+          <Text className={`text-xl font-semibold ${state.diff.length || state.rewrites ? "text-destructive" : "text-optimal"}`}>
             {state.diff.length ? `FAIL: ${state.diff.length} of 21 hashes differ` : "PASS: 21 of 21 hashes equal"}
           </Text>
-          <Text className={`mt-1 ${state.rewrites ? "text-red-600" : "text-neutral-500"}`}>Second run wrote {state.rewrites} rows (want 0)</Text>
+          <Text className={`mt-1 ${state.rewrites ? "text-destructive" : "text-muted-foreground"}`}>Second run wrote {state.rewrites} rows (want 0)</Text>
           {state.steps.map(([name, ms]) => (
-            <Text key={name} className="mt-1 text-neutral-500">
+            <Text key={name} className="mt-1 text-muted-foreground">
               {name}: {(ms / 1000).toFixed(1)} s
             </Text>
           ))}
           {state.diff.map((d) => (
-            <Text key={d.key} selectable className="mt-3 font-mono text-xs text-black dark:text-white">
+            <Text key={d.key} selectable className="mt-3 font-mono text-xs text-foreground">
               {d.key}: want {d.want}, got {d.got}
             </Text>
           ))}

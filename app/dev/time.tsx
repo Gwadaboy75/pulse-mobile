@@ -23,21 +23,21 @@ export default function TimeCheck() {
 
   const engine = "HermesInternal" in globalThis ? "Hermes" : "not Hermes";
   return (
-    <ScrollView className="flex-1 bg-white dark:bg-black" contentContainerClassName="p-6 pt-16">
-      <Text className="text-2xl font-semibold text-black dark:text-white">F5 time check</Text>
-      <Text className="mt-1 text-neutral-500">
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="p-6 pt-16">
+      <Text className="text-2xl font-semibold text-foreground">F5 time check</Text>
+      <Text className="mt-1 text-muted-foreground">
         {engine} · fixture from {f5.generatedFrom}
       </Text>
       {!result ? (
-        <Text className="mt-6 text-black dark:text-white">Running…</Text>
+        <Text className="mt-6 text-foreground">Running…</Text>
       ) : (
         <View className="mt-6">
-          <Text className={`text-xl font-semibold ${result.failed.length ? "text-red-600" : "text-green-600"}`}>
+          <Text className={`text-xl font-semibold ${result.failed.length ? "text-destructive" : "text-optimal"}`}>
             {result.failed.length ? `FAIL: ${result.failed.length} of ${result.total}` : `PASS: ${result.total} of ${result.total}`}
           </Text>
-          <Text className="mt-1 text-neutral-500">{result.ms} ms</Text>
+          <Text className="mt-1 text-muted-foreground">{result.ms} ms</Text>
           {result.failed.slice(0, 20).map((f, i) => (
-            <Text key={i} selectable className="mt-4 font-mono text-xs text-black dark:text-white">
+            <Text key={i} selectable className="mt-4 font-mono text-xs text-foreground">
               {`${f.fn} ${JSON.stringify(f.input)}\nexpected ${JSON.stringify(f.expected)}\ngot      ${JSON.stringify(f.got)}`}
             </Text>
           ))}

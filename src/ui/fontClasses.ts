@@ -45,9 +45,9 @@ function shrinkOf(classes: string[], nowrap: boolean) {
   return nowrap ? 0 : 1;
 }
 
-// A class that sets the text colour: text-<token> (with an optional /opacity and variant prefixes), text-white, text-[#hex].
+// A class that sets the text colour: text-<token> (with an optional /opacity and variant prefixes), text-[#hex].
 const COLOR_CLASS = new RegExp(
-  `^(?:[a-z-]+:)*text-(?:${[...Object.keys(LIGHT), "white", "black", "transparent", "current"].join("|")})(?:/[\\d.\\[\\]]+)?$|^(?:[a-z-]+:)*text-\\[(?:#|rgb|hsl|color:|var\\()`,
+  `^(?:[a-z-]+:)*text-(?:${[...Object.keys(LIGHT), "transparent", "current"].join("|")})(?:/[\\d.\\[\\]]+)?$|^(?:[a-z-]+:)*text-\\[(?:#|rgb|hsl|color:|var\\()`,
 );
 
 /**

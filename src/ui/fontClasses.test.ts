@@ -31,7 +31,7 @@ describe("readFont", () => {
 
 describe("hasColorClass", () => {
   it("tells colour classes from size classes", () => {
-    for (const c of ["text-muted-foreground", "text-foreground/85", "text-optimal-text", "dark:text-white", "text-[#fff]", "text-foreground/[0.045]"]) expect(hasColorClass(c)).toBe(true);
+    for (const c of ["text-muted-foreground", "text-foreground/85", "text-optimal-text", "dark:text-on-media", "text-[#fff]", "text-foreground/[0.045]"]) expect(hasColorClass(c)).toBe(true);
     for (const c of ["text-xs", "text-[15px]", "text-center", "text-balance", "font-bold", "text-2xl"]) expect(hasColorClass(c)).toBe(false);
   });
   it("finds one among many", () => {

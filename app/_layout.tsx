@@ -44,8 +44,8 @@ export default function RootLayout() {
 
   if (error) {
     return (
-      <View className="flex-1 items-center justify-center bg-white p-6 dark:bg-black">
-        <Text className="text-red-600">Database migration failed: {error.message}</Text>
+      <View className="flex-1 items-center justify-center bg-background p-6">
+        <Text className="text-destructive">Database migration failed: {error.message}</Text>
       </View>
     );
   }

@@ -8,13 +8,16 @@ const path = require("node:path");
 
 // Colours: every variable declared in the :root block of global.css becomes a colour of the same name. A variable
 // holding "R G B" channels gets rgb(var(--x) / <alpha-value>), so opacity modifiers (bg-foreground/10) work; one that
-// holds a whole rgb(... / a) already has its alpha and is used as is. Reading global.css here means a token
-// is added in one place only.
+// holds a whole rgb(... / a) already has its alpha and is used as is. Anything else (a box shadow, the orb's scalars) is
+// not a colour and is left out: src/ui/shadow.ts applies the shadows from palette.ts. Reading global.css here means a
+// token is added in one place only.
 const css = fs.readFileSync(path.join(__dirname, "global.css"), "utf8");
 const root = /:root\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
 const colors = {};
-for (const [, name, value] of root.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)) {
-  colors[name] = value.trim().startsWith("rgb(") ? `var(--${name})` : `rgb(var(--${name}) / <alpha-value>)`;
+for (const [, name, raw] of root.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)) {
+  const value = raw.trim();
+  if (value.startsWith("rgb(")) colors[name] = `var(--${name})`;
+  else if (/^\d+ \d+ \d+$/.test(value)) colors[name] = `rgb(var(--${name}) / <alpha-value>)`;
 }
 
 // NativeWind turns 1rem into 14 px (react-native-css-interop's default `inlineRem`), where the web means 16 px.
@@ -29,7 +32,7 @@ module.exports = {
   darkMode: "class",
   theme: {
     // Replaces Tailwind's palette: only Pulse's tokens (plus the ones every scale needs).
-    colors: { ...colors, transparent: "transparent", current: "currentColor", white: "#ffffff", black: "#000000" },
+    colors: { ...colors, transparent: "transparent", current: "currentColor" },
     spacing,
     // Tailwind's rem-based radii, restated in px with the web app's names (spec §2.4: chips 8, rows 10, buttons 12,
     // cards 16, info card 24, sheets 28).

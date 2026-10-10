@@ -139,6 +139,21 @@
   --strain-band-2: 56 171 236;
   --strain-band-3: 107 192 241;
   --strain-band-4: 153 212 245;
+  /* The web writes these three as gradients; here each is the one colour its gradient paints: the flat Healthspan
+     ground (linear-gradient of one colour) and the stripe of the hatched track (drawn by src/ui/Hatch.tsx). */
+  --ground-healthspan: 238 241 243;
+  --pattern-hatch: rgb(16 21 24 / 0.08);
+  --selection: rgb(16 21 24 / 0.16);
+
+  /* Not colours: box shadows in the web's syntax and the orb's scalars. tailwind.config.js skips them; palette.ts holds
+     them (shadows as React Native boxShadow strings) and src/ui/shadow.ts applies the shadows. */
+  --card-shadow: 0 1px 2px rgb(16 21 24 / 0.05), 0 0 0 1px rgb(16 21 24 / 0.05);
+  --overlay-shadow: 0 8px 24px rgb(16 21 24 / 0.14);
+  --thumb-shadow: 0 1px 3px rgb(16 21 24 / 0.3);
+  --glass-shadow: 0 10px 30px rgb(16 21 24 / 0.12), 0 2px 6px rgb(16 21 24 / 0.08);
+  --orb-lift: 1;
+  --orb-sparkle: 0;
+  --orb-blend: source-over;
 }
 
 .dark:root {
@@ -265,4 +280,15 @@
   --strain-band-2: 8 123 189;
   --strain-band-3: 15 101 151;
   --strain-band-4: 21 82 117;
+  --ground-healthspan: 16 21 24;
+  --pattern-hatch: rgb(255 255 255 / 0.09);
+  --selection: rgb(255 255 255 / 0.25);
+
+  --card-shadow: 0 0 #0000;
+  --overlay-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+  --thumb-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+  --glass-shadow: 0 10px 30px rgb(0 0 0 / 0.5), 0 2px 6px rgb(0 0 0 / 0.35);
+  --orb-lift: 1.3;
+  --orb-sparkle: 0.12;
+  --orb-blend: lighter;
 }

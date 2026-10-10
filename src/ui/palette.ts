@@ -126,6 +126,9 @@ export const LIGHT = {
   "strain-band-2": "#38abec",
   "strain-band-3": "#6bc0f1",
   "strain-band-4": "#99d4f5",
+  "ground-healthspan": "#eef1f3",
+  "pattern-hatch": "rgba(16, 21, 24, 0.08)",
+  "selection": "rgba(16, 21, 24, 0.16)",
 } as const;
 
 export const DARK = {
@@ -252,6 +255,34 @@ export const DARK = {
   "strain-band-2": "#087bbd",
   "strain-band-3": "#0f6597",
   "strain-band-4": "#155275",
+  "ground-healthspan": "#101518",
+  "pattern-hatch": "rgba(255, 255, 255, 0.09)",
+  "selection": "rgba(255, 255, 255, 0.25)",
+} as const;
+
+/**
+ * The theme values of global.css that are not colours: box shadows, as React Native boxShadow strings (src/ui/shadow.ts
+ * applies them), and the Pulse Age orb's per-theme scalars. Kept apart from the colours so a colour prop never offers them.
+ */
+export const VALUES = {
+  light: {
+    "card-shadow": "0 1px 2px rgba(16, 21, 24, 0.05), 0 0 0 1px rgba(16, 21, 24, 0.05)",
+    "overlay-shadow": "0 8px 24px rgba(16, 21, 24, 0.14)",
+    "thumb-shadow": "0 1px 3px rgba(16, 21, 24, 0.3)",
+    "glass-shadow": "0 10px 30px rgba(16, 21, 24, 0.12), 0 2px 6px rgba(16, 21, 24, 0.08)",
+    "orb-lift": 1,
+    "orb-sparkle": 0,
+    "orb-blend": "source-over",
+  },
+  dark: {
+    "card-shadow": "0 0 #0000",
+    "overlay-shadow": "0 8px 24px rgba(0, 0, 0, 0.45)",
+    "thumb-shadow": "0 1px 3px rgba(0, 0, 0, 0.4)",
+    "glass-shadow": "0 10px 30px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35)",
+    "orb-lift": 1.3,
+    "orb-sparkle": 0.12,
+    "orb-blend": "lighter",
+  },
 } as const;
 
 export type Palette = typeof LIGHT | typeof DARK;
