@@ -8,6 +8,7 @@ import * as SplashScreen from "expo-splash-screen";
 import * as SystemUI from "expo-system-ui";
 import { StatusBar } from "expo-status-bar";
 import { Platform, Text, View } from "react-native";
+import { enableFreeze } from "react-native-screens";
 import { Barlow_500Medium } from "@expo-google-fonts/barlow/500Medium";
 import { Barlow_600SemiBold } from "@expo-google-fonts/barlow/600SemiBold";
 import { Barlow_700Bold } from "@expo-google-fonts/barlow/700Bold";
@@ -24,6 +25,9 @@ import { useProfileGate } from "@/screens/onboarding/gate";
 import { AppProviders } from "@/ui/providers";
 import { sheetOptions, type SheetSize } from "@/ui/shells/sheets";
 import { useTheme } from "@/ui/theme";
+
+// Screens out of view (under a pushed screen, or an inactive tab) stop rendering until they are shown again.
+enableFreeze(true);
 
 // Keep the splash screen up until the fonts and the database are ready, so no screen paints in the wrong font. It then
 // goes without a fade: the opening (src/screens/Opening.tsx) is the same picture underneath and does the motion.

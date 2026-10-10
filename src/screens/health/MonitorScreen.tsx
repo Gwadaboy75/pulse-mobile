@@ -118,7 +118,7 @@ function IllnessAlert() {
 }
 
 export function MonitorScreen() {
-  const { data, error, reload } = useDayScreen(getMonitor);
+  const { data, error, reload } = useDayScreen("monitor", getMonitor);
   if (!data) return error ? <ErrorView detail retry={reload} /> : <MonitorLoading />;
   const { vm, d, today } = data;
   return (

@@ -4,14 +4,13 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-na
 import type { Tabs } from "expo-router";
 import { HeartPulse, Menu, NotebookPen, type LucideIcon } from "lucide-react-native";
 import { alpha } from "../color";
-import { BlurTargetContext, Glass } from "../Glass";
+import { Glass } from "../Glass";
 import { haptic } from "../haptics";
 import { Gradient } from "../Gradient";
 import { HomeChart } from "../icons";
 import { Icon } from "../Icon";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
-import { useFocusedBlurTarget } from "./blurTarget";
 import { CheckInAction } from "./CheckInAction";
 import { TAB_BAR_HEIGHT, useTabBarBottom } from "./layout";
 import { Press } from "../Press";
@@ -51,8 +50,13 @@ function Lens({ index, itemWidth }: { index: number; itemWidth: number }) {
 }
 
 /** Phone tab bar: a 62 px glass squircle with four destinations (spec §4.2, G1), for expo-router's <Tabs tabBar>. */
-function Bar({ state, navigation, current }: TabBarProps & { current: number }) {
+function Bar({ state, navigation, current: shown }: TabBarProps & { current: number }) {
   const [width, setWidth] = useState(0);
+  // The tapped tab lights up (lens, icon, label) in its own small render; the tab's screen renders a frame later. One
+  // render for both would hold the feedback until the whole screen had rendered.
+  const [tapped, setTapped] = useState<number | null>(null);
+  if (tapped !== null && tapped === shown) setTapped(null);
+  const current = tapped ?? shown;
   const itemWidth = Math.max(0, (width - 8) / TABS.length);
   return (
     <Glass radius={GLASS_RADIUS} accessibilityRole="tablist" accessibilityLabel="Primary" onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={{ height: TAB_BAR_HEIGHT, flex: 1, minWidth: 0, padding: 4 }}>
@@ -73,7 +77,8 @@ function Bar({ state, navigation, current }: TabBarProps & { current: number }) 
                 const event = navigation.emit({ type: "tabPress", target: route_.key, canPreventDefault: true });
                 if (!on && !event.defaultPrevented) {
                   haptic.select();
-                  navigation.navigate(route_.name);
+                  setTapped(i);
+                  requestAnimationFrame(() => navigation.navigate(route_.name));
                 }
               }}
               className="h-full min-w-0 flex-1 items-center justify-center gap-0.5 rounded-[18px]"
@@ -90,19 +95,16 @@ function Bar({ state, navigation, current }: TabBarProps & { current: number }) 
 
 /**
  * The tab bar and the round action, floating over the content at the bottom of the screen (tab roots), exactly as the
- * web's (spec §4.2). Their glass blurs the screen in view: iOS by itself, Android through that screen's blur target.
+ * web's (spec §4.2). Their glass blurs the screen in view on iOS; Android draws the glass fill opaque (Glass).
  */
 export function TabBar(props: TabBarProps) {
   const bottom = useTabBarBottom();
-  const target = useFocusedBlurTarget();
   const route = props.state.routes[props.state.index];
   const current = TABS.findIndex((t) => t.route === route?.name);
   return (
-    <BlurTargetContext.Provider value={target}>
-      <View pointerEvents="box-none" className="absolute inset-x-3 flex-row justify-end gap-2" style={{ bottom }}>
-        <Bar {...props} current={current} />
-        <CheckInAction />
-      </View>
-    </BlurTargetContext.Provider>
+    <View pointerEvents="box-none" className="absolute inset-x-3 flex-row justify-end gap-2" style={{ bottom }}>
+      <Bar {...props} current={current} />
+      <CheckInAction />
+    </View>
   );
 }

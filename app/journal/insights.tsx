@@ -12,7 +12,7 @@ import { Text } from "@/ui/Text";
 /** Journal Insights `/journal/insights?m=` (spec §7.12, journey 7). */
 export default function JournalInsights() {
   const metric = parseMetric(useLocalSearchParams<{ m?: string }>().m);
-  const { data: vm, error, loading, reload } = useScreen((ctx) => getJournalInsights(ctx, metric), [metric]);
+  const { data: vm, error, loading, reload } = useScreen((ctx) => getJournalInsights(ctx, metric), ["journalInsights", metric]);
 
   // The web's loading.tsx: the metric comes from `?m=` which loading UI cannot read, so its heading is a bar.
   if (!vm)

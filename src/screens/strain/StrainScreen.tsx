@@ -6,7 +6,7 @@ import { Flame } from "lucide-react-native"
 import { formatValue } from "@/lib/format"
 import { reasonCopy } from "@/lib/reasons"
 import { activityHref, parseDay, trendHref } from "@/lib/url"
-import { todayOf } from "@/queries/common"
+import { type QueryCtx, todayOf } from "@/queries/common"
 import { getStrain } from "@/queries/strain"
 import { getWeeklyTrends, type TrendViewKey } from "@/queries/trendView"
 import type { StrainVM } from "@/queries/types"
@@ -35,14 +35,18 @@ import { useScreen } from "@/screens/useScreen"
 /** Weekly Trends in the reference app's order (strain-25..38). */
 const WEEKLY: readonly TrendViewKey[] = ["strain", "zones13", "zones45", "steps", "calories", "strength"]
 
+/** The page's query and key, by the route's `d` (none or empty: today); Home prefetches them. */
+export const strainQuery = (raw?: string) => async (ctx: QueryCtx) => {
+  const today = todayOf(ctx)
+  const { d } = parseDay(raw, today)
+  const [vm, weekly] = await Promise.all([getStrain(ctx, d), getWeeklyTrends(WEEKLY, d, ctx)])
+  return { d, today, timeZone: ctx.timeZone, vm, weekly }
+}
+export const strainKey = (raw?: string) => ["strain", raw || null] as const
+
 export function StrainScreen() {
   const { d: raw } = useLocalSearchParams<{ d?: string }>()
-  const { data, error, reload } = useScreen(async (ctx) => {
-    const today = todayOf(ctx)
-    const { d } = parseDay(raw, today)
-    const [vm, weekly] = await Promise.all([getStrain(ctx, d), getWeeklyTrends(WEEKLY, d, ctx)])
-    return { d, today, timeZone: ctx.timeZone, vm, weekly }
-  }, [raw])
+  const { data, error, reload } = useScreen(strainQuery(raw), strainKey(raw))
 
   if (!data) return error ? <ScreenError retry={reload} /> : <StrainSkeleton />
   const { d, today, timeZone, vm, weekly } = data

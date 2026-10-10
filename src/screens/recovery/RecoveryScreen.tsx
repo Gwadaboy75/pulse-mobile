@@ -4,7 +4,7 @@ import { useLocalSearchParams } from "expo-router"
 import { dayHref, parseDay, trendHref } from "@/lib/url"
 import { getRecovery } from "@/queries/recovery"
 import { getWeeklyTrends, type TrendViewKey } from "@/queries/trendView"
-import { todayOf } from "@/queries/common"
+import { type QueryCtx, todayOf } from "@/queries/common"
 import { Card } from "@/ui/Card"
 import { InsightCard } from "@/ui/metrics/InsightCard"
 import { KeyStatRow } from "@/ui/metrics/KeyStatRow"
@@ -20,14 +20,18 @@ import { DialDetailSkeleton, Divided, ScreenError } from "./shared"
 /** Weekly Trends: Recovery and HRV as captured (recovery-12..15), then the other contributors in row order. */
 const WEEKLY: readonly TrendViewKey[] = ["recovery", "hrv", "rhr", "resp", "sleep"]
 
+/** The page's query and key, by the route's `d` (none or empty: today); Home prefetches them. */
+export const recoveryQuery = (raw?: string) => async (ctx: QueryCtx) => {
+  const today = todayOf(ctx)
+  const { d } = parseDay(raw, today)
+  const [vm, weekly] = await Promise.all([getRecovery(ctx, d), getWeeklyTrends(WEEKLY, d, ctx)])
+  return { d, today, vm, weekly }
+}
+export const recoveryKey = (raw?: string) => ["recovery", raw || null] as const
+
 export function RecoveryScreen() {
   const { d: raw } = useLocalSearchParams<{ d?: string }>()
-  const { data, error, reload } = useScreen(async (ctx) => {
-    const today = todayOf(ctx)
-    const { d } = parseDay(raw, today)
-    const [vm, weekly] = await Promise.all([getRecovery(ctx, d), getWeeklyTrends(WEEKLY, d, ctx)])
-    return { d, today, vm, weekly }
-  }, [raw])
+  const { data, error, reload } = useScreen(recoveryQuery(raw), recoveryKey(raw))
 
   if (!data) return error ? <ScreenError retry={reload} /> : <RecoverySkeleton />
   const { d, today, vm, weekly } = data

@@ -11,7 +11,7 @@ import { bpm, RHYTHM_DISCLAIMER } from "./HeartRhythm";
 
 export function EcgSheet() {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { data: shown } = useScreen((ctx) => getEcgReading(ctx, id ?? ""), [id]);
+  const { data: shown } = useScreen((ctx) => getEcgReading(ctx, id ?? ""), ["ecgSheet", id]);
   return (
     <SheetScreen title="ECG reading" size="default">
       {shown && (

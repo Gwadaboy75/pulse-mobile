@@ -167,6 +167,6 @@ function BehavioursLoading() {
 
 /** Behaviours `/more/behaviours` (U21): manage the journal check-in list. */
 export function BehavioursScreen() {
-  const { data } = useScreen(getBehaviours, []);
+  const { data } = useScreen(getBehaviours, ["behaviours"]);
   return data ? <Behaviours vm={data} /> : <BehavioursLoading />;
 }

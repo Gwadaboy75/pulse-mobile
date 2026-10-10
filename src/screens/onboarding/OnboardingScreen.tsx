@@ -12,7 +12,7 @@ import { Icon } from "@/ui/Icon";
 import { Lock } from "lucide-react-native";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
-import { syncNow } from "../settings/connect";
+import { scoreAfterSync, syncNow } from "../settings/connect";
 import { ConnectFlow } from "./Connect";
 import { Frame } from "./Frame";
 import { onboardingStart, profileSaved } from "./gate";
@@ -131,8 +131,7 @@ function Profile() {
         onSaved={() => {
           haptic.success();
           profileSaved();
-          // Scores need the profile: a first sync that finished meanwhile scored nothing, so run it again (it joins one still running).
-          void syncNow();
+          void scoreAfterSync();
         }}
         footer={({ pending, submit }) => (
           <View className="mt-4">

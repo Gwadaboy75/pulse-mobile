@@ -60,7 +60,7 @@ function groupsOf(vm: ReportArchiveVM, view: View_) {
 
 export default function ReportsScreen() {
   const { view: q, all: allParam } = useLocalSearchParams<{ view?: string; all?: string }>();
-  const { data: vm, error, reload } = useScreen(getReportArchive, []);
+  const { data: vm, error, reload } = useScreen(getReportArchive, ["reports"]);
   const view = viewOf(vm, q);
   const groups = useMemo(() => (vm ? groupsOf(vm, view) : []), [vm, view]);
   if (error && !vm) return <LoadError title="Reports" reload={reload} />;

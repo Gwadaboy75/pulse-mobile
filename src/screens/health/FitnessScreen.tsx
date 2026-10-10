@@ -51,7 +51,7 @@ function Hero({ vo2 }: { vo2: FitnessVM["vo2"] }) {
 }
 
 export function FitnessScreen() {
-  const { data: vm, error, reload } = useScreen((ctx) => getFitness(ctx), []);
+  const { data: vm, error, reload } = useScreen((ctx) => getFitness(ctx), ["fitness"]);
   if (!vm) return error ? <ErrorView detail retry={reload} /> : <FitnessLoading />;
   const v = vm.vo2.value;
   const tl = vm.trainingLoad.value;

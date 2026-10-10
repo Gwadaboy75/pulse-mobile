@@ -28,7 +28,7 @@ import { cn } from "@/ui/cn";
 export default function LogSheet() {
   const { kind: raw, d } = useLocalSearchParams<{ kind?: string; d?: string }>();
   const kind = (LOG_KINDS as readonly string[]).includes(raw ?? "") ? (raw as LogKind) : "water";
-  const { data: vm } = useScreen((ctx) => getLog(ctx, parseDay(d, todayOf(ctx)).d), [d]);
+  const { data: vm } = useScreen((ctx) => getLog(ctx, parseDay(d, todayOf(ctx)).d), ["log", d]);
   const [form, setForm] = useState<Form>(EMPTY[kind]);
   const [at, setAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

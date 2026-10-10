@@ -44,7 +44,7 @@ function Orb({ vm, compact }: { vm: HealthspanVM; compact?: boolean }) {
 }
 
 export function HealthspanScreen() {
-  const { data, error, reload } = useDayScreen(getHealthspan);
+  const { data, error, reload } = useDayScreen("healthspan", getHealthspan);
   if (!data) return error ? <ErrorView detail retry={reload} /> : <HealthspanLoading />;
   const { vm } = data;
   const r = vm.result.value;

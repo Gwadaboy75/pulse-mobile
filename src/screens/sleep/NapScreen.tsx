@@ -12,7 +12,7 @@ import { useScreen } from "../useScreen";
 import { NapSkeleton } from "./NapSkeleton";
 
 export function NapScreen({ id }: { id: string }) {
-  const { data } = useScreen(async (ctx) => ({ vm: await getNap(ctx, id), today: todayOf(ctx), timeZone: ctx.timeZone }), [id]);
+  const { data } = useScreen(async (ctx) => ({ vm: await getNap(ctx, id), today: todayOf(ctx), timeZone: ctx.timeZone }), ["nap", id]);
   if (!data) return <NapSkeleton />;
   const { vm, today, timeZone } = data;
   // The web calls notFound(): its default page says this.

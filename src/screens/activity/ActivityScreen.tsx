@@ -50,7 +50,7 @@ export function ActivityScreen() {
   const { data, error, reload } = useScreen(async (ctx) => {
     const [vm, coach] = await Promise.all([getActivity(ctx, id), coachReady(ctx)])
     return { vm, coach, today: todayOf(ctx), timeZone: ctx.timeZone }
-  }, [id])
+  }, ["activity", id])
 
   if (!data) return error ? <ScreenError retry={reload} /> : <ActivitySkeleton />
   const { vm, coach, today, timeZone } = data

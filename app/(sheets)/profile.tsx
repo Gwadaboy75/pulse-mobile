@@ -8,7 +8,7 @@ import { closeSheet } from "@/ui/shells/sheets";
 // Settings › Profile › Edit (U19): the onboarding fields in a sheet. Saving recomputes every day's scores. Registered in
 // app/_layout.tsx. Ported from pulse (app)/settings/SettingsClient.tsx `EditProfileButton`.
 export default function EditProfile() {
-  const { data } = useScreen(async (ctx) => ctx.profile, []);
+  const { data } = useScreen(async (ctx) => ctx.profile, ["profile"]);
   return (
     <SheetScreen title="Profile" description="Changing it recomputes every day’s scores.">
       {/* The web wraps the form in its own `px-4`: 32 px of side margin. Its `pb-[max(env(safe-area-inset-bottom),16px)]` is

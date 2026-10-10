@@ -6,6 +6,7 @@ import { View } from "react-native";
 import { Activity, Check, Droplet, Heart, Thermometer, TriangleAlert, Wind, type LucideIcon } from "lucide-react-native";
 import type { ChipTone } from "@/lib/bands";
 import { formatValue, hmm } from "@/lib/format";
+import type { QueryCtx } from "@/queries/common";
 import { getHealthHub } from "@/queries/health";
 import type { HealthHubVM, VitalKey } from "@/queries/types";
 import { StressChart, StressChartSkeleton } from "@/ui/charts/StressChart";
@@ -233,9 +234,13 @@ function HeartRate({ hr, now }: { hr: HealthHubVM["heartRate"]; now: number }) {
 
 const FOOTNOTE = "Estimates for personal insight, not medical advice.";
 
+/** The Health tab's query and key; Home prefetches them. */
+export const healthQuery = async (ctx: QueryCtx) => ({ vm: await getHealthHub(ctx), now: ctx.now * 1000 });
+export const HEALTH_KEY = ["health"] as const;
+
 export function HealthScreen() {
   // `now` is the query's clock (epoch ms): "2 minutes ago" is as of the load.
-  const { data, error, reload } = useScreen(async (ctx) => ({ vm: await getHealthHub(ctx), now: ctx.now * 1000 }), []);
+  const { data, error, reload } = useScreen(healthQuery, HEALTH_KEY);
   if (!data) return error ? <ErrorView retry={reload} /> : <HealthLoading />;
   const { vm, now } = data;
   return (

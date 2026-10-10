@@ -159,7 +159,7 @@ export default function ReportScreen() {
   const { period } = useLocalSearchParams<{ period: string }>();
   const isWeek = WEEK.test(period);
   const valid = isWeek || MONTH.test(period);
-  const { data, error, reload } = useScreen((ctx) => load(period, ctx), [period]);
+  const { data, error, reload } = useScreen((ctx) => load(period, ctx), ["report", period]);
   const title = isWeek ? "Weekly report" : "Monthly report";
 
   if (!valid) return <DetailShell title="Report" primary={<EmptyState body="Page not found." />} />;

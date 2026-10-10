@@ -1,5 +1,9 @@
 import { Children, cloneElement, isValidElement, useRef, useState, type ReactNode } from "react";
 import { View } from "react-native";
+import { useIsFocused } from "expo-router";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { DURATION } from "../motion";
+import { Skeleton } from "../Skeleton";
 import { Text } from "../Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { InfoContent } from "./InfoButton";
@@ -9,6 +13,8 @@ import { DateSwitcher } from "./DateSwitcher";
 import { DetailHeader, type DetailHeaderProps } from "./DetailHeader";
 import { HEADER_ROW } from "./Header";
 import { ScreenScroll, type ScreenScrollProps, useCollapse } from "./ScreenScroll";
+import { useShellSync } from "./ShellStatus";
+import { useBodyShown, useScreenReady } from "./useScreenReady";
 
 export type DetailShellProps = {
   title: string;
@@ -50,11 +56,21 @@ export function DetailShell({ title, subtitle, info, backHref, dateSwitcher, dis
   const heroBox = useRef<View>(null);
   // The compact hero, drawn in the header's second row.
   const compact = collapse && isValidElement<{ compact?: boolean }>(hero) ? cloneElement(hero, { compact: true }) : null;
+  // The whole page renders at once when the screen is preloaded (Home preloads its dials' screens) or already settled.
+  // A cold push renders the top first, because the native slide starts only after that render: the page below the fold
+  // holds a card-shaped skeleton during the slide and fades in when the slide ends. Once rendered it stays.
+  const ready = useScreenReady();
+  const focused = useIsFocused();
+  const [below, setBelow] = useState(ready || !focused);
+  const [fade] = useState(!below);
+  if ((ready || !focused) && !below) setBelow(true);
+  const body = useBodyShown();
+  const shellSync = useShellSync();
   const header = compact ? <CollapsingHeader {...headerProps} compact={compact} stats={stats} progress={progress} onHeight={setHeaderHeight} /> : <DetailHeader {...headerProps} onHeight={setHeaderHeight} />;
 
   return (
-    <ScreenScroll header={header} top={headerHeight} onScroll={onScroll} healthspan={ground === "healthspan"} onRefresh={onRefresh}>
-      <View className="w-full px-4 pt-2" accessibilityState={{ busy: !!loading }}>
+    <ScreenScroll header={header} top={headerHeight} onScroll={onScroll} healthspan={ground === "healthspan"} onRefresh={onRefresh ?? shellSync?.syncNow}>
+      {body && <View className="w-full px-4 pt-2" accessibilityState={{ busy: !!loading }}>
         {loading && <Text accessibilityLiveRegion="polite" className="absolute h-px w-px opacity-0">{title.trim() ? `Loading ${title}…` : "Loading…"}</Text>}
         {dateSwitcher && !inHeader && (
           <View className="mb-6 items-center">
@@ -70,7 +86,7 @@ export function DetailShell({ title, subtitle, info, backHref, dateSwitcher, dis
                   // The collapse point: the hero's bottom edge reaching the header's. Measured at rest, then fixed.
                   onLayout={() =>
                     compact &&
-                    heroBox.current?.measureInWindow((_x, y, _w, h) => {
+                    heroBox.current?.measure((_x, _y, _w, h, _pageX, y) => {
                       threshold.value = Math.max(0, y + h + scrollY.value - headerHeight);
                     })
                   }
@@ -88,11 +104,17 @@ export function DetailShell({ title, subtitle, info, backHref, dateSwitcher, dis
             </View>
           )}
           {(summary || !hero) && insight}
-          {primary}
-          {secondary && secondary.length > 0 && <View className="gap-3">{Children.toArray(secondary)}</View>}
-          {footer}
+          {below ? (
+            <Animated.View entering={fade ? FadeIn.duration(DURATION.base) : undefined} className="gap-8">
+              {primary}
+              {secondary && secondary.length > 0 && <View className="gap-3">{Children.toArray(secondary)}</View>}
+              {footer}
+            </Animated.View>
+          ) : (
+            (primary || secondary?.length || footer) && <Skeleton className="h-96 rounded-2xl" />
+          )}
         </View>
-      </View>
+      </View>}
     </ScreenScroll>
   );
 }

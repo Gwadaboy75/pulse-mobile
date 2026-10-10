@@ -4,6 +4,7 @@ import { Fragment } from "react";
 import { View } from "react-native";
 import { clock, hmm } from "@/lib/format";
 import { trendHref } from "@/lib/url";
+import type { QueryCtx } from "@/queries/common";
 import { getSleep } from "@/queries/sleep";
 import { getWeeklyTrends, type TrendViewKey, type TrendViewVM } from "@/queries/trendView";
 import type { SleepVM } from "@/queries/types";
@@ -36,13 +37,17 @@ const STATUS_LEGEND = [
   ["bg-optimal", "Optimal"],
 ] as const;
 
+/** The page's query and key; Home prefetches them, so Sleep opens with content. */
+export const sleepQuery = (d: string) => async (ctx: QueryCtx) => {
+  const [vm, weekly] = await Promise.all([getSleep(ctx, d), getWeeklyTrends(WEEKLY, d, ctx)]);
+  return { vm, weekly };
+};
+export const sleepKey = (d: string) => ["sleep", d] as const;
+
 export function SleepScreen() {
   const [d] = useSelectedDay();
   const { timeZone } = useShellCalendar();
-  const { data } = useScreen(async (ctx) => {
-    const [vm, weekly] = await Promise.all([getSleep(ctx, d), getWeeklyTrends(WEEKLY, d, ctx)]);
-    return { vm, weekly };
-  }, [d]);
+  const { data } = useScreen(sleepQuery(d), sleepKey(d));
   // The web shows its skeleton on every navigation: another day's data is not this day's.
   const shown = data?.vm.day === d && timeZone ? data : undefined;
   return shown && timeZone ? <Sleep vm={shown.vm} weekly={shown.weekly} timeZone={timeZone} /> : <SleepSkeleton />;

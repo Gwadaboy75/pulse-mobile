@@ -83,11 +83,30 @@ Pulse made log-entry ids with node's `randomUUID`. Hermes has `crypto.randomUUID
 
 ## Repositories run on a synchronous drizzle database
 
-The repositories take one `Db` type (drizzle's synchronous SQLite database). `expo-sqlite` runs under it in the app and `better-sqlite3` in Node tests, so the same code is tested in Node and shipped to the phone. Each method is `async` to keep the interface the pipeline already expects, but its SQL runs synchronously: that makes a multi-statement method atomic inside the one JS thread. `src/data/testing.ts` opens an in-memory database with the migrations applied.
+The repositories take one `Db` type (drizzle's synchronous SQLite database). `expo-sqlite` runs under it in the app and `better-sqlite3` in Node tests, so the same code is tested in Node and shipped to the phone. Each method is `async` to keep the interface the pipeline already expects. Writes, and the reads a write depends on, run synchronously: that makes a multi-statement method atomic inside the one JS thread. `src/data/testing.ts` opens an in-memory database with the migrations applied.
 
-## One connection, a queue and savepoints
+## Reads on a second, asynchronous connection
 
-React Native has one SQLite connection, and drizzle's `db.transaction` cannot take an async callback on it. `Store.transaction` sends `BEGIN IMMEDIATE`, awaits your callback, then `COMMIT` or `ROLLBACK`, and starts the next transaction only when the last has ended. Methods that need several statements to land together use a `SAVEPOINT` instead, which works alone and nested inside a transaction.
+A synchronous read holds the JS thread while SQLite works, so a screen's query stopped taps and animations. `src/data/db.ts` opens the file twice: the write connection (synchronous, as above) and a read connection that drizzle reaches through `drizzle-orm/sqlite-proxy`, whose callback calls expo-sqlite's async API (`prepareAsync`, `executeForRawResultAsync`), which runs the query on a background thread. The file is in WAL mode, so the reader never waits for the writer and sees committed data only.
+
+Each repository takes both handles (`xRepo(db, read)`) and sends pure reads to `read`. The store's own repositories read on the read connection; the repositories a transaction hands out (`tx`) read and write on the write connection, so a transaction sees its own uncommitted rows. In tests both handles are the one better-sqlite3 database, and `src/data/repos/store.test.ts` also runs the app's two-connection setup on a WAL file.
+
+```mermaid
+flowchart LR
+  Screens[Screens and sync] -->|store.x.read| Reader[Read connection, async]
+  Screens -->|store.x.write| Writer[Write connection, sync]
+  Tx[store.transaction tx] --> Writer
+  Writer --> File[(pulse.db, WAL)]
+  Reader --> File
+```
+
+## `loadDays` keeps recent ranges in memory
+
+Most screens ask for the same 30 to 180 days of `daily_scores` and `daily_metrics`, and parsing those JSON columns was most of a query's time. `loadDays` (`src/queries/common.ts`) keeps its last 16 ranges per store and drops them all when `store.dataVersion()` changes. That value is SQLite's `data_version` (bumped when another connection commits) joined with `total_changes()` (this connection's own writes), read on the read connection, so any write, from any path, invalidates the cache. Callers must treat the rows as read-only.
+
+## One write connection, a queue and savepoints
+
+All writes go through one SQLite connection, and drizzle's `db.transaction` cannot take an async callback on it. `Store.transaction` sends `BEGIN IMMEDIATE`, awaits your callback, then `COMMIT` or `ROLLBACK`, and starts the next transaction only when the last has ended. Methods that need several statements to land together use a `SAVEPOINT` instead, which works alone and nested inside a transaction.
 
 ## Sample BLOBs
 
@@ -182,9 +201,9 @@ A route's params are strings, so content made of components cannot ride in one. 
 
 `expo-linear-gradient` draws a gradient on the GPU with a native layer, so `src/ui/Gradient.tsx` now wraps it. The web's cards fade 2 to 4 percent lighter toward the top (`card-top` to `card`), which only shows in dark mode, so `<CardFill>` draws it there. A gradient child sits above the parent's own inset shadow, so the fill redraws the lit top edge itself.
 
-## Blur: iOS is free, Android needs a target
+## Blur: iOS only
 
-`expo-blur`'s `BlurView` blurs what is behind it on iOS by itself. On Android it can only blur what sits inside a `BlurTargetView`, so `ScreenScroll` wraps the scrolling page in one and shares its ref through `BlurTargetContext`. Only the round check-in button is glass; the web's headers do not blur (the spec's header frame: "a fade, not frosted text"), so the headers keep their ground fill.
+`expo-blur`'s `BlurView` blurs what is behind it on iOS by itself. Android draws the glass fill opaque instead (the glass colour as it shows over the page background): its RenderNode blur re-blurs the scrolling page every frame, about 4 ms of GPU time, which keeps a 120 Hz screen below 120 fps (see "Reanimated and SVG draws on Android" for how it was measured). Only the tab bar and the round check-in button are glass; the web's headers do not blur (the spec's header frame: "a fade, not frosted text"), so the headers keep their ground fill.
 
 ## Haptics: felt everywhere it means something
 
@@ -194,9 +213,9 @@ choice or a step (tabs, segmented controls, days, and each data point while you 
 dense day of minutes feels like a fine texture), a toggle for open and close, and success, warning and error for a save,
 a destructive confirm and a failure. Never on a tap that only navigates. Haptics need no permission and cost nothing when
 the phone has no motor.
-## The check-in button and the bar's blur
+## The check-in button and the bar's glass
 
-On the tab roots the round action sits in the tab bar, beside the bar; on detail screens `ScreenScroll` floats it alone where the bar would be (`useTabBarBottom`). Both are glass: iOS blurs whatever is behind on its own; Android blurs only the inside of a `BlurTargetView`, so each `ScreenScroll` wraps its page in one and, when it comes into view, hands it to the tab bar (`src/ui/shells/blurTarget.ts`).
+On the tab roots the round action sits in the tab bar, beside the bar; on detail screens `ScreenScroll` floats it alone where the bar would be (`useTabBarBottom`). Both are glass: iOS blurs whatever is behind; Android draws the same fill opaque (`Glass`).
 
 ## Pull to refresh
 
@@ -248,7 +267,11 @@ React Native runs all JavaScript on one thread, and `await` on something that is
 
 ## Press feedback: `Press`, a press delay and Reanimated
 
-NativeWind's `active:` classes switch a Pressable's look the instant the finger lands, with no easing, and a finger that lands on a card to scroll the page still shows the press. `src/ui/Press.tsx` replaces them: `activeScale`, `activeBg` and `activeOpacity` ease in and out over the web's 150 ms `ease-standard` on the UI thread, and `unstable_pressDelay={150}` (the delay iOS's own scroll views use) holds the press until the touch is clearly not a scroll. Measured on the simulator, swipes that start on a row after a 0, 60 or 100 ms rest: with no delay every one fired `onPressIn`; with 150 ms none did. A quick tap still plays the whole press at release. The pressed fill is a view in the `activeBg` class faded in behind the children, since React Native cannot ease a background class.
+NativeWind's `active:` classes switch a Pressable's look the instant the finger lands, with no easing, and a finger that lands on a card to scroll the page still shows the press. `src/ui/Press.tsx` replaces them: `activeScale`, `activeBg` and `activeOpacity` ease in and out over the web's 150 ms `ease-standard` on the UI thread, and `unstable_pressDelay={150}` (the delay iOS's own scroll views use) holds the press until the touch is clearly not a scroll. Measured on the simulator, swipes that start on a row after a 0, 60 or 100 ms rest: with no delay every one fired `onPressIn`; with 150 ms none did. A quick tap still plays the whole press at release. The pressed fill is a view in the `activeBg` class faded in behind the children, since React Native cannot ease a background class. A `Press` without any of the three props is a plain `Pressable`: each `useAnimatedStyle` is a UI-thread mapper that is serialized and started when a page mounts and stopped when it unmounts, and a page holds dozens of presses.
+
+## NativeWind skips elements without a class
+
+With NativeWind's JSX runtime every `View`, `Text` and `Pressable` in the app renders through css-interop's wrapper, class or not, and the wrapper's hooks were the largest single cost of rendering a page. `patches/react-native-css-interop@0.2.7.patch` renders the bare component when an element carries none of the wrapper's class props (`className` for a View). It checks whether the prop is present, not its value, so `className={maybe}` keeps one component type across renders.
 
 ## Dropdown menus: `MenuPanel` and two window readings
 
@@ -347,3 +370,71 @@ rerunning every screen query. Development logs measure transition duration, JS c
 `dumpsys gfxinfo` measures native frame deadlines. JS callback gaps alone do not measure native animation frames.
 
 Docs: [SDK 57](https://docs.expo.dev/versions/v57.0.0/), [Stack](https://docs.expo.dev/router/advanced/stack/).
+
+## Reanimated and SVG draws on Android: a patched stall
+
+Reanimated 4.5.1 reapplies every animated view's props by reflection whenever a native event arrives during a draw
+pass. react-native-svg dispatches `topSvgLayout` the first time each element draws, so opening a chart screen fires
+hundreds of events. For every registry entry whose view is not mounted, Reanimated caught the exception and logged a
+full Java stack trace, on the UI thread: about 450 traces per navigation, single frames of 3 to 5 seconds. Reanimated
+4.7.1 checks `getViewExists` first and logs one line. 4.7 needs worklets 0.13, which SDK 57 does not pin, so
+`patches/react-native-reanimated@4.5.1.patch` backports that check (pnpm `patchedDependencies`). Drop the patch when
+the SDK moves to Reanimated 4.7 or newer. The page ground is an `expo-linear-gradient` layer, not a full-screen SVG:
+react-native-svg rasterises on the CPU at every redraw.
+
+To find this kind of stall, record a Perfetto trace with `atrace_apps: "in.portlabs.pulse"` and Java callstack sampling,
+then look at the main thread's longest `Choreographer#doFrame` and its slowest view `draw` slices. JS timers and
+`onLayout` cannot see it: Fabric runs layout before the UI thread draws, and the JS thread sits idle during the stall.
+
+Docs: [Reanimated](https://docs.swmansion.com/react-native-reanimated/), [pnpm patch](https://pnpm.io/cli/patch).
+
+## Screens open from memory
+
+Each screen's query result stays in memory (`useScreen`, keyed by `[screen id, ...params]`). A screen opened again renders
+its last result in the first frame, with no skeleton, and refreshes it in the background when `dataChanged()` fires or
+the result is a minute old. TanStack Query is the library version of this cache, if the app ever needs retries,
+mutations or persistence.
+
+Home preloads what is one tap away once it is in view and its transition has ended (`preloadWhenIdle`): the other tabs
+and, on today, the three dials' screens as whole pages (expo-router's `router.prefetch`; a push of a preloaded route
+reuses it, and native-stack does not freeze preloaded routes), and the date pill's neighbouring days as data. One item per
+`requestIdleCallback`, data first, so a tap or a scroll never queues behind it. Stepping through days loads only Home's
+neighbours, not the dials' pages.
+
+A screen that mounts out of view (a preloaded route or tab) renders its header and leaves the body to a React
+transition (`useBodyShown` in the shells): a transition renders in slices with taps in between, where the preload's own
+render is synchronous (react-navigation keeps its state in `useSyncExternalStore`, which a transition cannot wrap). Back
+pops the preloaded page, so Home preloads it again, and that render used to hold the JS thread for over a second.
+
+A cold push (a screen nobody preloaded) renders the top of the page first, because the native slide starts only after
+that render: `DetailShell` shows a card-shaped skeleton below the fold during the slide and fades the page in after.
+
+`react-freeze` around preloaded screens (to stop them re-rendering while hidden) crashed Fabric with "addViewAt: The
+specified child already has a parent" when a frozen preloaded screen was pushed: the Suspense unhide and the screen's
+move into the stack landed in one mount. Measured afterwards, preloaded screens did not re-render on Home's date steps
+anyway, so nothing replaces it.
+
+```mermaid
+flowchart LR
+  Settled[Home settled] --> Idle[Idle moment]
+  Idle --> Data[Load one screen's data]
+  Data --> Page[Render its page hidden]
+  Page --> Idle
+  Tap --> Push[push: reuse the hidden page]
+  Push --> Slide[Native slide with the full page]
+  Sync[Sync or log] --> Changed[dataChanged]
+  Changed --> Refresh[Refresh in background, keep showing the last result]
+```
+
+## Sync while the app is open
+
+The web app's server syncs every 15 minutes (`pulse/src/server/worker.ts`). Until the background task (`expo-background-task`, plan stream L) exists, the app does it while it is in front: `ShellData` calls `syncIfStale` (`src/screens/settings/connect.ts`) when the app opens, when it comes back to the foreground, and once a minute. That function starts a sync only when Google is connected and no sync was attempted in the last 15 minutes. It keys on the last attempt, not the last success, so a failing sync retries every 15 minutes, not every minute. Pulling any tab root or detail page down runs Sync now, as on the web, through `ShellSync.syncNow`; a screen can still pass its own `onRefresh`.
+
+```mermaid
+flowchart LR
+  Open[App opens or comes to front] --> Check{Last attempt over 15 min ago?}
+  Minute[Every minute in front] --> Check
+  Check -->|yes| Sync[syncNow: pull, then recompute]
+  Check -->|no| Wait[Nothing]
+  Pull[Pull down on a page] --> Sync
+```

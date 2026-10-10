@@ -8,7 +8,7 @@ const EDGE = 8;
 /**
  * Where a dropdown panel goes, in the modal's coordinates: below the trigger unless it does not fit there and there is
  * more room above, aligned to the trigger's start or end (or its width for `stretch`), kept inside the screen. The
- * trigger and the modal's frame are both window readings, so their difference is the trigger in the modal.
+ * trigger and the modal's frame are both page readings, so their difference is the trigger in the modal.
  */
 export function placeMenu(anchor: Box, frame: Box, panel: { w: number; h: number }, insets: { top: number; bottom: number }, align: "start" | "end" | "stretch") {
   const x = anchor.x - frame.x;

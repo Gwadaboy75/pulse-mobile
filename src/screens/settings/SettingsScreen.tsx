@@ -75,7 +75,7 @@ export function SettingsScreen() {
   const section = resolve(s);
   const focused = useIsFocused();
   const syncVersion = useSyncVersion(focused && section === "source");
-  const { data } = useScreen(async (ctx) => ({ vm: await getSettings(ctx), prefs: await getAppPrefs(ctx), now: ctx.now * 1000 }), [section === "source" ? syncVersion : 0]);
+  const { data } = useScreen(async (ctx) => ({ vm: await getSettings(ctx), prefs: await getAppPrefs(ctx), now: ctx.now * 1000 }), ["settings", section === "source" ? syncVersion : 0]);
 
   return (
     <View className="flex-1">

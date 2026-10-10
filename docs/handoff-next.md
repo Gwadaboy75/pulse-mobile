@@ -16,15 +16,26 @@ Read this first, then `docs/handoff.md` (sections 3, 4, 7) for rules, commands a
   `ANDROID_HOME=~/Library/Android/sdk npx eas-cli@latest build -p android --profile <preview|development> --local --non-interactive --output ~/personal/pulse-mobile-builds/<name>.apk`
   then `adb install -r <apk>` (same key, updates in place, keeps data).
 
-## In flight when this session ended
+## Current follow-up
 
-1. **Perf agent** on branch `perf/transitions` (worktree `~/personal/worktrees/pulse-mobile/perf`): opening a screen on
-   Android cross-fades with both screens visible (two headers) and is slow. Brief: pick the right transition
-   (`slide_from_right` on Android), opaque incoming screen, defer heavy content until the transition ends, stop the 4 s
-   sync poll from re-rendering whole screens. Check the branch for its commits; it was not merged.
-2. **Development build** (`--profile development --local`) was building into `~/personal/pulse-mobile-builds/pulse-dev-*.apk`,
-   signed with the EAS key. Install it on the phone to get JS logs (`adb logcat -s ReactNativeJS`) and live reload with
-   Google working; the release APK strips logs.
+The original perf agent stopped without changes. Its branch `perf/transitions` and worktree were deleted.
+
+- Whole-sync progress and isolated status polling are pushed to `main` at `0c8b932`. All 15 core jobs count from the
+  start; progress uses one overall percentage. Typecheck, lint and tests pass (1,065 passed, one skipped).
+- Android slide transitions, opaque screen fill, query deferral until native `transitionEnd`, and development timing
+  logs are committed on `codex/sync-scoring`, pending phone verification. Checks pass. The release baseline for opening
+  Sleep was 27 frames, six missed deadlines (22.2%). This is a single targeted sample, not a benchmark.
+- A signed arm64 development APK is ready at `~/personal/pulse-mobile-builds/pulse-dev-3d91b45.apk`. Its SHA-1 matches
+  the EAS keystore above. The initial builds failed; the successful retry used
+  `ORG_GRADLE_PROJECT_reactNativeArchitectures=arm64-v8a GRADLE_OPTS='-Dorg.gradle.workers.max=2'` with the same EAS command.
+- The phone is temporarily disconnected. Device-specific install and SQLite capture are queued in exec session 37908.
+  Install with `adb install -r`, then copy `files/SQLite` with `run-as` before
+  launching the app. Metro runs on port 8081. The release denies `run-as`; no SQLite snapshot has been captured yet.
+- The release's Your data page reports zero scored days; its daily JSON export is empty. Export opens the share sheet.
+  Sync/scoring diagnosis and the remaining R8 checks are still pending. Never load demo data into the owner's database.
+- Gradle and Kotlin build daemons have stopped. Completed agent and temporary integration worktrees were removed.
+- Local snapshot inspection helper: `/tmp/pulse-inspect.py <extracted-directory>` prints table counts, date spans and
+  sync cursors, without raw health readings. Dev launcher scheme is `exp+pulse`; reverse USB port 8081 before launch.
 
 ## Open problems (owner-reported, most important first)
 
@@ -34,7 +45,7 @@ Read this first, then `docs/handoff.md` (sections 3, 4, 7) for rules, commands a
    `recompute` run over the synced days (`src/google/sync*`, `syncNow`, `src/pipeline`). Compare with pulse's server
    sync (`~/personal/pulse/src/server`, read only).
 2. **"Syncing x of 180 days" jumps up and down** and repeats per data type. Show one progress for the whole sync.
-3. **Screens open slowly and glitch** (perf agent above). Verify on the phone with `adb shell dumpsys gfxinfo in.portlabs.pulse`.
+3. **Screens open slowly and glitch.** Verify the prepared changes on the phone with `adb shell dumpsys gfxinfo in.portlabs.pulse`.
 4. On the phone, R8 is on: check charts, the Log date field (@expo/ui), animations, export, the dashboard editor.
 5. iOS Google connect is untested; Android Google console: consent screen lists the 13 Google Health scopes, owner's
    account is a test user.

@@ -53,7 +53,7 @@ export default function MetricScreen() {
   const range = parseRange(r);
   const timeZone = useOptionalShellCalendar()?.timeZone;
   const valid = isDetailKey(key);
-  const { data, error, reload } = useScreen((ctx) => getMetricDetail(key as DetailKey, d, ctx), [key, d]);
+  const { data, error, reload } = useScreen((ctx) => getMetricDetail(key as DetailKey, d, ctx), ["metric", key, d]);
   // A day change keeps the old view model on screen until the new one lands; another metric never shows the old one.
   const vm = data?.key === key ? data : undefined;
   const shaped = useMemo(() => (vm ? shape(vm) : undefined), [vm]);

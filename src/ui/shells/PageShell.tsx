@@ -8,6 +8,7 @@ import { useShellSync } from "./ShellStatus";
 import { SyncStatus } from "./SyncStatus";
 import { HEADER_ROW, TitleHeader, useHeaderHeight } from "./Header";
 import { ScreenScroll, type ScreenScrollProps, useCollapse } from "./ScreenScroll";
+import { useBodyShown } from "./useScreenReady";
 
 const SentinelContext = createContext<((node: View) => void) | null>(null);
 
@@ -54,19 +55,22 @@ export function PageShell({ title, dateSwitcher, actions, layout = "stack", slot
   const base = useHeaderHeight(HEADER_ROW);
   const mark = useCallback(
     (node: View) =>
-      node.measureInWindow((_x, y) => {
+      // Page coordinates, like the header's height (src/ui/Menu.tsx: measureInWindow's offset varies on Android).
+      node.measure((_x, _y, _w, _h, _pageX, y) => {
         threshold.value = Math.max(0, y + scrollY.value - base);
       }),
     [threshold, scrollY, base],
   );
 
   // The sync status sits at the right of every tab root's header, the streak beside Home's avatar (the web's TopBar and HomeHeader).
-  const streak = useShellSync()?.streak?.days;
+  const shellSync = useShellSync();
+  const streak = shellSync?.streak?.days;
   const right = headerRight ?? <SyncStatus />;
+  const body = useBodyShown();
   const header = home ? <HomeHeader rings={rings} progress={progress} right={headerRight} streak={streak} /> : <TitleHeader title={title} dateSwitcher={dateSwitcher} right={right} />;
   return (
-    <ScreenScroll header={header} top={top} onScroll={onScroll} onRefresh={onRefresh}>
-      <View className="w-full px-4 pt-2" accessibilityState={{ busy: !!loading }}>
+    <ScreenScroll header={header} top={top} onScroll={onScroll} onRefresh={onRefresh ?? shellSync?.syncNow}>
+      {body && <View className="w-full px-4 pt-2" accessibilityState={{ busy: !!loading }}>
         {loading && <Text accessibilityLiveRegion="polite" className="absolute h-px w-px opacity-0">{title.trim() ? `Loading ${title}…` : "Loading…"}</Text>}
         {actions && <View className="mb-4 flex-row justify-end gap-2">{actions}</View>}
         <SampleCard />
@@ -82,7 +86,7 @@ export function PageShell({ title, dateSwitcher, actions, layout = "stack", slot
         ) : (
           <View className={layout === "grid-2" ? "gap-3" : "gap-8"}>{children}</View>
         )}
-      </View>
+      </View>}
     </ScreenScroll>
   );
 }

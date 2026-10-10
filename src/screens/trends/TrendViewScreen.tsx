@@ -41,7 +41,7 @@ export default function TrendViewScreen() {
   const range = parseTrendRange(r);
   const offset = parseOffset(p);
   const valid = isTrendViewKey(key);
-  const { data, error, reload } = useScreen((ctx) => getTrendView(key as TrendViewKey, d, range, offset, ctx), [key, d, range, offset]);
+  const { data, error, reload } = useScreen((ctx) => getTrendView(key as TrendViewKey, d, range, offset, ctx), ["trendView", key, d, range, offset]);
   // A range, period or day change keeps the old view model on screen until the new one lands (the web keeps the page while
   // it navigates); another metric never draws the old one under its title.
   const vm = data?.key === key ? data : undefined;

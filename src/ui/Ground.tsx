@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
-import { StyleSheet } from "react-native";
-import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
+import { StyleSheet, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { mix } from "./color";
 import type { Palette } from "./palette";
 import { useTheme } from "./theme";
@@ -20,17 +20,17 @@ export function Ground({ healthspan }: { healthspan?: boolean }) {
   const screen = useContext(HealthspanGround);
   // The Healthspan ground is flat (--ground-healthspan): no gradient.
   const flat = (healthspan ?? screen) ? c["ground-healthspan"] : null;
+  // A native gradient layer: an SVG this size rasterises on the CPU at every redraw (about 40 ms a frame on Android).
   return (
-    <Svg style={StyleSheet.absoluteFill} pointerEvents="none" width="100%" height="100%">
-      <Defs>
-        <LinearGradient id="ground" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={STOP.end}>
-          <Stop offset={0} stopColor={flat ?? c["background-top"]} />
-          <Stop offset={STOP.mid / STOP.end} stopColor={flat ?? c["background-mid"]} />
-          <Stop offset={1} stopColor={flat ?? c.background} />
-        </LinearGradient>
-      </Defs>
-      <Rect width="100%" height="100%" fill="url(#ground)" />
-    </Svg>
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: flat ?? c.background }]} pointerEvents="none">
+      {!flat && (
+        <LinearGradient
+          colors={[c["background-top"], c["background-mid"], c.background]}
+          locations={[0, STOP.mid / STOP.end, 1]}
+          style={{ height: STOP.end }}
+        />
+      )}
+    </View>
   );
 }
 

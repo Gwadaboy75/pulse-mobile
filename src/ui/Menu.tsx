@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from "react";
-import { Modal, Platform, Pressable, StatusBar, View } from "react-native";
+import { Modal, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cn } from "./cn";
 import { placeMenu, type Box } from "./menuPlace";
@@ -12,8 +12,9 @@ export function useMenu() {
   return {
     ref,
     anchor,
-    // On Android, measureInWindow measures from below the status bar, while the translucent modal starts at the top of the screen.
-    open: () => ref.current?.measureInWindow((x, y, w, h) => setAnchor({ x, y: y + (Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0), w, h })),
+    // Page coordinates: from the top of the app's root view, which starts at the top of the screen (edge-to-edge), as the
+    // translucent modal does. measureInWindow on Android sometimes leaves out the status bar and sometimes does not.
+    open: () => ref.current?.measure((_x, _y, w, h, pageX, pageY) => setAnchor({ x: pageX, y: pageY, w, h })),
     close: () => setAnchor(null),
   };
 }
@@ -24,7 +25,7 @@ export function useMenu() {
  * the trigger's width). Like Radix, it flips above only when it does not fit below and fits better above, and it never
  * covers its trigger. A tap outside closes it; there is no dim.
  *
- * The trigger and the modal's own root are both measured in window coordinates, and the panel is placed at the difference.
+ * The trigger and the modal's own root are both measured in page coordinates, and the panel is placed at the difference.
  */
 export function MenuPanel({ anchor, onClose, align, className, children }: { anchor: Box | null; onClose: () => void; align: "start" | "end" | "stretch"; className?: string; children: ReactNode }) {
   const insets = useSafeAreaInsets();
@@ -43,7 +44,7 @@ export function MenuPanel({ anchor, onClose, align, className, children }: { anc
         onPress={onClose}
         onLayout={(e) => {
           const { width, height } = e.nativeEvent.layout;
-          root.current?.measureInWindow((x, y) => setFrame({ x, y, w: width, h: height }));
+          root.current?.measure((_x, _y, _w, _h, pageX, pageY) => setFrame({ x: pageX, y: pageY, w: width, h: height }));
         }}
         className="flex-1"
       >

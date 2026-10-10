@@ -112,7 +112,7 @@ function HeartRateHero({ v, now }: { v: HeartRateVM; now: number }) {
 }
 
 export function HeartRateScreen() {
-  const { data, error, reload } = useDayScreen(getHeartRate);
+  const { data, error, reload } = useDayScreen("heartRate", getHeartRate);
   const now = useLiveHeartRate(data?.vm.isToday ?? false, data?.vm.end ?? 0, reload);
   const vm = data?.vm;
   // A minute without a reading is a gap, never a line across it. Shaped once per load, not per render.

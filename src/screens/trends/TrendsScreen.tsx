@@ -27,7 +27,7 @@ export default function TrendsScreen() {
   const { metric, r } = useLocalSearchParams<{ metric?: string; r?: string }>();
   const m = parseTrendMetric(metric);
   const range = parseRange(r);
-  const { data, error, reload } = useScreen((ctx) => getTrends(m.key, ctx), [m.key]);
+  const { data, error, reload } = useScreen((ctx) => getTrends(m.key, ctx), ["trends", m.key]);
   // A metric change keeps the old view model until the new one lands: never draw it under the new title.
   const vm = data?.metric === m.key ? data : undefined;
   const shaped = useMemo(() => (vm ? shape(vm, m) : undefined), [vm, m]);

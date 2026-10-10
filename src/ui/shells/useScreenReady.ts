@@ -1,9 +1,14 @@
 import { useIsFocused, useNavigation, useRoute, type NativeStackNavigationProp } from "expo-router";
-import { useLayoutEffect, useState } from "react";
+import { startTransition, useEffect, useLayoutEffect, useState } from "react";
 import { Platform } from "react-native";
 
+type StackNavigation = NativeStackNavigationProp<Record<string, object | undefined>>;
+
 export function useScreenReady() {
-  const navigation = useNavigation<NativeStackNavigationProp<Record<string, object | undefined>>>();
+  const own = useNavigation();
+  // A tab's screen moves with the tab navigator's screen in the stack around it: its transitions are that screen's (Home
+  // is settled once the slide back from a detail screen ends).
+  const navigation = (own.getState()?.type === "tab" ? (own.getParent() ?? own) : own) as StackNavigation;
   const route = useRoute();
   const focused = useIsFocused();
   const state = navigation.getState();
@@ -28,7 +33,11 @@ export function useScreenReady() {
       previous = now;
       frame = requestAnimationFrame(probe);
     };
+    // A screen a deep link opens gets no transition events at all: settle it when none has started by then.
+    let transitioned = false;
+    const fallback = setTimeout(() => !transitioned && setSettled(true), 500);
     const start = navigation.addListener("transitionStart", ({ data }) => {
+      transitioned = true;
       setSettled(false);
       if (__DEV__) {
         stop();
@@ -61,6 +70,7 @@ export function useScreenReady() {
       setSettled(false);
     });
     return () => {
+      clearTimeout(fallback);
       stop();
       start();
       end();
@@ -70,4 +80,19 @@ export function useScreenReady() {
   }, [defer, navigation, route.name]);
 
   return focused && (!defer || settled);
+}
+
+/**
+ * Whether a shell renders its page body. A screen that mounts in view renders it at once. One that mounts out of view
+ * (a preloaded route or tab) renders its header first and the body in a transition: React renders it in slices and
+ * lets a tap or a scroll in between, where a plain render would hold the JS thread for the whole page.
+ */
+export function useBodyShown() {
+  const focused = useIsFocused();
+  const [shown, setShown] = useState(focused);
+  if (focused && !shown) setShown(true);
+  useEffect(() => {
+    if (!shown) startTransition(() => setShown(true));
+  }, [shown]);
+  return shown;
 }

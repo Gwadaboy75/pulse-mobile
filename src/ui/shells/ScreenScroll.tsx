@@ -1,14 +1,11 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import { Platform, RefreshControl, StyleSheet, View } from "react-native";
-import { BlurTargetView } from "expo-blur";
-import { useFocusEffect, useLocalSearchParams, usePathname } from "expo-router";
+import { useLocalSearchParams, usePathname } from "expo-router";
 import Animated, { useAnimatedScrollHandler, useDerivedValue, useSharedValue, withTiming } from "react-native-reanimated";
 import { Ground, HealthspanGround } from "../Ground";
-import { BlurTargetContext } from "../Glass";
 import { haptic } from "../haptics";
 import { useTheme } from "../theme";
 import { FloatingCheckIn, showsCheckIn } from "./CheckInAction";
-import { setFocusedBlurTarget } from "./blurTarget";
 import { HEADER_FADE } from "./Header";
 import { useBottomClearance } from "./layout";
 import { DURATION } from "../motion";
@@ -58,12 +55,11 @@ export type ScreenScrollProps = {
  * The scroll container every shell uses: the ground behind, the content padded below the header (`top` plus its fade) and clear of the
  * floating tab bar or check-in button (`bottom`), a header drawn over it (the header is absolute, so content scrolls under
  * it and its fade), the check-in button floating over the foot of a detail screen, and the platform's pull-to-refresh and
- * keyboard handling on the scroll view. The page sits in a blur target, so the glass floating over it blurs it on Android.
+ * keyboard handling on the scroll view.
  */
 export function ScreenScroll({ header, top, onScroll, bottomPad, healthspan, onRefresh, children }: ScreenScrollProps) {
   const { c } = useTheme();
   const clearance = useBottomClearance();
-  const blurTarget = useRef<View>(null);
   const checkIn = showsCheckIn(usePathname());
   const { section } = useLocalSearchParams<{ section?: string }>();
   const scroll = useRef<Animated.ScrollView>(null);
@@ -84,12 +80,6 @@ export function ScreenScroll({ header, top, onScroll, bottomPad, healthspan, onR
     },
     [section],
   );
-  // The tab bar's glass blurs the screen in view (Android; see blurTarget.ts).
-  useFocusEffect(
-    useCallback(() => {
-      setFocusedBlurTarget(blurTarget);
-    }, []),
-  );
   const [refreshing, setRefreshing] = useState(false);
   const refresh = async () => {
     haptic.tap();
@@ -102,8 +92,7 @@ export function ScreenScroll({ header, top, onScroll, bottomPad, healthspan, onR
   };
   return (
     <View className="flex-1 bg-background" style={{ backgroundColor: c.background }}>
-      {/* What the check-in button's glass blurs on Android (iOS blurs what is behind it by itself). */}
-      <BlurTargetView ref={blurTarget} style={StyleSheet.absoluteFill}>
+      <View style={StyleSheet.absoluteFill}>
         <Ground healthspan={!!healthspan} />
         <Animated.ScrollView
           ref={scroll}
@@ -125,12 +114,10 @@ export function ScreenScroll({ header, top, onScroll, bottomPad, healthspan, onR
             </View>
           </AnchorContext.Provider>
         </Animated.ScrollView>
-      </BlurTargetView>
+      </View>
       <HealthspanGround.Provider value={!!healthspan}>{header}</HealthspanGround.Provider>
       {checkIn && (
-        <BlurTargetContext.Provider value={blurTarget}>
-          <FloatingCheckIn />
-        </BlurTargetContext.Provider>
+        <FloatingCheckIn />
       )}
     </View>
   );

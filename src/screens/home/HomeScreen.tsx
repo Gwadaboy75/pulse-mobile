@@ -1,7 +1,10 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { View } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { CalendarRange, Check, ChevronRight, CircleAlert, Info, Lightbulb, Maximize2, Moon, Plus, Sun, TriangleAlert } from "lucide-react-native";
 import { isDashboardKey } from "@/lib/dashboard";
+import type { QueryCtx } from "@/queries/common";
+import { addDays } from "@/time";
 import { clock, DAY, formatDay, formatValue, MISSING, rangeLabel } from "@/lib/format";
 import { reasonCopy } from "@/lib/reasons";
 import { activityHref, dayHref, napHref } from "@/lib/url";
@@ -34,7 +37,15 @@ import { ring } from "@/ui/shadow";
 import { useTheme } from "@/ui/theme";
 import { ADD_ACTIVITY_INFO, ENERGY_INFO, STRAIN_RECOVERY_INFO, TONIGHT_INFO } from "../_lib/info";
 import { energySeries, statProps, stressSeries } from "../_lib/view";
-import { useScreen } from "../useScreen";
+import { getMore } from "@/queries/settings";
+import { HEALTH_KEY, healthQuery } from "../health/HealthScreen";
+import { journalKey, journalQuery } from "../journal/query";
+import { MORE_KEY } from "../more/MoreScreen";
+import { recoveryKey, recoveryQuery } from "../recovery/RecoveryScreen";
+import { sleepKey, sleepQuery } from "../sleep/SleepScreen";
+import { strainKey, strainQuery } from "../strain/StrainScreen";
+import { useScreenReady } from "@/ui/shells/useScreenReady";
+import { preloadWhenIdle, useScreen } from "../useScreen";
 import { EditDashboardButton } from "./EditDashboard";
 import { HomeInsight } from "./HomeInsight";
 import { HomeSkeleton } from "./HomeSkeleton";
@@ -62,13 +73,39 @@ const NO_BAND_INFO = {
 
 const go = (href: string) => push(href);
 
+const homeQuery = (d: string) => (ctx: QueryCtx) => getHome(ctx, d);
+const homeKey = (d: string) => ["home", d] as const;
+
 export function HomeScreen() {
   const [d] = useSelectedDay();
   const { timeZone } = useShellCalendar();
-  const { data } = useScreen((ctx) => getHome(ctx, d), [d]);
-  const keys = useScreen((ctx) => dashboardKeys(ctx.store), []).data;
+  const { data } = useScreen(homeQuery(d), homeKey(d));
+  const keys = useScreen((ctx) => dashboardKeys(ctx.store), ["home-keys"]).data;
   // The web shows its skeleton on every navigation: another day's data is not this day's.
   const vm = data?.day === d && timeZone ? data : undefined;
+  // What is one tap away loads while Home is in view and settled, one item per idle moment: the other tabs and, on
+  // today, the dials' screens as whole pages; the date pill's steps (the day before and after) as data. On another day
+  // only the steps load: each query reads SQLite on the JS thread, and stepping through days should not queue up a dial
+  // page's queries per step. A screen that was opened is gone after Back, so this runs again whenever Home settles.
+  const day = vm?.day;
+  const today = vm?.today;
+  const ready = useScreenReady();
+  useFocusEffect(
+    useCallback(() => {
+      if (!day || !today || !ready) return;
+      const steps = [addDays(day, -1), addDays(day, 1)].filter((d) => d <= today).map((d) => ({ query: homeQuery(d), key: homeKey(d) }));
+      if (day !== today) return preloadWhenIdle(steps);
+      return preloadWhenIdle([
+        { href: "/sleep", query: sleepQuery(day), key: sleepKey(day) },
+        { href: "/recovery", query: recoveryQuery(), key: recoveryKey() },
+        { href: "/strain", query: strainQuery(), key: strainKey() },
+        { href: "/health", query: healthQuery, key: HEALTH_KEY },
+        { href: "/journal", query: journalQuery(), key: journalKey() },
+        { href: "/more", query: getMore, key: MORE_KEY },
+        ...steps,
+      ]);
+    }, [day, today, ready]),
+  );
   return vm && timeZone ? <Home vm={vm} timeZone={timeZone} /> : <HomeSkeleton stats={keys} />;
 }
 

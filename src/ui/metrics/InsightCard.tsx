@@ -21,7 +21,7 @@ export type InsightCardProps = {
 
 // A 16 px card with a 1 px gradient hairline, so the inner radius is 15 px (spec §2.4).
 const FRAME = "overflow-hidden rounded-2xl p-px";
-const INNER = "flex-1 gap-2 rounded-[15px] bg-inset p-4";
+const INNER = "grow gap-2 rounded-[15px] bg-inset p-4";
 
 /** The reference app's coach card with the 1 px gradient hairline (spec §5.15). Not rendered when empty. */
 export function InsightCard({ title, body, action, onAnchor }: InsightCardProps) {

@@ -77,7 +77,7 @@ function Loading() {
 }
 
 export function YourDataScreen() {
-  const { data } = useScreen(async (ctx) => ({ vm: await getYourData(ctx), coach: await hasCoachChats(ctx) }), []);
+  const { data } = useScreen(async (ctx) => ({ vm: await getYourData(ctx), coach: await hasCoachChats(ctx) }), ["yourData"]);
   const [busy, setBusy] = useState<string | null>(null);
   if (!data) return <Loading />;
   const { vm, coach } = data;

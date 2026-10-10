@@ -98,7 +98,13 @@ const JOBS: Job[] = [
 ];
 
 export type SyncTrace = { type: string; from: number; to: number; returned: number; mapped?: number; ms: number };
-export type SyncDeps = ClientDeps & { store: Store; log?: Pick<Console, "error">; trace?: (event: SyncTrace) => void };
+export type SyncCheckpoint = "sleep" | "heart-rate";
+export type SyncDeps = ClientDeps & {
+  store: Store;
+  log?: Pick<Console, "error">;
+  trace?: (event: SyncTrace) => void;
+  checkpoint?: (point: SyncCheckpoint, changed: boolean) => Promise<void>;
+};
 
 /** What the sync exposes (pulse's `Source`, without the user id). `changed` is true when any row was inserted or updated. */
 export type GoogleSource = {
@@ -147,6 +153,7 @@ export function createGoogleSource(deps: SyncDeps): GoogleSource {
           await setState(store, job.key, { lastError: safe });
           log.error(err instanceof GoogleError ? safe : `[sync] ${job.key} failed: ${errorName(err)}`);
         }
+        if (job.key === "sleep" || job.key === "heart-rate") await deps.checkpoint?.(job.key, run.changed);
       }
       await importLog();
       return { changed: run.changed };

@@ -2,15 +2,14 @@ import { useEffect } from "react";
 import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { DAY, formatDay } from "@/lib/format";
-import { parseDay } from "@/lib/url";
 import { addDays } from "@/time";
-import { todayOf } from "@/queries/common";
-import { getJournal } from "@/queries/journal";
-import { getLog } from "@/queries/log";
+import type { getJournal } from "@/queries/journal";
+import type { getLog } from "@/queries/log";
 import { CheckInCard } from "@/screens/journal/CheckInCard";
 import { History } from "@/screens/journal/History";
 import { LoadError } from "@/screens/journal/LoadError";
 import { LogTiles } from "@/screens/journal/LogTiles";
+import { journalKey, journalQuery } from "@/screens/journal/query";
 import { JournalSkeleton } from "@/screens/journal/skeleton";
 import { WeekCard } from "@/screens/journal/WeekCard";
 import { useScreen } from "@/screens/useScreen";
@@ -27,11 +26,7 @@ import { ActionLink, SectionShell } from "@/ui/shells/SectionShell";
 export default function Journal() {
   const { d: raw } = useLocalSearchParams<{ d?: string }>();
   const [, setDay] = useSelectedDay();
-  const { data, error, loading, reload } = useScreen(async (ctx) => {
-    const day = parseDay(raw, todayOf(ctx)).d;
-    const [vm, log, offered] = await Promise.all([getJournal(ctx, day), getLog(ctx, day), ctx.store.settings.get("journal.yesterdayOffered")]);
-    return { vm, log, offered: !!offered };
-  }, [raw]);
+  const { data, error, loading, reload } = useScreen(journalQuery(raw), journalKey(raw));
   useOfferYesterday(data?.vm, data?.offered);
 
   return (

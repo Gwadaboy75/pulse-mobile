@@ -12,7 +12,7 @@ import { Text } from "@/ui/Text";
 export default function ImpactSheet() {
   const { m, behaviour } = useLocalSearchParams<{ m?: string; behaviour?: string }>();
   const metric = parseMetric(m);
-  const { data: vm } = useScreen((ctx) => getJournalInsights(ctx, metric), [metric]);
+  const { data: vm } = useScreen((ctx) => getJournalInsights(ctx, metric), ["journalInsights", metric]);
   const item = vm?.items.find((i) => i.key === behaviour);
   if (!vm || !item)
     return (

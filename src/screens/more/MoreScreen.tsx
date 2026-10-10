@@ -19,8 +19,11 @@ const settings: LinkListRow[] = [
   { icon: Palette, label: "App", href: "/settings?s=app" },
 ];
 
+/** The More tab's key; Home prefetches it with getMore. */
+export const MORE_KEY = ["more"] as const;
+
 export function MoreScreen() {
-  const { data: vm } = useScreen(getMore, []);
+  const { data: vm } = useScreen(getMore, MORE_KEY);
   if (!vm)
     return (
       <PageShell loading title="More">

@@ -8,11 +8,11 @@ import { useScreen } from "../useScreen";
 
 export type DayView<T> = { d: string; today: string; timeZone: string; vm: T };
 
-export function useDayScreen<T>(get: (day: string, ctx: QueryCtx) => Promise<T>) {
+export function useDayScreen<T>(id: string, get: (day: string, ctx: QueryCtx) => Promise<T>) {
   const { d: raw } = useLocalSearchParams<{ d?: string }>();
   return useScreen(async (ctx): Promise<DayView<T>> => {
     const today = todayOf(ctx);
     const { d } = parseDay(raw, today);
     return { d, today, timeZone: ctx.timeZone, vm: await get(d, ctx) };
-  }, [raw]);
+  }, [id, raw]);
 }

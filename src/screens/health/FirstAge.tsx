@@ -45,7 +45,7 @@ function Row({ done, title, detail, onPress }: { done: boolean; title: string; d
 }
 
 export function FirstAge({ vm }: { vm: HealthspanVM }) {
-  const height = useScreen((ctx) => ctx.store.profile.getProfileRow(), []).data?.heightCm ?? null;
+  const height = useScreen((ctx) => ctx.store.profile.getProfileRow(), ["firstAge"]).data?.heightCm ?? null;
   const first = useOptionalShellCalendar()?.firstDay;
   const days = first ? Math.max(0, daysBetween(first, vm.day) + 1) : 0;
   return (

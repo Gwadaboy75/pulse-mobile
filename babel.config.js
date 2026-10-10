@@ -39,7 +39,9 @@ function lucideModules({ types: t }) {
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: [["babel-preset-expo", { jsxImportSource: "nativewind" }], "nativewind/babel"],
+    // lazyImports: a package import loads when first used, not when the app starts (Expo keeps packages with side
+    // effects eager, and the app's own files stay eager).
+    presets: [["babel-preset-expo", { jsxImportSource: "nativewind", lazyImports: true }], "nativewind/babel"],
     plugins: [
       // Drizzle's expo migrations import the .sql files as strings.
       ["inline-import", { extensions: [".sql"] }],

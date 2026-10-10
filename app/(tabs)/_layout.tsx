@@ -1,3 +1,4 @@
+import { Easing } from "react-native";
 import { Tabs } from "expo-router";
 import { TabBar } from "@/ui/shells/TabBar";
 import { useTheme } from "@/ui/theme";
@@ -7,9 +8,18 @@ import { useTheme } from "@/ui/theme";
 // navigation state and keeps each tab's screen alive.
 export default function TabsLayout() {
   const { c } = useTheme();
-  // `sceneStyle`: the ground behind a tab while it switches, not the navigation theme's default.
+  // `sceneStyle`: the ground behind a tab while it switches, not the navigation theme's default. `shift`: the tabs
+  // cross-fade and move 50 px toward the tapped side (native driver), over the spec's base duration and standard ease.
   return (
-    <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.background } }}>
+    <Tabs
+      tabBar={(props) => <TabBar {...props} />}
+      screenOptions={{
+        headerShown: false,
+        sceneStyle: { backgroundColor: c.background },
+        animation: "shift",
+        transitionSpec: { animation: "timing", config: { duration: 200, easing: Easing.bezier(0.2, 0, 0, 1) } },
+      }}
+    >
       <Tabs.Screen name="index" options={{ title: "Home" }} />
       <Tabs.Screen name="health" options={{ title: "Health" }} />
       <Tabs.Screen name="journal" options={{ title: "Journal" }} />

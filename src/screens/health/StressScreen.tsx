@@ -80,7 +80,7 @@ function TotalDay({ l, day }: { l: NonNullable<StressVM["levels"]["value"]>; day
 }
 
 export function StressScreen() {
-  const { data, error, reload } = useDayScreen(getStress);
+  const { data, error, reload } = useDayScreen("stress", getStress);
   if (!data) return error ? <ErrorView detail retry={reload} /> : <StressLoading />;
   const { vm, d, today, timeZone } = data;
   const g = vm.gauge;
