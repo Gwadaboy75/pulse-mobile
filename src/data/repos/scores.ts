@@ -207,7 +207,8 @@ export function scoresRepo(db: Db): ScoresRepo {
     },
     async latestJournalImpact(onOrBefore) {
       const [row] = db.select({ day: s.day, impact: s.journalImpact }).from(s).where(and(lte(s.day, onOrBefore), isNotNull(s.journalImpact))).orderBy(desc(s.day)).limit(1).all();
-      return row ?? null;
+      // JSON columns read back as stored; pulse casts the same way (queries/journal.ts).
+      return row ? { day: row.day, impact: row.impact as JournalImpactJson } : null;
     },
     async wearDays(onOrBefore) {
       return db
@@ -316,7 +317,7 @@ export function scoresRepo(db: Db): ScoresRepo {
       db.delete(r).where(keep.length ? notInArray(r.period, keep) : undefined).run();
     },
     async readReport(period) {
-      return db.select({ data: r.data }).from(r).where(eq(r.period, period)).all()[0]?.data ?? null;
+      return (db.select({ data: r.data }).from(r).where(eq(r.period, period)).all()[0]?.data ?? null) as ReportJson | null;
     },
     async reportNeighbour(kind, period, dir) {
       const [row] = db
@@ -329,10 +330,10 @@ export function scoresRepo(db: Db): ScoresRepo {
       return row?.period ?? null;
     },
     async latestReports(kind, limit) {
-      return db.select({ period: r.period, data: r.data }).from(r).where(like(r.period, PERIOD[kind])).orderBy(desc(r.period)).limit(limit).all();
+      return db.select({ period: r.period, data: r.data }).from(r).where(like(r.period, PERIOD[kind])).orderBy(desc(r.period)).limit(limit).all() as { period: string; data: ReportJson }[];
     },
     async listReports() {
-      return db.select({ period: r.period, data: r.data }).from(r).orderBy(desc(r.period)).all();
+      return db.select({ period: r.period, data: r.data }).from(r).orderBy(desc(r.period)).all() as { period: string; data: ReportJson }[];
     },
     async countReportsWithData() {
       return db.select({ n: count() }).from(r).where(sql`json_extract(${r.data}, '$.days') > 0`).all()[0].n;
