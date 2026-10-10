@@ -163,7 +163,7 @@ function HeroStat({ label, value, raw, average, format, valueClass }: { label: s
         <Text className={cn("font-numeric text-[34px] font-bold leading-none tabular-nums", valueClass)}>{value}</Text>
         {dir && average !== null && (
           <View accessible accessibilityLabel={`30-day average for this kind of activity ${formatValue(format, average)}`}>
-            <StatusChip tone="neutral" delta={dir}>
+            <StatusChip tone="neutral" delta={dir} className="self-center">
               {formatValue(format, average)}
             </StatusChip>
           </View>
@@ -186,7 +186,7 @@ function HeartRateRecovery({ hrr }: { hrr: ActivityVM["hrr"] }) {
     <View className="gap-3">
       <View className="flex-row flex-wrap items-center gap-3">
         <ValueUnit value={formatValue("int", hrr.value.value)} unit="bpm" className="font-numeric text-4xl font-bold leading-10 tracking-[-0.01em]" />
-        <StatusChip tone={hrr.value.tone}>{hrr.value.label}</StatusChip>
+        <StatusChip tone={hrr.value.tone} className="self-center">{hrr.value.label}</StatusChip>
       </View>
       <Text className={CAPTION}>Drop in the first 60 seconds after you stopped. Above 20 is typical for fit adults.</Text>
     </View>
