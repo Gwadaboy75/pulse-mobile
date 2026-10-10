@@ -228,7 +228,7 @@ Open the web app at 390 px wide, light and dark, and the app side by side.
 - Live updates are a stub: the screen runs its 60 s timer while focused on today but the pull (`src/screens/health/live.ts`) says "not connected", so nothing changes until Google connect is built. Leaving the screen must stop the timer.
 
 ### Orb
-- Compare the entry, the idle drift, the press and swirl, and the collapsed mini orb. Check dark and light. Particle density is the web's (about 2,600 at 300 px); if the Healthspan screen drops frames on a release build, lower `particles.at320` in `src/screens/health/orb.ts`.
+- Compare the entry, the idle drift, the press and swirl, and the collapsed mini orb. Check dark and light. Particle density is a third of the web's (about 880 at 300 px, `particles.at320` in `src/screens/health/orb.ts`): at the web's 2,600 the Health and Healthspan screens held Android at 30 Hz on a release build.
 - The text blur in the web's entry has no counterpart: the text fades up without it.
 
 Each stream adds a section: what to compare against the web app, per route.

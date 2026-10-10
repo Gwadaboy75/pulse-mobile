@@ -84,8 +84,8 @@ describe("shape noise", () => {
     expect([a(), a(), a()]).toEqual([b(), b(), b()]);
   });
   it("scales particle count with size within the cap", () => {
-    expect(particleCount(300)).toBeGreaterThanOrEqual(1500);
-    expect(particleCount(300)).toBeLessThanOrEqual(3000);
+    expect(particleCount(300)).toBeGreaterThanOrEqual(800);
+    expect(particleCount(300)).toBeLessThanOrEqual(1000);
     expect(particleCount(2000)).toBe(ORB.particles.max);
     expect(particleCount(40)).toBe(ORB.particles.min);
   });

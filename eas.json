@@ -3,6 +3,8 @@
   "build": {
     "development": { "developmentClient": true, "distribution": "internal" },
     "preview": { "distribution": "internal", "android": { "buildType": "apk" }, "env": { "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a", "ORG_GRADLE_PROJECT_expo.useLegacyPackaging": "true" } },
+    "preview-armv7": { "extends": "preview", "env": { "ORG_GRADLE_PROJECT_reactNativeArchitectures": "armeabi-v7a" } },
+    "preview-x86_64": { "extends": "preview", "env": { "ORG_GRADLE_PROJECT_reactNativeArchitectures": "x86_64" } },
     "production": { "autoIncrement": true }
   },
   "submit": { "production": {} }

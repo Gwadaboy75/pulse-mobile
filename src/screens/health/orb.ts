@@ -49,10 +49,13 @@ export const ORB = {
     drift: 0.05,
   },
   particles: {
-    /** Particles at 320 px; scaled by area and clamped. */
-    at320: 3000,
+    /**
+     * Particles at 320 px; scaled by area and clamped. The web draws 3,000; each one is UI-thread maths and Skia work
+     * every frame here, and at 3,000 a 300 px orb held Android at 30 Hz. A third keeps the look (most cut ones are dust).
+     */
+    at320: 1000,
     min: 280,
-    max: 3000,
+    max: 1000,
     /** Share of tiny dust, crisp dots, soft bokeh discs. */
     mix: [0.68, 0.27, 0.05] as const,
   },
