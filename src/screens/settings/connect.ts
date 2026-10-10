@@ -3,7 +3,7 @@ import type { ActionResult } from "@/actions/journal";
 import { store } from "@/data/store";
 import { googleAuth } from "@/google/auth";
 import { GoogleError } from "@/google/oauth";
-import { createGoogleSource, DEVICES_KEY } from "@/google/sync";
+import { createGoogleSource, DEVICES_KEY, type SyncCheckpoint } from "@/google/sync";
 import { connectMessage } from "@/google/token";
 import { recomputeIfNeeded } from "@/pipeline";
 import { getProfile } from "@/profile";
@@ -56,6 +56,24 @@ export function syncNow(): Promise<ActionResult> {
   return running;
 }
 
+/** The web's sync worker runs every 15 minutes; the app syncs this long after the last attempt, while it is open. */
+const STALE_S = 15 * 60;
+
+/** Starts a sync when Google is connected and no sync was attempted in the last 15 minutes (app open, back in front, and every minute while in front). */
+export async function syncIfStale(): Promise<void> {
+  if (running) return;
+  const grant = await store.settings.get("google.grant");
+  if (!grant || grant.revokedAt !== null) return;
+  const last = Math.max(0, ...(await store.settings.readSyncState()).map((r) => r.lastAttemptAt ?? 0));
+  if (Date.now() / 1000 - last >= STALE_S) void syncNow();
+}
+
+export async function scoreAfterSync(): Promise<void> {
+  if (running) await running;
+  await recomputeIfNeeded(store, false, () => getProfile(store));
+  dataChanged();
+}
+
 async function runSync(): Promise<ActionResult> {
   const grant = await store.settings.get("google.grant");
   if (!grant) return { ok: false, error: "Connect Google first." };
@@ -68,17 +86,23 @@ async function runSync(): Promise<ActionResult> {
     if (__DEV__) await traceInputs();
     const pulledAt = performance.now();
     if (__DEV__) console.info("[sync] pull-start");
+    const firstImport = (await store.settings.getSyncState("heart-rate"))?.lastSuccessAt == null;
+    const score = async (label: SyncCheckpoint | "final", changed: boolean) => {
+      phase = `recompute-${label}`;
+      const scoredAt = performance.now();
+      if (__DEV__) console.info(`[sync] ${phase}-start`);
+      await recomputeIfNeeded(store, changed, () => getProfile(store));
+      if (__DEV__) console.info(`[sync] ${phase}-end ms=${Math.round(performance.now() - scoredAt)}`);
+      dataChanged();
+      phase = "pull";
+    };
     const { changed } = await createGoogleSource({
       store, tokens: googleAuth, timeZone,
       trace: __DEV__ ? (event) => console.info(`[sync] ${JSON.stringify(event)}`) : undefined,
+      checkpoint: firstImport ? (point, checkpointChanged) => score(point, checkpointChanged) : undefined,
     }).pull();
     if (__DEV__) console.info(`[sync] pull-end ms=${Math.round(performance.now() - pulledAt)} changed=${changed}`);
-    phase = "recompute";
-    const scoredAt = performance.now();
-    if (__DEV__) console.info("[sync] recompute-start");
-    // Before the profile is saved there is nothing to score yet; onboarding's save runs this again.
-    await recomputeIfNeeded(store, changed, () => getProfile(store));
-    if (__DEV__) console.info(`[sync] recompute-end ms=${Math.round(performance.now() - scoredAt)}`);
+    await score("final", changed);
     if (__DEV__) await traceInputs();
   } catch (error) {
     if (__DEV__) console.warn(`[sync] ${phase} failed: ${error instanceof Error ? error.name : typeof error}`);

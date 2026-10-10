@@ -44,6 +44,8 @@ export type ShellSync = {
   importProgress?: { done: number; total: number };
   /** The database holds onboarding's sample data: the tab roots show the Sample data card (docs/onboarding.md). */
   sample?: boolean;
+  /** Sync now: what pulling a page down runs (the web's AppLifecycle pull to sync). */
+  syncNow?: () => Promise<unknown>;
 };
 
 const SyncContext = createContext<ShellSync | null>(null);
