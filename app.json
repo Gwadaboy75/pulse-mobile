@@ -12,15 +12,17 @@
     "scheme": "pulse",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": {
+        "light": "./assets/images/icon.png",
+        "tinted": "./assets/images/icon-tinted.png"
+      },
       "bundleIdentifier": "in.portlabs.pulse",
       "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0f1113",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": true,
@@ -31,9 +33,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 64,
+          "backgroundColor": "#f6f8f9",
+          "dark": {
+            "image": "./assets/images/splash-icon.png",
+            "backgroundColor": "#101518"
+          }
         }
       ],
       "expo-sqlite",
