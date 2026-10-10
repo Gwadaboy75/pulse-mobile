@@ -2,12 +2,13 @@ import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { router, type Href } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
-import { Card, CARD_CLASS, useCardStyle } from "../Card";
+import { Card, CARD_CLASS, CardFill, useCardStyle } from "../Card";
 import { cn } from "../cn";
 import { Icon } from "../Icon";
 import { Text } from "../Text";
 import { cardInfo } from "./cardInfo";
 import { InfoButton, type InfoContent } from "./InfoButton";
+import { ScrollAnchor } from "./ScreenScroll";
 
 export type SectionShellProps = {
   variant: "section" | "card";
@@ -17,6 +18,8 @@ export type SectionShellProps = {
   aside?: ReactNode;
   /** Cards: a small icon before the title (Behavior insights' lightbulb). */
   icon?: ReactNode;
+  /** A place a link can scroll to (`?section=<id>`, the web's `#id`): see <ScrollAnchor>. */
+  id?: string;
   /** Makes the whole card one link. */
   href?: string;
   /** Card bodies flex so footers can align with mt-auto in stretched rows. */
@@ -43,12 +46,18 @@ export function CardLink({ href, className, children }: { href: string; classNam
   const shadow = useCardStyle();
   return (
     <Pressable accessibilityRole="link" onPress={() => go(href)} className={cn(CARD_CLASS, "active:scale-[0.96]", className)} style={shadow}>
+      <CardFill />
       {children}
     </Pressable>
   );
 }
 
-export function SectionShell({ variant, title, info, action, aside, icon, href, fill, className, children }: SectionShellProps) {
+export function SectionShell({ id, ...props }: SectionShellProps) {
+  const shell = <Shell {...props} />;
+  return id ? <ScrollAnchor id={id}>{shell}</ScrollAnchor> : shell;
+}
+
+function Shell({ variant, title, info, action, aside, icon, href, fill, className, children }: SectionShellProps) {
   const actionNode = isLinkAction(action) ? <ActionLink {...action} /> : action;
 
   if (variant === "section") {

@@ -124,11 +124,11 @@ On the web `body` sets `text-foreground` and everything inherits it. In React Na
 
 ## Root providers: gesture handler, safe area, bottom sheets
 
-`src/ui/providers.tsx` wraps the app once. `GestureHandlerRootView` is required for any gesture (chart scrubbing, bottom sheets); `SafeAreaProvider` gives headers and the floating bar the notch and home-indicator insets; `BottomSheetModalProvider` is where `@gorhom/bottom-sheet` draws its sheets.
+`src/ui/providers.tsx` wraps the app once. `GestureHandlerRootView` is required for any gesture (chart scrubbing); `SafeAreaProvider` gives headers the notch and home-indicator insets; `ShellCalendarProvider` carries today's date. Sheets need no provider any more: they are routes (see "Sheets are routes", below), and `@gorhom/bottom-sheet` is no longer used.
 
-## Expo Router tabs with a custom bar
+## The tab bar: Pulse's own glass bar
 
-`app/(tabs)/_layout.tsx` uses Expo Router's `<Tabs>` for the navigation state and passes `tabBar` to draw our own floating glass bar. The parentheses make `(tabs)` a route group: it groups screens without adding to the URL, so Home stays `/`. Detail screens live outside the group, in the root `Stack`, so they cover the tab bar the way the web's detail screens do.
+`app/(tabs)/_layout.tsx` uses Expo Router's `<Tabs>` with a custom `tabBar`: Pulse's floating glass bar from the web (`src/ui/shells/TabBar.tsx`), with the round check-in action beside it, identical on iOS and Android. Native tabs (the system bar: Liquid Glass on iOS 26, Material 3 on Android) were tried and dropped on 2026-10-11: the owner wants every screen to look as the Pulse PWA does. `<Tabs>` still gives the native behaviour that matters: each tab's screen stays alive, and the parentheses make `(tabs)` a route group (no URL segment, so Home stays `/`). Detail screens live outside the group, in the root `Stack`, so they cover the bar.
 
 ## Reanimated for header motion
 
@@ -140,11 +140,11 @@ Scroll position lives in a Reanimated shared value updated on the UI thread (`us
 
 ## react-native-svg for rings, gradients and the hatch
 
-The score dials, mini rings, wordmark, page ground, glass fill and hatched tracks are small static drawings: react-native-svg is bundled in Expo Go and draws them with the same arc and gradient vocabulary the web used. There is no `expo-linear-gradient` in the project, so `Gradient.tsx` is an SVG rectangle behind the content.
+The score dials, mini rings, wordmark, page ground, header fade and hatched tracks are small static drawings: react-native-svg is bundled in Expo Go and draws them with the same arc and gradient vocabulary the web used. Plain two-colour gradients (cards, the insight hairline, glass) are `expo-linear-gradient` instead, see "Native gradients and the card fill".
 
-## Bottom sheets and the info card
+## The info card
 
-The web's Vaul drawer becomes `BottomSheetModal` from `@gorhom/bottom-sheet`: `present()` and `dismiss()` are driven from the controlled `open` prop, so a screen uses it like the web's `ResponsiveSheet`. The centred info card and the calendar panel are plain React Native `<Modal>`s, which close on the Android back gesture for free.
+Every "i" opens the web's centred card over a strong dim (`InfoDialog`), a React Native `<Modal>` with a fade: the OS back gesture closes it, and taps on the dim close it.
 
 ## Gestures: scrubbing a chart
 
@@ -164,4 +164,84 @@ React Native 0.86 on the new architecture takes a CSS-like `boxShadow` string, i
 
 ## Why the kit runs in Expo Go
 
-Everything the kit uses (Skia, Reanimated, gesture handler, SVG, safe-area, expo-font) is bundled in Expo Go for SDK 57; NativeWind, the bottom-sheet library and the icons are plain JavaScript. So `npx expo start --go` is enough on Android. An iPhone needs a development build, since the App Store's Expo Go stops at SDK 54.
+Everything the kit uses (Skia, Reanimated, gesture handler, SVG, safe-area, expo-font) is bundled in Expo Go for SDK 57; NativeWind and the icons are plain JavaScript; form sheets, `expo-blur`, `expo-linear-gradient` and `expo-haptics` are in Expo Go too (haptics: the docs do not print the badge, so the checklist confirms it). So `npx expo start --go` is enough on Android. An iPhone needs a development build, since the App Store's Expo Go stops at SDK 54.
+
+## Sheets are routes (`presentation: "formSheet"`)
+
+A task sheet (check-in, logs, info) is a file under `app/(sheets)/` registered in `app/_layout.tsx` with `sheetOptions(size, c)` from `src/ui/shells/sheets.ts`. Expo Router's native stack presents it as a `UISheetPresentationController` on iOS and a native bottom sheet on Android, so the drag, the detents, the dim and the back gesture are the OS's. `<SheetScreen>` only draws the inside. Open with `openSheet("/name")`, close with `closeSheet()`.
+
+## Detents
+
+`sheetAllowedDetents` is a list of screen fractions the sheet snaps to, or `"fitToContents"` (as tall as its content: no `flex: 1` inside). Pulse uses the web drawer's heights: `"fitToContents"` for a default sheet and `[0.92]` for a tall one (the web's `h-[92svh]`). The system grabber is off and `<SheetScreen>` draws the web's 40 × 6 handle, and the corner radius is the web's 28 px, so a sheet looks the same on both platforms while the drag and dismissal stay the platform's. Full-screen tasks use `presentation: "modal"`.
+
+## Why info is not a sheet route
+
+A route's params are strings, so content made of components cannot ride in one. The info card is therefore not a route: each `InfoButton` owns its `<Modal>` and passes the content straight in.
+
+## Native gradients and the card fill
+
+`expo-linear-gradient` draws a gradient on the GPU with a native layer, so `src/ui/Gradient.tsx` now wraps it. The web's cards fade 2 to 4 percent lighter toward the top (`card-top` to `card`), which only shows in dark mode, so `<CardFill>` draws it there. A gradient child sits above the parent's own inset shadow, so the fill redraws the lit top edge itself.
+
+## Blur: iOS is free, Android needs a target
+
+`expo-blur`'s `BlurView` blurs what is behind it on iOS by itself. On Android it can only blur what sits inside a `BlurTargetView`, so `ScreenScroll` wraps the scrolling page in one and shares its ref through `BlurTargetContext`. Only the round check-in button is glass; the web's headers do not blur (the spec's header frame: "a fade, not frosted text"), so the headers keep their ground fill.
+
+## Haptics: felt everywhere it means something
+
+`src/ui/haptics.ts` speaks each platform's own vocabulary (iOS feedback generators, Android's system haptic constants):
+a light tap for an action (primary and sheet buttons, the check-in button, pull to refresh), a selection tick for a
+choice or a step (tabs, segmented controls, days, and each data point while you scrub a chart, at most one per 35 ms so a
+dense day of minutes feels like a fine texture), a toggle for open and close, and success, warning and error for a save,
+a destructive confirm and a failure. Never on a tap that only navigates. Haptics need no permission and cost nothing when
+the phone has no motor.
+## The check-in button and the bar's blur
+
+On the tab roots the round action sits in the tab bar, beside the bar; on detail screens `ScreenScroll` floats it alone where the bar would be (`useTabBarBottom`). Both are glass: iOS blurs whatever is behind on its own; Android blurs only the inside of a `BlurTargetView`, so each `ScreenScroll` wraps its page in one and, when it comes into view, hands it to the tab bar (`src/ui/shells/blurTarget.ts`).
+
+## Pull to refresh
+
+`RefreshControl` on the shell scroll views, enabled by an `onRefresh` prop that returns a promise: the spinner stays until it settles. `progressViewOffset` pushes the spinner below the header, which is drawn over the scroll view. Wire it to "sync now" later.
+
+## Keyboard
+
+Sheets wrap their body in React Native's `KeyboardAvoidingView` (`padding` on iOS) and the shell scroll view uses `automaticallyAdjustKeyboardInsets` and `keyboardShouldPersistTaps="handled"`. That is the built-in route in Expo's keyboard guide. `react-native-keyboard-controller` is the richer one, but it is not a dependency of this project.
+
+## Predictive back on Android
+
+`android.predictiveBackGestureEnabled` in `app.json` lets Android 13+ show the system's back preview (the app peeking out, or returning to the launcher) while the gesture is held. It is a native manifest flag, so Expo Go ignores it: it only shows in a development build.
+
+## Headers stay custom, on the native stack
+
+The headers are the shells' own views (centred title, date switcher, collapsing hero) laid over a `Stack` whose native header is off. The native stack still gives the iOS edge swipe-back and the Android back gesture on every pushed route, because those belong to the screen, not the header.
+
+## A route's params instead of the URL for ranges and periods
+
+The web keeps the chart range, the Trend View period and the report period in the URL (`?r=`, `?p=`) and its links replace the entry. Here they are route params written with `router.setParams`, which updates the screen in place without growing the back stack, and `useLocalSearchParams` reads them. A sheet that must hand a choice back (the Trends metric picker) uses `router.dismissTo({ pathname, params })`, which pops the sheet and sets the params of the screen below.
+
+## The Pulse Age orb
+
+The web draws the orb on a 2D canvas from a `requestAnimationFrame` loop. Here the loop is Reanimated's `useFrameCallback` on the UI thread, writing shared values (time, touch, the outline table). Skia draws from them: the blob, glow and rim are declarative nodes with animated props, and the particles are one `<Atlas>` whose transforms are rewritten each frame by Skia's `useRSXformBuffer` (host objects mutated in place, no allocation). Nothing sets React state per frame. The per-frame functions are plain module functions marked `"worklet"`, not closures inside the component, so the React Compiler leaves them alone. The press is a `Gesture.Manual()`: it never activates, so the page still scrolls under a finger, and a scroll cancels the press (the web's `touch-action: pan-y`). The loop stops when the screen loses focus and after 30 idle seconds.
+
+## The profile gate: `Stack.Protected`
+
+A person without a profile must land on onboarding. `app/_layout.tsx` reads the profile once the migrations have run (`src/screens/onboarding/gate.ts`) and wraps the tabs in `<Stack.Protected guard={hasProfile}>` and onboarding in the opposite guard. A protected screen is not in the navigator at all, so Home never mounts without a profile, and when onboarding saves, the guards flip and the navigator moves to the first screen that is now available (the tabs). The same read applies the stored theme before the first frame.
+
+## Delete everything: close, delete, `reloadAppAsync`
+
+The database module opens its file when it is imported, so the only way to a fresh empty database is a restart. `deleteEverything` closes the handle, calls `deleteDatabaseAsync("pulse.db")` and then `reloadAppAsync()` from `expo` (it reloads the same bundle in a release build too, no `expo-updates` needed). The migrations run again on the new file and, with no profile, the gate sends the person to onboarding.
+
+## Share sheet exports
+
+`expo-file-system` writes the CSV or JSON as a `File` in `Paths.cache`, and `expo-sharing`'s `shareAsync(file.uri)` hands it to the system share sheet (Save to Files, AirDrop, Drive). Both modules are imported inside the action, so the file builders stay testable in Node.
+
+## Date and time fields: the system picker through `@expo/ui`
+
+The web's `<input type="datetime-local">` and `type="date"` are the browser's own pickers. React Native has none, so the log sheets use `@expo/ui/community/datetime-picker`, a drop-in for `@react-native-community/datetimepicker` that is in Expo Go: on iOS the compact SwiftUI date picker sits inside the field, on Android the field opens the system date dialog and then the time dialog. The pickers work in the phone's local time while the app's wall times are in the profile's zone, so a value is a bare `YYYY-MM-DDTHH:mm` string and the picker is handed a `Date` with the same digits (`wallToDate`, `dateToWall` in `src/screens/log/form.ts`).
+
+## Asking before a sheet closes: `beforeRemove`
+
+The check-in must not lose answers to a swipe down or the Android back gesture. `navigation.addListener("beforeRemove", ...)` (from `useNavigation`) can cancel the removal with `e.preventDefault()` while the sheet has unsaved changes and show "Dismiss journal?"; `gestureEnabled: false` on the same screen stops the iOS swipe from starting. Confirming sets a ref and closes again, so the listener lets it through.
+
+## Long work in chunks: `setTimeout(0)` between them
+
+React Native runs all JavaScript on one thread, and `await` on something that is already synchronous (the SQLite calls, a pure scorer) never lets it go: the progress bar and animations stop until the work ends. `loadDemoData` (`src/seed/load.ts`) cuts generating, writing and scoring into chunks of a day or a few and awaits `new Promise((r) => setTimeout(r, 0))` between them, which is a real turn of the event loop. Scoring (`src/pipeline`, which only awaits the repositories) is cut from outside by a Store wrapper that yields before a repository call once 8 ms have passed since the last turn.

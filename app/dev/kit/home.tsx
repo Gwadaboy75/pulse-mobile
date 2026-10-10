@@ -10,7 +10,7 @@ import { DayStrip } from "@/ui/metrics/DayStrip";
 import { KeyStatRow } from "@/ui/metrics/KeyStatRow";
 import { ScoreDial } from "@/ui/metrics/ScoreDial";
 import { SleepCard } from "@/ui/metrics/SleepCard";
-import { PageShell } from "@/ui/shells/PageShell";
+import { HeaderSentinel, PageShell } from "@/ui/shells/PageShell";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
@@ -31,12 +31,16 @@ function Banner() {
 
 const CARDS: [string, LucideIcon][] = [["Healthspan", InfinityIcon], ["Health Monitor", HeartPulse], ["Stress Monitor", Brain], ["Fitness", TrendingUp]];
 
+// Stands in for "sync now": the spinner shows until this settles.
+const fakeSync = () => new Promise<void>((done) => setTimeout(done, 1200));
+
 export default function KitHome() {
   return (
     <KitCalendar>
       <PageShell
         title="Home"
         layout="home"
+        onRefresh={fakeSync}
         rings={{ sleep: { value: 74, href: "/dev/kit" }, recovery: { value: 85, href: "/dev/kit" }, strain: { value: 14.2, href: "/dev/kit" } }}
         slots={{
           top: (
@@ -49,6 +53,7 @@ export default function KitHome() {
                 <ScoreDial variant="recovery" size="md" value={85} href="/dev/kit" />
                 <ScoreDial variant="strain" size="md" value={14.2} target={[12, 15]} extraTags={["so_far"]} href="/dev/kit" />
               </View>
+              <HeaderSentinel className="-mt-6 h-0" />
             </View>
           ),
           aside: (
