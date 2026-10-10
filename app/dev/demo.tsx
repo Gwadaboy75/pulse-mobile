@@ -53,7 +53,7 @@ export default function DemoData() {
           {state.status === "running" && (
             <Card className="gap-3 px-4">
               <Text className="text-[15px] font-semibold leading-[22px]">{step < 0 ? "Starting" : `Step ${step + 1} of 3: ${PHASES[step].label}`}</Text>
-              <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: p?.total ?? 1, now: p?.done ?? 0 }} className="h-2 overflow-hidden rounded-full bg-foreground/10">
+              <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: p?.total ?? 1, now: p?.done ?? 0 }} className="h-2 overflow-hidden rounded-full bg-fill-pressed">
                 <View className="h-2 rounded-full bg-primary" style={{ width: `${p ? Math.round((100 * p.done) / p.total) : 0}%` }} />
               </View>
               {p && PHASES[step].unit !== "" && (

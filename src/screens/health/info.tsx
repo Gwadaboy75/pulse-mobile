@@ -7,7 +7,7 @@ import { Text } from "@/ui/Text";
 import type { InfoContent } from "@/ui/shells/InfoButton";
 
 function P({ children }: { children: ReactNode }) {
-  return <Text className="text-[15px] leading-[22px] text-foreground/85">{children}</Text>;
+  return <Text className="text-[15px] leading-[22px] text-foreground-body">{children}</Text>;
 }
 
 export const MONITOR_INFO: InfoContent = {

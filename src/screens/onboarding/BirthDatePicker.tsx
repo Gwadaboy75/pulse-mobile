@@ -113,7 +113,7 @@ export function BirthDatePicker({ value, onChange, invalid }: { value: string; o
           setOpen((o) => !o);
         }}
         className="h-13 w-full min-w-0 flex-row items-center justify-between gap-3 rounded-xl bg-field px-4"
-        style={ringStyle(invalid ? c["recovery-red-text"] : open ? alpha(c.foreground, 0.7) : null)}
+        style={ringStyle(invalid ? c["recovery-red-text"] : open ? c["focus-ring"] : null)}
       >
         <Text className={cn("text-[17px] leading-6 tabular-nums", !value && "text-muted-foreground")}>{value ? formatDay(value, { ...DAY.full, month: "long" }) : "Choose your birth date"}</Text>
         <Icon icon={CalendarDays} size={20} tone="foreground-secondary" strokeWidth={1.75} />
@@ -122,7 +122,7 @@ export function BirthDatePicker({ value, onChange, invalid }: { value: string; o
         <View accessibilityLabel="Birth date" className="overflow-hidden rounded-xl bg-field">
           <View className="flex-row gap-1 px-2 pt-1">
             {/* The selection band behind the centre row. */}
-            <View accessibilityElementsHidden pointerEvents="none" className="absolute inset-x-2 h-10 rounded-lg bg-foreground/8" style={{ top: 4 + ROW }} />
+            <View accessibilityElementsHidden pointerEvents="none" className="absolute inset-x-2 h-10 rounded-lg bg-fill-hover" style={{ top: 4 + ROW }} />
             <View style={{ flex: 1.6 }}>
               <Wheel label="Month" items={MONTHS} index={m - 1} onIndex={(i) => set(y, i + 1, d)} />
             </View>

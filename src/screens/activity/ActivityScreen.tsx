@@ -248,7 +248,7 @@ function ActivitySkeleton() {
         </SectionShell>,
         <SectionShell key="hrr" variant="section" title="Heart rate recovery">
           <Card accessibilityElementsHidden className="justify-center px-4">
-            <Skeleton className="h-24 rounded-lg bg-muted/60" />
+            <Skeleton className="h-24 rounded-lg bg-skeleton" />
           </Card>
         </SectionShell>,
       ]}

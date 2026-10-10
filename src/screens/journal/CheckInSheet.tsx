@@ -50,7 +50,7 @@ function Spinner() {
 /** journal-01's answer key: a grey square; "no" lights white, "yes" blue. 44 px for touch. */
 function Answer({ kind, on, label, onPress }: { kind: "no" | "yes"; on: boolean; label: string; onPress: () => void }) {
   const { c } = useTheme();
-  const bg = on ? (kind === "yes" ? c["answer-yes"] : c.foreground) : alpha(c.foreground, 0.1);
+  const bg = on ? (kind === "yes" ? c["answer-yes"] : c.foreground) : c["fill-pressed"];
   const fg = on ? (kind === "yes" ? c["on-color"] : c.background) : alpha(c.foreground, 0.8);
   const Glyph = kind === "yes" ? Check : X;
   return (
@@ -224,7 +224,7 @@ export function CheckInSheet() {
         onClose={close}
         action={
           <Press
-            activeBg="bg-foreground/8"
+            activeBg="bg-fill-hover"
             accessibilityRole="button"
             accessibilityLabel="Select behaviours"
             onPress={() => {

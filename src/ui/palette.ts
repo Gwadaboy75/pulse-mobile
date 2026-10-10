@@ -132,6 +132,16 @@ export const LIGHT = {
   "overlay-ring": "rgba(16, 21, 24, 0.1)",
   "popover-ring": "rgba(16, 21, 24, 0.08)",
   "selected-ring": "rgba(255, 255, 255, 0.6)",
+  "fill-faint": "rgba(16, 21, 24, 0.06)",
+  "fill-hover": "rgba(16, 21, 24, 0.08)",
+  "fill-pressed": "rgba(16, 21, 24, 0.1)",
+  "skeleton": "rgba(238, 241, 243, 0.6)",
+  "foreground-body": "rgba(16, 21, 24, 0.85)",
+  "card-peek": "rgba(255, 255, 255, 0.6)",
+  "focus-ring": "rgba(16, 21, 24, 0.7)",
+  "input-fill": "rgba(16, 21, 24, 0)",
+  "alert-ring": "rgba(242, 0, 36, 0.6)",
+  "warning-ring": "rgba(217, 121, 0, 0.5)",
 } as const;
 
 export const DARK = {
@@ -264,6 +274,16 @@ export const DARK = {
   "overlay-ring": "rgba(255, 255, 255, 0.1)",
   "popover-ring": "rgba(255, 255, 255, 0.08)",
   "selected-ring": "rgba(255, 255, 255, 0.6)",
+  "fill-faint": "rgba(255, 255, 255, 0.06)",
+  "fill-hover": "rgba(255, 255, 255, 0.08)",
+  "fill-pressed": "rgba(255, 255, 255, 0.1)",
+  "skeleton": "rgba(34, 40, 44, 0.6)",
+  "foreground-body": "rgba(255, 255, 255, 0.85)",
+  "card-peek": "rgba(35, 38, 41, 0.6)",
+  "focus-ring": "rgba(255, 255, 255, 0.7)",
+  "input-fill": "rgba(255, 255, 255, 0.045)",
+  "alert-ring": "rgba(255, 0, 38, 0.6)",
+  "warning-ring": "rgba(255, 167, 34, 0.5)",
 } as const;
 
 /**
@@ -281,6 +301,7 @@ export const VALUES = {
     "orb-lift": 1,
     "orb-sparkle": 0,
     "orb-blend": "source-over",
+    "disabled-opacity": 0.5,
   },
   dark: {
     "card-shadow": "0 0 #0000",
@@ -292,6 +313,7 @@ export const VALUES = {
     "orb-lift": 1.3,
     "orb-sparkle": 0.12,
     "orb-blend": "lighter",
+    "disabled-opacity": 0.5,
   },
 } as const;
 

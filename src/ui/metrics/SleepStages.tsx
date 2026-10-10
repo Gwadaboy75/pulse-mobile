@@ -225,7 +225,7 @@ function StageRowsSkeleton() {
               <SkeletonText lh={24} fs={20} />
             </View>
           </View>
-          <Skeleton className="h-3.5 rounded-[4px] bg-muted/60" />
+          <Skeleton className="h-3.5 rounded-[4px] bg-skeleton" />
         </View>
       ))}
     </View>

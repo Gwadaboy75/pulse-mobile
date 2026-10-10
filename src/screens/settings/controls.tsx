@@ -59,7 +59,7 @@ const FIELDS = {
   /** Profile fields (web FIELD): h-13 rounded-xl bg-field px-4 text-[17px]. */
   field: { box: "h-13 rounded-xl bg-field", input: "px-4 text-[17px]" },
   /** The behaviour search (web: h-12 rounded-xl bg-foreground/[0.06] pl-11 text-base). */
-  search: { box: "h-12 rounded-xl border border-input bg-foreground/[0.06]", input: "px-4 text-base" },
+  search: { box: "h-12 rounded-xl border border-input bg-fill-faint", input: "px-4 text-base" },
   /** The web's plain Input (shadcn: h-11 rounded-lg border border-input, dark:bg-input/30 px-2.5 text-base). */
   input: { box: "h-11 rounded-lg border border-input dark:bg-input/30", input: "px-2.5 text-base" },
 } as const;
@@ -69,7 +69,7 @@ export function TextField({ invalid, left, right, variant = "field", ...props }:
   const { c } = useTheme();
   const [focus, setFocus] = useState(false);
   const v = FIELDS[variant];
-  const ring = invalid ? c["recovery-red-text"] : focus ? alpha(c.foreground, 0.7) : null;
+  const ring = invalid ? c["recovery-red-text"] : focus ? c["focus-ring"] : null;
   return (
     <View className={cn("w-full min-w-0 flex-row items-center", v.box)} style={variant === "input" ? (ring ? { borderColor: ring, boxShadow: ringLayer(alpha(ring, 0.35), { width: 2, inset: false }) } : undefined) : ringStyle(ring)}>
       {left}
@@ -131,7 +131,7 @@ export function SmallButton({ label, accessibilityLabel, onPress, icon, solid, c
   return (
     <Press
       activeScale={0.96}
-      activeBg={solid ? undefined : "bg-foreground/[0.06]"}
+      activeBg={solid ? undefined : "bg-fill-faint"}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       onPress={() => {
@@ -161,7 +161,7 @@ export function Switch({ value, onValueChange, disabled, label }: { value: boole
         haptic.toggle(!value);
         onValueChange(!value);
       }}
-      className={cn("h-[18.4px] w-8 justify-center rounded-full border border-transparent px-px", value ? "bg-primary" : "bg-input dark:bg-input/80", disabled && "opacity-50")}
+      className={cn("h-[18.4px] w-8 justify-center rounded-full border border-transparent px-px", value ? "bg-primary" : "bg-input dark:bg-input/80", disabled && "opacity-disabled")}
     >
       <Animated.View className={cn("size-4 rounded-full", value ? "bg-background dark:bg-primary-foreground" : "bg-background dark:bg-foreground")} style={thumb} />
     </Pressable>

@@ -40,7 +40,7 @@ const moveTo = <T,>(items: T[], from: number, to: number) => {
 export function EditDashboardButton({ keys, empty }: { keys: DashboardKey[]; empty: DashboardKey[] }) {
   return (
     <Press
-      activeBg="bg-foreground/[0.06]"
+      activeBg="bg-fill-faint"
       accessibilityRole="button"
       accessibilityLabel="Customize My Dashboard"
       onPress={() => openSheet(`/dashboard?keys=${keys.join(",")}&empty=${empty.join(",")}`)}
@@ -144,7 +144,7 @@ export function EditDashboardSheet({ keys: rawKeys, empty: rawEmpty }: { keys?: 
           spellCheck={false}
           returnKeyType="search"
           clearButtonMode="while-editing"
-          className="h-12 rounded-xl bg-foreground/[0.06] pl-10 pr-3 text-base text-foreground"
+          className="h-12 rounded-xl bg-fill-faint pl-10 pr-3 text-base text-foreground"
           style={{ fontFamily: FACES.sans.regular }}
         />
       </View>

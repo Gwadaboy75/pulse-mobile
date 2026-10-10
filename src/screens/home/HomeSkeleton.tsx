@@ -44,14 +44,14 @@ function InsightSkeleton() {
   const shadow = useCardStyle();
   return (
     <View accessibilityElementsHidden className="pb-2">
-      <View className="absolute inset-x-5 bottom-0 h-8 rounded-b-2xl bg-card/60" />
+      <View className="absolute inset-x-5 bottom-0 h-8 rounded-b-2xl bg-card-peek" />
       <View className={`${CARD_CLASS} gap-0.5 p-5 pr-12`} style={shadow}>
         <CardFill />
         <SkeletonText lh={22} fs={16} className="w-40" />
         <SkeletonText lh={20} fs={15} className="w-full" />
         <SkeletonText lh={20} fs={15} className="w-2/3" />
         <SkeletonText lh={20} fs={15} className="w-1/2" />
-        <View className="absolute right-2 top-2 h-12 w-6 rounded-lg bg-foreground/[0.08]" />
+        <View className="absolute right-2 top-2 h-12 w-6 rounded-lg bg-fill-hover" />
       </View>
     </View>
   );
@@ -132,7 +132,7 @@ export function HomeSkeleton({ stats = DASHBOARD_DEFAULT }: { stats?: DashboardK
                 </SectionShell>
                 <SectionShell variant="card" title="Tonight’s sleep" info={TONIGHT_INFO} action={ICON_SLOT} fill>
                   <View className="flex-1 gap-4">
-                    <Skeleton className="my-auto h-[60px] rounded-lg bg-muted/60" />
+                    <Skeleton className="my-auto h-[60px] rounded-lg bg-skeleton" />
                     <Skeleton className="mt-auto h-11 rounded-lg" />
                     <SkeletonText className="w-28" />
                   </View>
@@ -150,7 +150,7 @@ export function HomeSkeleton({ stats = DASHBOARD_DEFAULT }: { stats?: DashboardK
             </View>
             <SectionShell variant="card" title="Strain & recovery" info={STRAIN_RECOVERY_INFO} fill className="mt-3">
               <View accessibilityElementsHidden className="flex-1">
-                <Skeleton className="h-[232px] rounded-lg bg-muted/60" />
+                <Skeleton className="h-[232px] rounded-lg bg-skeleton" />
               </View>
             </SectionShell>
           </SectionShell>

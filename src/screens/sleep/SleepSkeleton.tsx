@@ -84,7 +84,7 @@ export function SleepSkeleton() {
           <View accessibilityElementsHidden className="gap-4">
             <SkeletonText lh={40} fs={36} className="w-24" />
             <Skeleton className="h-3.5 rounded-[3px]" />
-            <Skeleton className="h-3.5 rounded-[3px] bg-muted/60" />
+            <Skeleton className="h-3.5 rounded-[3px] bg-skeleton" />
             <SkeletonText className="w-32" />
           </View>
         </CardSkeleton>,

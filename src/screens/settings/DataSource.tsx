@@ -255,7 +255,7 @@ export function DataSource({ vm, now }: { vm: Pick<SettingsVM, "source" | "sync"
   return (
     <SectionShell variant="card" title="Data source">
       <View className="min-h-11 flex-row items-center gap-3">
-        <View accessibilityElementsHidden className="size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-foreground/[0.06]">
+        <View accessibilityElementsHidden className="size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-fill-faint">
           <GoogleFit size={24} />
         </View>
         <View className="min-w-0 flex-1">

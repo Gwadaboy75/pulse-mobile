@@ -262,7 +262,7 @@ export default function Kit() {
         <Entry name="InfoButton, InfoDialog" file="src/ui/shells/InfoButton.tsx" use="Every “i”: card headers (card) and detail headers (header). Opens the centred info card over the dim, as the web." props={["info: { title, body, icon?, chip?, action? }", "label", "variant: card | header"]}>
           <Frame name="card" center><InfoButton variant="card" label="What shaped it" info={INFO} /></Frame>
           <Frame name="header, with icon, chip and action" center>
-            <InfoButton variant="header" label="Respiratory rate" info={{ title: "Respiratory rate", icon: <Icon icon={HeartPulse} size={28} tone="foreground-secondary" strokeWidth={1.5} />, chip: { tone: "optimal", text: "Within 14.1 - 16.9" }, body: <Text className="text-[15px] leading-[22px] text-foreground/85">Breaths per minute while you sleep, against your own normal range.</Text>, action: { label: "Open trend view", href: "/dev/kit/charts" } }} />
+            <InfoButton variant="header" label="Respiratory rate" info={{ title: "Respiratory rate", icon: <Icon icon={HeartPulse} size={28} tone="foreground-secondary" strokeWidth={1.5} />, chip: { tone: "optimal", text: "Within 14.1 - 16.9" }, body: <Text className="text-[15px] leading-[22px] text-foreground-body">Breaths per minute while you sleep, against your own normal range.</Text>, action: { label: "Open trend view", href: "/dev/kit/charts" } }} />
           </Frame>
         </Entry>
         <Entry name="LinkList" file="src/ui/shells/LinkList.tsx" use="More, Settings and the Reports archive: a caps group label over 56 px rows." props={["title", "rows: { label, href, icon?, aside?, description?, external? }[]"]}>

@@ -65,7 +65,7 @@ export function NapSkeleton() {
         </SectionShell>,
         <SectionShell key="hrr" variant="section" title="Heart rate recovery">
           <Card className="justify-center gap-0 p-4">
-            <Skeleton className="h-24 rounded-lg bg-muted/60" />
+            <Skeleton className="h-24 rounded-lg bg-skeleton" />
           </Card>
         </SectionShell>,
       ]}

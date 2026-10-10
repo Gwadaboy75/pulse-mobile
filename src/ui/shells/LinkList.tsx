@@ -26,7 +26,7 @@ export type LinkListRow = {
 export const MORE_COLUMN = "w-full gap-6";
 
 /** The reference app's section label over a group of rows (spec §11 F22): 13 px caps, tracking 0.1em. */
-export const GROUP_LABEL = "px-1 text-[13px] font-bold uppercase leading-4 tracking-[0.1em] text-foreground/85";
+export const GROUP_LABEL = "px-1 text-[13px] font-bold uppercase leading-4 tracking-[0.1em] text-foreground-body";
 const ROW = "min-h-14 flex-row items-center gap-3 px-4 py-2";
 const ROW_LABEL = "text-xs font-bold uppercase leading-4 tracking-[0.1em]";
 

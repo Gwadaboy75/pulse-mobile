@@ -49,7 +49,7 @@ export function WeeklyTrendsSkeleton({ titles }: { titles: string[] }) {
         {titles.map((t) => (
           <SectionShell key={t} variant="card" title={t} info={false}>
             <View className="mb-1 h-5" />
-            <Skeleton className="h-[150px] rounded-lg bg-muted/60" />
+            <Skeleton className="h-[150px] rounded-lg bg-skeleton" />
           </SectionShell>
         ))}
       </View>

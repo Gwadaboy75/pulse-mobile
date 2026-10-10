@@ -156,6 +156,6 @@ export function IntradayHrChart({ data, variant = "day" }: IntradayHrChartProps)
 }
 
 export function IntradayHrChartSkeleton({ variant = "day" }: { variant?: "day" | "activity" }) {
-  return <Skeleton className={`${variant === "day" ? "h-[200px]" : "h-[180px]"} rounded-lg bg-muted/60`} />;
+  return <Skeleton className={`${variant === "day" ? "h-[200px]" : "h-[180px]"} rounded-lg bg-skeleton`} />;
 }
 IntradayHrChart.Skeleton = IntradayHrChartSkeleton;

@@ -31,7 +31,7 @@ export function TrendMetricMenu({ current, options, onSelect }: { current: strin
       </View>
       <MenuPanel anchor={anchor} onClose={close} align="stretch">
         {options.map((o) => (
-          <Press activeBg="bg-foreground/10" key={o.key} accessibilityRole="menuitem" accessibilityState={{ selected: o.key === on.key }} onPress={() => (close(), o.key !== on.key && (haptic.select(), onSelect(o.key)))} className="h-12 flex-row items-center gap-3 rounded-xl px-3">
+          <Press activeBg="bg-fill-pressed" key={o.key} accessibilityRole="menuitem" accessibilityState={{ selected: o.key === on.key }} onPress={() => (close(), o.key !== on.key && (haptic.select(), onSelect(o.key)))} className="h-12 flex-row items-center gap-3 rounded-xl px-3">
             <View accessibilityElementsHidden className="size-6 items-center justify-center">{o.icon && <Icon icon={o.icon} size={20} tone="muted-foreground" strokeWidth={1.75} />}</View>
             <Text numberOfLines={1} className={cn(ITEM, "min-w-0 flex-1")}>{o.label}</Text>
             {o.key === on.key && <Icon icon={Check} size={16} tone="foreground" strokeWidth={2.25} />}

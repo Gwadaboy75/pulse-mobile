@@ -17,7 +17,7 @@ export type PressProps = Omit<PressableProps, "style" | "children"> & {
   ref?: Ref<View>;
   /** Pressed scale, the web's `active:scale-[x]`. */
   activeScale?: number;
-  /** Pressed fill as a background class, the web's `active:bg-*` ("bg-accent", "bg-foreground/8"). */
+  /** Pressed fill as a background class, the web's `active:bg-*` ("bg-accent", "bg-fill-hover" for its bg-foreground/8). */
   activeBg?: string;
   /** Pressed opacity, for the few text links that dim instead of scaling. */
   activeOpacity?: number;
@@ -33,7 +33,7 @@ export type PressProps = Omit<PressableProps, "style" | "children"> & {
  */
 export function Press({ className, style, activeScale = 1, activeBg, activeOpacity = 1, onPressIn, onPressOut, children, ...props }: PressProps) {
   const p = useSharedValue(0);
-  // Only the animated properties: an opacity of 1 here would override a class's `opacity-50` (disabled).
+  // Only the animated properties: an opacity of 1 here would override a class's `opacity-disabled`.
   const animated = useAnimatedStyle(() => ({
     ...(activeOpacity !== 1 && { opacity: interpolate(p.value, [0, 1], [1, activeOpacity]) }),
     ...(activeScale !== 1 && { transform: [{ scale: interpolate(p.value, [0, 1], [1, activeScale]) }] }),

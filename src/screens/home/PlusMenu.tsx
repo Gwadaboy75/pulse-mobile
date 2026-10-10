@@ -45,12 +45,12 @@ export function PlusSheet({ label }: { label: string }) {
   return (
     <SheetScreen title={label}>
       <View accessibilityRole="menu">
-        <Press activeBg="bg-foreground/10" accessibilityRole="menuitem" onPress={() => setInfo(true)} className={item}>
+        <Press activeBg="bg-fill-pressed" accessibilityRole="menuitem" onPress={() => setInfo(true)} className={item}>
           <Icon icon={Plus} size={20} tone="foreground-secondary" strokeWidth={1.75} />
           <Text className="text-[13px] font-bold uppercase leading-4 tracking-[0.1em]">Add activity</Text>
         </Press>
         {/* Replaces the menu with the check-in rather than stacking a second sheet on it. */}
-        <Press activeBg="bg-foreground/10" accessibilityRole="menuitem" onPress={() => router.replace("/checkin" as Href)} className={item}>
+        <Press activeBg="bg-fill-pressed" accessibilityRole="menuitem" onPress={() => router.replace("/checkin" as Href)} className={item}>
           <Icon icon={NotebookPen} size={20} tone="foreground-secondary" strokeWidth={1.75} />
           <Text className="text-[13px] font-bold uppercase leading-4 tracking-[0.1em]">Complete your journal</Text>
         </Press>

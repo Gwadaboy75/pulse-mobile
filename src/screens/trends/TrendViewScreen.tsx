@@ -144,7 +144,7 @@ function PeriodStep({ dir, enabled, onPress, className, color, dim }: { dir: "pr
   const Glyph = dir === "prev" ? ChevronLeft : ChevronRight;
   const label = `${dir === "prev" ? "Previous" : "Next"} period`;
   return enabled ? (
-    <Press accessibilityRole="button" accessibilityLabel={label} onPress={() => (haptic.tap(), onPress())} activeScale={0.96} activeBg="bg-foreground/10" className={className}>
+    <Press accessibilityRole="button" accessibilityLabel={label} onPress={() => (haptic.tap(), onPress())} activeScale={0.96} activeBg="bg-fill-pressed" className={className}>
       <Glyph size={20} color={color} strokeWidth={2.5} />
     </Press>
   ) : (

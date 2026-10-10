@@ -92,7 +92,7 @@ export function DateSwitcher({ mode, calendar, placement = "body", narrow: narro
         accessibilityLabel={`${label}. Open calendar`}
         onPress={() => setOpen(true)}
         hitSlop={{ top: bare ? 4 : 8, bottom: bare ? 4 : 8 }}
-        className={cn("items-center justify-center rounded-full", bare ? "h-9 min-w-28 px-2" : cn("h-7 bg-foreground/[0.08] px-4", narrow ? "min-w-0 px-2.5" : "min-w-24"))}
+        className={cn("items-center justify-center rounded-full", bare ? "h-9 min-w-28 px-2" : cn("h-7 bg-fill-hover px-4", narrow ? "min-w-0 px-2.5" : "min-w-24"))}
       >
         <Text className={cn(bare ? "whitespace-nowrap text-xs font-bold uppercase leading-4 tracking-[0.1em]" : LABEL, "tabular-nums")}>{label}</Text>
       </Press>

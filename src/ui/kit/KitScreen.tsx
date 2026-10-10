@@ -72,7 +72,7 @@ export function KitScreen({ title, blurb, children }: { title: string; blurb?: s
         <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 48 }} showsVerticalScrollIndicator={false}>
           <View className="gap-4 px-4 pb-6">
             <View className="flex-row items-center justify-between gap-2">
-              <Press activeBg="bg-foreground/8" accessibilityRole="button" accessibilityLabel="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace("/dev/kit"))} className="-ml-2 size-11 items-center justify-center rounded-full">
+              <Press activeBg="bg-fill-hover" accessibilityRole="button" accessibilityLabel="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace("/dev/kit"))} className="-ml-2 size-11 items-center justify-center rounded-full">
                 <Icon icon={ChevronLeft} size={26} tone="foreground" strokeWidth={1.75} />
               </Press>
               <ThemeToggle />
@@ -117,7 +117,7 @@ export function Entry({ name, file, use, props = [], children }: { name: string;
         {props.length > 0 && (
           <View className="flex-row flex-wrap gap-1.5">
             {props.map((p) => (
-              <View key={p} className="rounded-md bg-foreground/[0.06] px-1.5 py-0.5">
+              <View key={p} className="rounded-md bg-fill-faint px-1.5 py-0.5">
                 <Text className="text-xs leading-4 text-foreground-secondary">{p}</Text>
               </View>
             ))}

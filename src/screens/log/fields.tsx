@@ -3,7 +3,6 @@
 // <input>, and the kit has none yet, so they are built here from its tokens.
 import type { ComponentProps, ReactNode, Ref } from "react";
 import { TextInput, View } from "react-native";
-import { alpha } from "@/ui/color";
 import { cn } from "@/ui/cn";
 import { FACES } from "@/ui/fontClasses";
 import { haptic } from "@/ui/haptics";
@@ -13,7 +12,7 @@ import { Press } from "@/ui/Press";
 
 /** A text field: 44 px, 10 px corners, a 1 px input border, transparent (a faint fill in dark), 16 px text. */
 export function Input({ className, style, ...props }: ComponentProps<typeof TextInput> & { ref?: Ref<TextInput> }) {
-  const { c, scheme } = useTheme();
+  const { c } = useTheme();
   return (
     <TextInput
       autoComplete="off"
@@ -22,7 +21,7 @@ export function Input({ className, style, ...props }: ComponentProps<typeof Text
       selectionColor={c.foreground}
       // A multiline field (the notes) brings its own height, corners, border colour and padding: classes are written once, never overridden.
       className={cn("min-w-0 border text-base text-foreground", !props.multiline && "h-11 rounded-lg border-input px-2.5 py-1", className)}
-      style={[{ fontFamily: FACES.sans.regular, backgroundColor: scheme === "dark" ? alpha(c.input, 0.3) : "transparent" }, style]}
+      style={[{ fontFamily: FACES.sans.regular, backgroundColor: c["input-fill"] }, style]}
       {...props}
     />
   );

@@ -15,7 +15,6 @@ import { Wordmark } from "@/ui/brand";
 import { EnergyBankChart } from "@/ui/charts/EnergyBankChart";
 import { StrainRecoveryChart } from "@/ui/charts/StrainRecoveryChart";
 import { StressChart } from "@/ui/charts/StressChart";
-import { alpha } from "@/ui/color";
 import { cn } from "@/ui/cn";
 import { CARD_CLASS, CardFill, useCardStyle } from "@/ui/Card";
 import { Icon } from "@/ui/Icon";
@@ -59,8 +58,8 @@ const NO_BAND_INFO = {
   title: "No band data yet",
   body: (
     <>
-      <Text className="text-[15px] leading-[22px] text-foreground/85">Sleep, Recovery and Strain are scored from your Fitbit’s heart rate, which your phone can’t measure.</Text>
-      <Text className="text-[15px] leading-[22px] text-foreground/85">Until your Fitbit syncs, Home shows what your phone counts: steps, distance, calories and active minutes.</Text>
+      <Text className="text-[15px] leading-[22px] text-foreground-body">Sleep, Recovery and Strain are scored from your Fitbit’s heart rate, which your phone can’t measure.</Text>
+      <Text className="text-[15px] leading-[22px] text-foreground-body">Until your Fitbit syncs, Home shows what your phone counts: steps, distance, calories and active minutes.</Text>
     </>
   ),
 };
@@ -292,7 +291,7 @@ function MonitorAlert({ alert, href }: { alert: NonNullable<HomeVM["monitorAlert
   const illness = alert.kind === "illness";
   const names = alert.names.length > 1 ? `${alert.names.slice(0, -1).join(", ")} and ${alert.names.at(-1)}` : (alert.names[0] ?? "Some vitals");
   // ring-1 ring-recovery-red/60 (or warning/50): one more shadow on the card's own.
-  const shadow = useCardStyle(ring(alpha(illness ? c["recovery-red"] : c.warning, illness ? 0.6 : 0.5), { inset: false }));
+  const shadow = useCardStyle(ring(illness ? c["alert-ring"] : c["warning-ring"], { inset: false }));
   return (
     <View accessibilityRole="alert" className={`${CARD_CLASS} flex-row gap-x-3 px-4 py-3`} style={shadow}>
       <CardFill />

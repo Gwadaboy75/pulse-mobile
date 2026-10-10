@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { View } from "react-native";
 import { cn } from "./cn";
-import { alpha } from "./color";
 import { haptic } from "./haptics";
 import { Text } from "./Text";
 import { ring } from "./shadow";
@@ -60,8 +59,8 @@ export function Button({ variant = "default", size = "touch", onPress, disabled,
         if (feel) haptic.tap();
         onPress?.();
       }}
-      className={cn("flex-row items-center justify-center border border-transparent", s.box, v.box, disabled && "opacity-50", className)}
-      style={variant === "outline-pill" ? { boxShadow: ring(alpha(c.foreground, 0.7), { inset: false }) } : undefined}
+      className={cn("flex-row items-center justify-center border border-transparent", s.box, v.box, disabled && "opacity-disabled", className)}
+      style={variant === "outline-pill" ? { boxShadow: ring(c["focus-ring"], { inset: false }) } : undefined}
     >
       {v.fill && <View pointerEvents="none" className={cn("absolute inset-0", s.fill, v.fill)} />}
       {typeof children === "string" ? <Text className={cn(s.text, v.text, textClassName)}>{children}</Text> : children}

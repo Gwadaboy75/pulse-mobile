@@ -74,8 +74,8 @@ export function ActivitiesScreen() {
           ))}
           {!items.length && groups.length <= 1 && !vm.older && <EmptyState body="No workouts in the last month. Workouts you record on your Fitbit or phone appear here after they sync." />}
           {vm.older ? (
-            <Press activeBg="bg-foreground/[0.06]" accessibilityRole="link" onPress={() => setQuery({ days: days + ACTIVITY_PAGE_DAYS, kind })} className="h-11 items-center justify-center self-center rounded-full px-5">
-              <Text className="text-xs font-bold uppercase tracking-[0.1em] text-foreground/85">Show older</Text>
+            <Press activeBg="bg-fill-faint" accessibilityRole="link" onPress={() => setQuery({ days: days + ACTIVITY_PAGE_DAYS, kind })} className="h-11 items-center justify-center self-center rounded-full px-5">
+              <Text className="text-xs font-bold uppercase tracking-[0.1em] text-foreground-body">Show older</Text>
             </Press>
           ) : (
             items.length > 0 && <Text className={cn(CAPTION, "text-center")}>No older activities</Text>

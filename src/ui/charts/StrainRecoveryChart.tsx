@@ -81,7 +81,7 @@ export function StrainRecoveryChart({ points, today }: { points: StrainRecoveryP
         const yr = linearScale([0, 100], [y1, y0]);
         const rec = rows.map((r, i) => ({ x: centers[i], y: r.recovery === null ? null : yr(r.recovery) }));
         const str = rows.map((r, i) => ({ x: centers[i], y: r.strain === null ? null : ys(r.strain) }));
-        const halo = alpha(c.card, 1);
+        const halo = c.card;
         const side = (i: number, k: "strain" | "recovery") => (labelDy(rows, i, k) < 0 ? ("above" as const) : ("below" as const));
         const labels = rows.flatMap((r, i) => [
           ...(r.recovery === null ? [] : [{ key: `rv${r.day}`, x: centers[i], y: yr(r.recovery), text: `${Math.round(r.recovery)}%`, prefer: side(i, "recovery"), color: css(`var(--${BAND_TEXT[recoveryBand(r.recovery)]})`) }]),
@@ -124,6 +124,6 @@ export function StrainRecoveryChart({ points, today }: { points: StrainRecoveryP
 }
 
 export function StrainRecoveryChartSkeleton() {
-  return <Skeleton className="h-[232px] rounded-lg bg-muted/60" />;
+  return <Skeleton className="h-[232px] rounded-lg bg-skeleton" />;
 }
 StrainRecoveryChart.Skeleton = StrainRecoveryChartSkeleton;

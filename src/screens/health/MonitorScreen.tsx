@@ -12,7 +12,6 @@ import { cn } from "@/ui/cn";
 import { Icon } from "@/ui/Icon";
 import { KeyStatRow, KeyStatRowSkeleton } from "@/ui/metrics/KeyStatRow";
 import { StatusChip } from "@/ui/metrics/primitives";
-import { alpha } from "@/ui/color";
 import { DetailShell } from "@/ui/shells/DetailShell";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { Skeleton, SkeletonText } from "@/ui/Skeleton";
@@ -101,7 +100,7 @@ function Count({ count }: { count: MonitorVM["count"] }) {
 function IllnessAlert() {
   const { c } = useTheme();
   return (
-    <Card ring={alpha(c["recovery-red"], 0.6)} className="flex-row gap-3 px-4 py-3">
+    <Card ring={c["alert-ring"]} className="flex-row gap-3 px-4 py-3">
       {/* min-w-0 flex-1: the card's width, so the sentence wraps in it (an auto-width row would size it to its content). */}
       <View accessibilityRole="alert" className="min-w-0 flex-1 flex-row gap-3">
         <View className="mt-px">

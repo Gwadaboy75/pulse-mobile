@@ -66,7 +66,7 @@ export function HypnogramChart({ night }: { night: HypnogramNight }) {
             <PlotCanvas width={width} height={height}>
               {/* A faint track under each lane (Google Health's sleep chart), so a short stretch still reads as its row. */}
               {LANE_STAGE.map((_, lane) => (
-                <RoundedRect key={lane} x={x0} y={y(lane) - 7} width={x1 - x0} height={14} r={0} color={alpha(c.foreground, 0.07)} />
+                <RoundedRect key={lane} x={x0} y={y(lane) - 7} width={x1 - x0} height={14} r={0} color={c["chart-highlight"]} />
               ))}
               <Path path={linePath(connector.map((p) => ({ x: tx(p.t), y: p.lane === null ? null : y(p.lane) })), "stepAfter")} style="stroke" strokeWidth={1} color={alpha(c.foreground, 0.22)} />
               {/* one stroke per stretch, 14 px thick with butt ends: a block in its stage colour */}
@@ -122,6 +122,6 @@ export function Hypnogram({ data }: HypnogramProps) {
 }
 
 export function HypnogramSkeleton() {
-  return <Skeleton className="h-44 rounded-lg bg-muted/60" />;
+  return <Skeleton className="h-44 rounded-lg bg-skeleton" />;
 }
 Hypnogram.Skeleton = HypnogramSkeleton;

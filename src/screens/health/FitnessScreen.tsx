@@ -190,7 +190,7 @@ function FitnessLoading() {
         </SectionShell>,
         <SectionShell key="ffs" variant="card" title="Fitness, fatigue and form">
           <View accessibilityElementsHidden>
-            <Skeleton className="h-[220px] rounded-lg bg-muted/60" />
+            <Skeleton className="h-[220px] rounded-lg bg-skeleton" />
             <Text className={cn(CAPTION, "mt-2")}>Fitness is your 42-day load, fatigue your 7-day load, form the difference.</Text>
           </View>
         </SectionShell>,

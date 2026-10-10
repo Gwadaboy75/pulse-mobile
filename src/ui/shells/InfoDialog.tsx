@@ -47,7 +47,7 @@ export function InfoDialog({ open, onClose, title, body, icon, chip, action }: I
                 {title}
               </Text>
             </View>
-            <View className="gap-4">{typeof body === "string" ? <Text className="text-[15px] leading-[22px] text-foreground/85">{body}</Text> : body}</View>
+            <View className="gap-4">{typeof body === "string" ? <Text className="text-[15px] leading-[22px] text-foreground-body">{body}</Text> : body}</View>
             {action && (
               <Button
                 variant="outline-pill"
@@ -61,7 +61,7 @@ export function InfoDialog({ open, onClose, title, body, icon, chip, action }: I
               </Button>
             )}
           </ScrollView>
-          <Press activeBg="bg-foreground/8" accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} className="absolute right-3 top-3 size-11 items-center justify-center rounded-full">
+          <Press activeBg="bg-fill-hover" accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} className="absolute right-3 top-3 size-11 items-center justify-center rounded-full">
             <X size={22} color={c.foreground} strokeWidth={1.75} />
           </Press>
         </Pressable>

@@ -89,8 +89,8 @@ export default function ReportsScreen() {
               <LinkList key={g.title} title={g.title} rows={g.rows} />
             ))}
             {shown.length < groups.length && (
-              <Press activeBg="bg-foreground/[0.06]" accessibilityRole="button" onPress={() => (haptic.tap(), router.setParams({ all: "1" }))} className="mx-auto h-11 items-center justify-center rounded-full px-5">
-                <Text className="text-xs font-bold uppercase tracking-[0.1em] text-foreground/85">Show earlier weeks</Text>
+              <Press activeBg="bg-fill-faint" accessibilityRole="button" onPress={() => (haptic.tap(), router.setParams({ all: "1" }))} className="mx-auto h-11 items-center justify-center rounded-full px-5">
+                <Text className="text-xs font-bold uppercase tracking-[0.1em] text-foreground-body">Show earlier weeks</Text>
               </Press>
             )}
           </View>

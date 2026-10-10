@@ -15,14 +15,14 @@ export function ActivityMenu({ strainHref, settingsHref }: { strainHref: string;
     push(href)
   }
   const item = (icon: LucideIcon, label: string, href: string) => (
-    <Press activeBg="bg-foreground/10" accessibilityRole="link" onPress={() => go(href)} className="h-12 flex-row items-center gap-3 rounded-xl px-3">
+    <Press activeBg="bg-fill-pressed" accessibilityRole="link" onPress={() => go(href)} className="h-12 flex-row items-center gap-3 rounded-xl px-3">
       <Icon icon={icon} size={20} tone="foreground-secondary" strokeWidth={1.75} />
       <Text className="text-[13px] font-bold uppercase leading-4 tracking-[0.1em]">{label}</Text>
     </Press>
   )
   return (
     <>
-      <Press activeBg="bg-foreground/8" ref={ref} collapsable={false} accessibilityRole="button" accessibilityLabel="More for this activity" onPress={open} className="size-11 items-center justify-center rounded-full">
+      <Press activeBg="bg-fill-hover" ref={ref} collapsable={false} accessibilityRole="button" accessibilityLabel="More for this activity" onPress={open} className="size-11 items-center justify-center rounded-full">
         <Icon icon={Ellipsis} size={24} tone="foreground" strokeWidth={2} />
       </Press>
       <MenuPanel anchor={anchor} onClose={close} align="end" className="min-w-64">

@@ -103,7 +103,7 @@ export function TimeZonePicker({ value, onChange, invalid, inputRef }: { value: 
                     accessibilityLabel={`${z.city}, ${z.region}, ${z.offset}`}
                     onPressIn={() => setActive(i)}
                     onPress={() => pick(z)}
-                    className={cn("h-12 flex-row items-center gap-3 rounded-lg px-3", i === active ? "bg-foreground/8" : "bg-transparent")}
+                    className={cn("h-12 flex-row items-center gap-3 rounded-lg px-3", i === active ? "bg-fill-hover" : "bg-transparent")}
                   >
                     <Text numberOfLines={1} className="min-w-0 flex-1 text-[15px] leading-5">
                       <Text className={cn("text-[15px] leading-5 text-foreground", selected ? "font-semibold" : "font-medium")}>{z.city}</Text>

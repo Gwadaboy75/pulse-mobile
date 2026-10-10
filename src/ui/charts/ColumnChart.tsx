@@ -97,6 +97,6 @@ export function ColumnChart({ summary, data, format, unit, tickEvery = 1, refere
 }
 
 export function ColumnChartSkeleton() {
-  return <Skeleton className="h-44 rounded-lg bg-muted/60" />;
+  return <Skeleton className="h-44 rounded-lg bg-skeleton" />;
 }
 ColumnChart.Skeleton = ColumnChartSkeleton;

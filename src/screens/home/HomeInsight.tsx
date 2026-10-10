@@ -47,7 +47,7 @@ export function HomeInsight({ items }: { items: HomeInsightItem[] }) {
   const tallest = Math.max(0, ...heights);
   return (
     <View accessibilityLabel="Insights" className={several ? "pb-2" : undefined}>
-      {several && <View accessibilityElementsHidden className="absolute inset-x-5 bottom-0 h-8 rounded-b-2xl bg-card/60" />}
+      {several && <View accessibilityElementsHidden className="absolute inset-x-5 bottom-0 h-8 rounded-b-2xl bg-card-peek" />}
       {/* The reference app's card: text inset 20 px, the counter pill 8 px from the top and right corner (spec §11 F6). */}
       <View className={`${CARD_CLASS} p-5 pr-12`} style={shadow}>
         <CardFill />
@@ -61,7 +61,7 @@ export function HomeInsight({ items }: { items: HomeInsightItem[] }) {
             >
               <View className="gap-0.5">
                 <Text className="text-base font-medium leading-[22px]">{it.title}</Text>
-                <Text className="text-[15px] leading-5 text-foreground/85">{it.body}</Text>
+                <Text className="text-[15px] leading-5 text-foreground-body">{it.body}</Text>
               </View>
             </Slide>
           ))}
@@ -76,13 +76,13 @@ export function HomeInsight({ items }: { items: HomeInsightItem[] }) {
               setI((k) => (k + 1) % n);
             }}
             hitSlop={{ left: 10, right: 10, top: 2, bottom: 2 }}
-            className="absolute right-2 top-2 h-12 w-6 items-center justify-center gap-1 rounded-lg bg-foreground/[0.08]"
+            className="absolute right-2 top-2 h-12 w-6 items-center justify-center gap-1 rounded-lg bg-fill-hover"
           >
             <Icon icon={Check} size={16} tone="foreground" strokeWidth={2.25} />
             <Text className="font-numeric text-[13px] font-semibold leading-4 tabular-nums text-foreground-secondary">{n - at}</Text>
           </Press>
         ) : (
-          <View accessibilityElementsHidden className="absolute right-2 top-2 h-12 w-6 items-center justify-center gap-1 rounded-lg bg-foreground/[0.08]">
+          <View accessibilityElementsHidden className="absolute right-2 top-2 h-12 w-6 items-center justify-center gap-1 rounded-lg bg-fill-hover">
             <Icon icon={Check} size={16} tone="foreground" strokeWidth={2.25} />
             <Text className="font-numeric text-[13px] font-semibold leading-4 tabular-nums text-foreground-secondary">1</Text>
           </View>

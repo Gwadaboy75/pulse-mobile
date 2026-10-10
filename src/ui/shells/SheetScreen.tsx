@@ -34,7 +34,7 @@ export function SheetSection({ children }: { children: string }) {
   return (
     <View className="flex-row items-center gap-3">
       <Text className="text-xs font-bold uppercase leading-4 tracking-[0.1em] text-muted-foreground">{children}</Text>
-      <View className="h-px flex-1 bg-foreground/10" />
+      <View className="h-px flex-1 bg-fill-pressed" />
     </View>
   );
 }
@@ -111,7 +111,7 @@ export function SheetScreen({ title, description, children, footer, size = "defa
   const pad = keyboard ? 16 : fit && Platform.OS === "ios" ? Math.max(16 - insets.bottom, 0) : Math.max(insets.bottom, 16);
 
   const close = (
-    <Press activeBg="bg-foreground/8" accessibilityRole="button" accessibilityLabel="Close" onPress={onClose ?? closeSheet} className="size-11 items-center justify-center rounded-full">
+    <Press activeBg="bg-fill-hover" accessibilityRole="button" accessibilityLabel="Close" onPress={onClose ?? closeSheet} className="size-11 items-center justify-center rounded-full">
       <X size={22} color={c.foreground} strokeWidth={1.75} />
     </Press>
   );

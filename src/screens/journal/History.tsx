@@ -53,7 +53,7 @@ export function History({ history, day, today, onSelect }: { history: JournalVM[
       </View>
       {history.length > RECENT && (
         <Press activeBg="bg-accent" accessibilityRole="button" onPress={() => setAll(!all)} className="-mx-2 mb-1 h-11 items-center justify-center rounded-lg border-t border-border">
-          <Text className="text-xs font-bold uppercase tracking-[0.1em] text-foreground/85">{all ? "Show last week" : "Show 30 days"}</Text>
+          <Text className="text-xs font-bold uppercase tracking-[0.1em] text-foreground-body">{all ? "Show last week" : "Show 30 days"}</Text>
         </Press>
       )}
     </Card>

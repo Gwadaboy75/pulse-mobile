@@ -113,7 +113,7 @@ function Rows({ zones, note, noteLink }: { zones: ZoneRow[]; note?: string; note
                 {/* Your typical range for this kind of activity: a lit band between two dashed ticks, over the bar. */}
                 {z.typical && (
                   <View
-                    className="absolute -inset-y-0.5 border-x border-dashed border-foreground/80 bg-foreground/10"
+                    className="absolute -inset-y-0.5 border-x border-dashed border-foreground/80 bg-fill-pressed"
                     style={{ left: `${lo}%`, width: `${Math.max(0, hi - lo)}%` }}
                   />
                 )}

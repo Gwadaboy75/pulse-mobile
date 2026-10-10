@@ -8,7 +8,6 @@ import { Modal, Platform, Pressable } from "react-native";
 import { DateTimePicker } from "@expo/ui/community/datetime-picker";
 import { DAY, formatDay } from "@/lib/format";
 import { Button } from "@/ui/Button";
-import { alpha } from "@/ui/color";
 import { haptic } from "@/ui/haptics";
 import { Panel } from "@/ui/Panel";
 import { Text } from "@/ui/Text";
@@ -48,7 +47,7 @@ export function DateTimeField({ value, onChange, mode, max, min, label }: DateTi
       }}
       className={FRAME}
       // The web input's focus ring (`border-ring`) while its picker is open.
-      style={{ backgroundColor: scheme === "dark" ? alpha(c.input, 0.3) : "transparent", borderColor: step ? c.ring : c.input }}
+      style={{ backgroundColor: c["input-fill"], borderColor: step ? c.ring : c.input }}
     >
       <Text numberOfLines={1} className={value ? "text-base tabular-nums" : "text-base text-muted-foreground"}>
         {shown}

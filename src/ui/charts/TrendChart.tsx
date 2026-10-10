@@ -394,7 +394,7 @@ export function TrendChartSkeleton({ chip = false, caption = false, ranges = DEF
           ))}
         </View>
       </View>
-      <Skeleton className="h-[200px] rounded-lg bg-muted/60" />
+      <Skeleton className="h-[200px] rounded-lg bg-skeleton" />
       {caption && <SkeletonText className="mt-2 w-48" />}
     </View>
   );

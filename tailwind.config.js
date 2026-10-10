@@ -19,6 +19,8 @@ for (const [, name, raw] of root.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)) {
   if (value.startsWith("rgb(")) colors[name] = `var(--${name})`;
   else if (/^\d+ \d+ \d+$/.test(value)) colors[name] = `rgb(var(--${name}) / <alpha-value>)`;
 }
+// A disabled control's opacity, as the class opacity-disabled (written out: an opacity utility cannot read a variable here).
+const disabledOpacity = /--disabled-opacity:\s*([\d.]+);/.exec(root)?.[1];
 
 // NativeWind turns 1rem into 14 px (react-native-css-interop's default `inlineRem`), where the web means 16 px.
 // So every scale that Tailwind writes in rem is restated in px here, and nothing below uses rem.
@@ -51,7 +53,7 @@ module.exports = {
     maxWidth: { none: "none", full: "100%", ...spacing },
     extend: {
       // The web's Tailwind 4 accepts any whole percent in a colour modifier (bg-foreground/8); Tailwind 3 knows steps of 5.
-      opacity: { 8: "0.08", 12: "0.12", 16: "0.16" },
+      opacity: { 8: "0.08", 12: "0.12", 16: "0.16", disabled: disabledOpacity },
       // React Native picks a font by its exact family name, not by family plus weight, so each weight is its own
       // name. <Text> in src/ui/Text.tsx maps the web's font-sans / font-numeric / font-bold classes onto these.
       fontFamily: {

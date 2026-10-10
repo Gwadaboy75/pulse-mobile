@@ -137,6 +137,6 @@ export function SleepHrChart({ data, highlight }: SleepHrChartProps) {
 }
 
 export function SleepHrChartSkeleton() {
-  return <Skeleton className="h-[180px] rounded-lg bg-muted/60" />;
+  return <Skeleton className="h-[180px] rounded-lg bg-skeleton" />;
 }
 SleepHrChart.Skeleton = SleepHrChartSkeleton;
