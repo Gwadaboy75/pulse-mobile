@@ -96,3 +96,8 @@ A day of heart rate is about 37,000 samples. Pulse kept them as Postgres arrays;
 ## "Write nothing when unchanged" without `IS DISTINCT FROM`
 
 SQLite has no `IS DISTINCT FROM`, but `IS NOT` compares null-safely. A repeat sync uses `INSERT ... ON CONFLICT DO UPDATE ... WHERE col IS NOT excluded.col`, so an unchanged row is not written (SQLite's `total_changes()` stays put, which the tests assert). JSON columns are compared as their text.
+
+## SHA-1 and text order on Hermes
+
+Hermes has no `node:crypto`, so the pipeline's stage-1 and journal-impact keys use `sha1` from `@noble/hashes/legacy.js` (pure JS, same hex; `src/pipeline/data.test.ts` checks it against Node).
+`localeCompare` follows the platform's collation (Hermes differs from V8), so the pipeline sorts ids with `byteCompare` (the database's "C" order); the same test proves both orders agree on every fixture id. `src/core` still calls `localeCompare` on days and tags (reports.ts:103, journalImpact.ts:133): a fix belongs in pulse first.
