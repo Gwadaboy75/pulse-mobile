@@ -16,6 +16,7 @@ import { useTheme } from "@/ui/theme"
 import { coachWorkoutGlance } from "./coachStub"
 import { push } from "@/ui/navigate"
 import { Press } from "@/ui/Press";
+import { RADIUS } from "@/ui/radius";
 
 const session = new Map<string, string>()
 
@@ -61,7 +62,7 @@ export function CoachGlance({ id, question }: { id: string; question: string }) 
         accessibilityLabel={s.text ? `Coach: ${s.text} Ask the coach about this workout.` : "Coach is analyzing this workout. Ask the coach about it."}
         onPress={() => push(`/coach?q=${encodeURIComponent(question)}`)}
       >
-        <Glass radius={28} className="min-h-14 flex-row items-center gap-3 py-2 pl-2 pr-3">
+        <Glass radius={RADIUS["4xl"]} className="min-h-14 flex-row items-center gap-3 py-2 pl-2 pr-3">
           <CoachGlyph />
           <Text accessibilityElementsHidden className={cn("min-w-0 flex-1 text-[15px] font-medium leading-5", s.text ? "text-foreground" : "animate-pulse text-foreground-secondary")} numberOfLines={s.text ? 2 : undefined}>
             {s.text ?? "Analyzing…"}

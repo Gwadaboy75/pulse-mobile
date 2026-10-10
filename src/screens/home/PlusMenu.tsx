@@ -30,7 +30,7 @@ export function PlusKey({ label }: { label: string }) {
         openSheet(`/plus?label=${encodeURIComponent(label)}`);
       }}
       hitSlop={5}
-      className="size-[34px] items-center justify-center overflow-hidden rounded-[10px]"
+      className="size-[34px] items-center justify-center overflow-hidden rounded-lg"
     >
       <Gradient from={c["key-from"]} to={c["key-to"]} angle="y" />
       <Icon icon={Plus} size={20} tone="key-foreground" strokeWidth={2.25} />

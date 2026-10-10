@@ -12,6 +12,7 @@ import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
 import { Text } from "@/ui/Text";
 import { Press } from "@/ui/Press";
+import { DURATION } from "@/ui/motion";
 
 export type HomeInsightItem = { key: string; title: string; body: string };
 
@@ -19,7 +20,7 @@ export type HomeInsightItem = { key: string; title: string; body: string };
 function Slide({ active, onHeight, children, label }: { active: boolean; onHeight: (h: number) => void; children: ReactNode; label?: string }) {
   const opacity = useSharedValue(active ? 1 : 0);
   useEffect(() => {
-    opacity.value = withTiming(active ? 1 : 0, { duration: 150 });
+    opacity.value = withTiming(active ? 1 : 0, { duration: DURATION.fast });
   }, [active, opacity]);
   const fade = useAnimatedStyle(() => ({ opacity: opacity.value }));
   return (

@@ -17,6 +17,7 @@ import { SectionShell } from "@/ui/shells/SectionShell";
 import { Text } from "@/ui/Text";
 import { TextLink } from "./CardButton";
 import { Press } from "@/ui/Press";
+import { DURATION } from "@/ui/motion";
 
 const glyph = (g: Parameters<typeof Icon>[0]["icon"]): ReactNode => <Icon icon={g} size={20} tone="muted-foreground" strokeWidth={1.75} />;
 const ICON: Record<string, ReactNode> = {
@@ -46,7 +47,7 @@ const withUnit = (text: string, unit?: string) => (unit ? `${text}${isSymbolUnit
 
 function Chevron({ open }: { open: boolean }) {
   const reduced = useReducedMotion();
-  const style = useAnimatedStyle(() => ({ transform: [{ rotate: reduced ? (open ? "180deg" : "0deg") : withTiming(open ? "180deg" : "0deg", { duration: 200 }) }] }), [open, reduced]);
+  const style = useAnimatedStyle(() => ({ transform: [{ rotate: reduced ? (open ? "180deg" : "0deg") : withTiming(open ? "180deg" : "0deg", { duration: DURATION.base }) }] }), [open, reduced]);
   return (
     <Animated.View style={style} className="mt-3.5">
       <Icon icon={ChevronDown} size={20} tone="muted-foreground" strokeWidth={2} />
@@ -75,7 +76,7 @@ export function ContributorCard({ title, items }: { title: string; items: Health
           const show = (v: number) => withUnit(formatValue(s.format, v * k), s.unit);
           const isOpen = open.includes(c.key);
           return (
-            <Animated.View key={c.key} layout={LinearTransition.duration(200)} className={cn(i > 0 && "border-t border-border")}>
+            <Animated.View key={c.key} layout={LinearTransition.duration(DURATION.base)} className={cn(i > 0 && "border-t border-border")}>
               <Press activeBg="bg-accent" accessibilityRole="button" accessibilityState={{ expanded: isOpen }} onPress={() => toggle(c.key)} className="-mx-2 flex-row items-start gap-1 rounded-lg px-2">
                 <ContributorRow
                   variant="healthspan"
@@ -94,7 +95,7 @@ export function ContributorCard({ title, items }: { title: string; items: Health
                 <Chevron open={isOpen} />
               </Press>
               {isOpen && (
-                <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} className="gap-3 pb-5">
+                <Animated.View entering={FadeIn.duration(DURATION.base)} exiting={FadeOut.duration(DURATION.fast)} className="gap-3 pb-5">
                   {c.state && (
                     <View className="gap-1">
                       <Text className="text-[17px] font-semibold leading-6">{c.state.title}</Text>

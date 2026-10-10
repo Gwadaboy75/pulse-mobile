@@ -351,13 +351,13 @@ function StackLegend({ series, point, format }: { series: readonly TrendSeries[]
     <View className="mt-1.5 flex-row flex-wrap items-center gap-x-4 gap-y-1">
       {point?.value != null && !parts ? (
         <View className="flex-row items-center gap-1.5">
-          <View className="size-2 rounded-[2px] border border-dashed" style={{ borderColor: c["muted-foreground"] }} />
+          <View className="size-2 rounded-xs border border-dashed" style={{ borderColor: c["muted-foreground"] }} />
           <Text className="text-xs font-medium leading-4 text-muted-foreground">No breakdown for this day</Text>
         </View>
       ) : (
         [...series].reverse().map((s) => (
           <View key={s.key} className="flex-row items-center gap-1.5">
-            <View className="size-2 rounded-[2px]" style={{ backgroundColor: css(s.color) }} />
+            <View className="size-2 rounded-xs" style={{ backgroundColor: css(s.color) }} />
             <Text className="text-xs font-medium leading-4 text-muted-foreground">
               {s.label} <Text className="font-numeric font-semibold tabular-nums text-foreground-secondary">{formatValue(format, parts?.[s.key])}</Text>
             </Text>

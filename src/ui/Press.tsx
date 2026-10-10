@@ -1,12 +1,13 @@
 import type { ReactNode, Ref } from "react";
 import { Pressable, StyleSheet, type PressableProps, type StyleProp, View, type ViewStyle } from "react-native";
-import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
+import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSequence, withTiming } from "react-native-reanimated";
 import { cn } from "./cn";
+import { DURATION, EASE } from "./motion";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /** The web's `duration-150 ease-standard` (globals.css `--ease-standard`). */
-const EASE = { duration: 150, easing: Easing.bezier(0.2, 0, 0, 1) };
+const TIMING = { duration: DURATION.fast, easing: EASE.standard };
 /** iOS's own scroll views wait about this long before a touch counts as a press (`delaysContentTouches`). */
 const PRESS_DELAY_MS = 150;
 
@@ -44,12 +45,12 @@ export function Press({ className, style, activeScale = 1, activeBg, activeOpaci
     <AnimatedPressable
       unstable_pressDelay={PRESS_DELAY_MS}
       onPressIn={(e) => {
-        p.set(withTiming(1, EASE));
+        p.set(withTiming(1, TIMING));
         onPressIn?.(e);
       }}
       onPressOut={(e) => {
         // A quick tap gets its press-in at release (after the delay): finish going in, then come back out.
-        p.set(withSequence(withTiming(1, { ...EASE, duration: EASE.duration * (1 - p.get()) }), withTiming(0, EASE)));
+        p.set(withSequence(withTiming(1, { ...TIMING, duration: TIMING.duration * (1 - p.get()) }), withTiming(0, TIMING)));
         onPressOut?.(e);
       }}
       className={className}

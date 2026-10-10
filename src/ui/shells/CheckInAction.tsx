@@ -11,6 +11,7 @@ import { FAB_SIZE, TAB_ROOTS, useTabBarBottom } from "./layout";
 import { useShellCalendar } from "./ShellStatus";
 import { openSheet } from "./sheets";
 import { Press } from "../Press";
+import { GLASS_RADIUS } from "../radius";
 
 /** The reference app's ringed monogram: "P" in a 30 px circle with the indigo-to-blue rim. */
 function Monogram() {
@@ -53,7 +54,7 @@ export function CheckInAction({ onPress }: { onPress?: () => void }) {
         (onPress ?? (() => openSheet(`/checkin?d=${d}`)))();
       }}
     >
-      <Glass radius={22} action style={{ width: FAB_SIZE, height: FAB_SIZE, alignItems: "center", justifyContent: "center" }}>
+      <Glass radius={GLASS_RADIUS} action style={{ width: FAB_SIZE, height: FAB_SIZE, alignItems: "center", justifyContent: "center" }}>
         <Monogram />
       </Glass>
     </Press>

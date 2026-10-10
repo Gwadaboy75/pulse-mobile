@@ -233,7 +233,7 @@ export function TooltipCard({ x, width, title, children }: { x: number; width: n
 export function TooltipLine({ color, children }: { color?: string; children: ReactNode }) {
   return (
     <View className="flex-row items-center gap-2">
-      {color && <View className="h-3 w-1 rounded-[2px]" style={{ backgroundColor: color }} />}
+      {color && <View className="h-3 w-1 rounded-xs" style={{ backgroundColor: color }} />}
       <Text className="font-numeric text-xs font-medium leading-4 tabular-nums text-foreground">{children}</Text>
     </View>
   );

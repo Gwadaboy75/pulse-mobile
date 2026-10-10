@@ -26,6 +26,7 @@ import { Text } from "../Text";
 import { useTheme } from "../theme";
 import { type CalendarDay, useShellCalendar } from "./ShellStatus";
 import { Press } from "../Press";
+import { DURATION } from "../motion";
 
 export type CalendarPanelProps = {
   open: boolean;
@@ -59,12 +60,12 @@ export function CalendarPanel(props: CalendarPanelProps) {
   return (
     <Modal visible={props.open} transparent animationType="none" onRequestClose={props.onClose} statusBarTranslucent>
       {/* Reanimated's Animated.View takes no className, so the animated views carry layout in `style` and the classes go on plain Views inside. */}
-      <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
+      <Animated.View entering={FadeIn.duration(DURATION.base)} exiting={FadeOut.duration(DURATION.base)} style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
         <View className="flex-1 bg-dim">
           <Pressable accessibilityRole="button" accessibilityLabel="Close calendar" onPress={props.onClose} className="flex-1" />
         </View>
       </Animated.View>
-      <Animated.View entering={SlideInUp.duration(200)} exiting={SlideOutUp.duration(200)} pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
+      <Animated.View entering={SlideInUp.duration(DURATION.base)} exiting={SlideOutUp.duration(DURATION.base)} pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
         {props.open && <MonthPanel {...props} months={months} load={load} />}
       </Animated.View>
     </Modal>

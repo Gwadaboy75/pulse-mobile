@@ -62,7 +62,7 @@ function Row({ e, title, detail, time, href }: { e: LoggedEntry; title: string; 
 const Empty = ({ children }: { children: ReactNode }) => <Text className={cn(CAPTION, "pb-2")}>{children}</Text>;
 
 function Swatch({ color }: { color: string }) {
-  return <View accessibilityElementsHidden className={cn("mr-1.5 size-2 rounded-[2px]", color)} />;
+  return <View accessibilityElementsHidden className={cn("mr-1.5 size-2 rounded-xs", color)} />;
 }
 
 export function DayLog({ vm }: { vm: LogVM }) {

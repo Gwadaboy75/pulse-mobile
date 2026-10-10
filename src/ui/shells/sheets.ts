@@ -2,6 +2,7 @@ import type { ComponentProps } from "react";
 import { router, type Stack } from "expo-router";
 import type { Palette } from "../palette";
 import { push } from "../navigate";
+import { RADIUS } from "../radius";
 
 // Task sheets (check-in, the log sheets, info cards) are ROUTES presented by the platform: Expo Router's native stack
 // shows them as `presentation: "formSheet"`, a UISheetPresentationController on iOS and a native bottom sheet on
@@ -26,8 +27,8 @@ export type SheetSize = "default" | "tall" | "screen";
 
 type Options = Exclude<NonNullable<ComponentProps<typeof Stack.Screen>["options"]>, (...args: never[]) => unknown>;
 
-/** The web drawer's top radius (`rounded-t-[28px]`). */
-const RADIUS = 28;
+/** The web drawer's top radius (`rounded-t-4xl`). */
+const SHEET_RADIUS = RADIUS["4xl"];
 
 /**
  * The `options` of a sheet's <Stack.Screen>. `c` is the palette in force: the sheet's own fill behind the native frame.
@@ -44,7 +45,7 @@ export function sheetOptions(size: SheetSize, c: Palette): Options {
     presentation: "formSheet",
     sheetAllowedDetents: size === "tall" ? [0.92] : "fitToContents",
     sheetGrabberVisible: false,
-    sheetCornerRadius: RADIUS,
+    sheetCornerRadius: SHEET_RADIUS,
     contentStyle,
   };
 }

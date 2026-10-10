@@ -11,9 +11,10 @@ import { FloatingCheckIn, showsCheckIn } from "./CheckInAction";
 import { setFocusedBlurTarget } from "./blurTarget";
 import { HEADER_FADE } from "./Header";
 import { useBottomClearance } from "./layout";
+import { DURATION } from "../motion";
 
 /** A screen's scroll position as a shared value, and a 0-1 `collapsed` that eases to 1 once `threshold` is scrolled past. */
-export function useCollapse(durationIn = 220, durationOut = 150) {
+export function useCollapse(durationIn: number = DURATION.collapse, durationOut: number = DURATION.fast) {
   const scrollY = useSharedValue(0);
   const threshold = useSharedValue(Number.POSITIVE_INFINITY);
   const onScroll = useAnimatedScrollHandler((e) => {

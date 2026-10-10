@@ -6,6 +6,7 @@ import { cn } from "../cn";
 import { haptic } from "../haptics";
 import { Icon } from "../Icon";
 import { Text } from "../Text";
+import { DURATION } from "../motion";
 
 export type CollapsibleSectionProps = {
   /** Stable id: the section's key (the web keeps its open state in a cookie under it). */
@@ -26,7 +27,7 @@ export type CollapsibleSectionProps = {
  */
 export function CollapsibleSection({ id, title, defaultOpen = true, action, className, children, onToggle }: CollapsibleSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
-  const chevron = useAnimatedStyle(() => ({ transform: [{ rotate: withTiming(open ? "0deg" : "-90deg", { duration: 150 }) }] }), [open]);
+  const chevron = useAnimatedStyle(() => ({ transform: [{ rotate: withTiming(open ? "0deg" : "-90deg", { duration: DURATION.fast }) }] }), [open]);
   return (
     <View className={cn("min-w-0", className)}>
       <View className={cn("min-h-[34px] flex-row items-center justify-between gap-3", open && "mb-3")}>

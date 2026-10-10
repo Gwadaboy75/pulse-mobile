@@ -4,6 +4,7 @@ import { cn } from "./cn";
 import { Gradient } from "./Gradient";
 import { edge, ring as ringLayer, useShadow } from "./shadow";
 import { useTheme } from "./theme";
+import { RADIUS } from "./radius";
 
 /**
  * The opaque card material (spec §2.6): 16 px corners, a top hairline (dark) or a 1 px ring and soft shadow (light).
@@ -24,7 +25,7 @@ export function CardFill({ ring }: { ring?: string }) {
   return (
     <>
       <Gradient from={c["card-top"]} to={c.card} angle="y" />
-      <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 16, boxShadow: shadow(edge(c["card-edge"]), ring && ringLayer(ring)) }} />
+      <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: RADIUS["2xl"], boxShadow: shadow(edge(c["card-edge"]), ring && ringLayer(ring)) }} />
     </>
   );
 }

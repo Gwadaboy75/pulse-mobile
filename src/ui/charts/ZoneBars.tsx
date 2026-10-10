@@ -69,7 +69,7 @@ function Rows({ zones, note, noteLink }: { zones: ZoneRow[]; note?: string; note
     <View>
       <View accessibilityElementsHidden className="mb-2 flex-row items-baseline justify-between px-1">
         <View className={cn("shrink flex-row items-center gap-1.5", !typical && "opacity-0")}>
-          <Hatch className="size-2.5 rounded-[2px] border border-border" />
+          <Hatch className="size-2.5 rounded-xs border border-border" />
           <Text className={cn(LABEL, "text-muted-foreground")}>Typical range</Text>
         </View>
         <View className="flex-row items-baseline gap-2">
@@ -108,8 +108,8 @@ function Rows({ zones, note, noteLink }: { zones: ZoneRow[]; note?: string; note
                   <Text className="text-xs text-muted-foreground">{`:${String(t % 60).padStart(2, "0")}`}</Text>
                 </Text>
               </View>
-              <Hatch accessibilityElementsHidden className="h-3 rounded-[2px]">
-                <View className={cn("absolute inset-y-0 left-0 rounded-[2px]", color ? color.bg : "bg-foreground")} style={{ width: total ? `${(z.seconds / total) * 100}%` : 0 }} />
+              <Hatch accessibilityElementsHidden className="h-3 rounded-xs">
+                <View className={cn("absolute inset-y-0 left-0 rounded-xs", color ? color.bg : "bg-foreground")} style={{ width: total ? `${(z.seconds / total) * 100}%` : 0 }} />
                 {/* Your typical range for this kind of activity: a lit band between two dashed ticks, over the bar. */}
                 {z.typical && (
                   <View
@@ -195,7 +195,7 @@ export function ZoneBarsSkeleton({ variant }: { variant: "rows" | "stacked" }) {
               <SkeletonText className="w-20" />
               <SkeletonText className="ml-auto w-14" lh={24} fs={18} />
             </View>
-            <Hatch className="h-3 rounded-[2px]" />
+            <Hatch className="h-3 rounded-xs" />
           </View>
         ))}
       </View>

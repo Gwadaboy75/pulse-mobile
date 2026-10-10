@@ -158,7 +158,7 @@ function HealthspanRow({ p, value, meta }: { p: Extract<ContributorRowProps, { v
               <Triangle size={10} color={c.foreground} fill={c.foreground} strokeWidth={0} style={{ transform: [{ rotate: "180deg" }] }} />
             </MarkerLabel>
           )}
-          <View className="h-6 flex-row gap-0.5 overflow-hidden rounded-[4px]">
+          <View className="h-6 flex-row gap-0.5 overflow-hidden rounded-sm">
             {Array.from({ length: SEGMENTS }, (_, i) => {
               const good = p.higherIsBetter ? i / (SEGMENTS - 1) : 1 - i / (SEGMENTS - 1);
               return <View key={i} className={cn("flex-1", i === lit && "bg-foreground/45")} style={i === lit ? undefined : { backgroundColor: mix(c.optimal, c.warning, good), opacity: 0.35 }} />;
@@ -210,7 +210,7 @@ export function ContributorRowSkeleton({ variant = "recovery" }: { variant?: Con
         <SkeletonText className="w-36" />
         <View className="flex-row items-center gap-4">
           <View className="flex-1 pb-10 pt-11">
-            <View className="h-6 rounded-[4px] bg-dial-track" />
+            <View className="h-6 rounded-sm bg-dial-track" />
           </View>
           <View className="w-12">
             <SkeletonText lh={24} fs={20} />

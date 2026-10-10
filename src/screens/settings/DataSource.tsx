@@ -22,6 +22,7 @@ import { BODY, ConfirmDialog, ProgressBar, ROW_LABEL, ROW_RULE } from "./control
 import { GoogleFit } from "./GoogleFit";
 import { push } from "@/ui/navigate";
 import { toast } from "@/ui/Toast";
+import { DURATION } from "@/ui/motion";
 
 /** Where a Google account without a Google Health profile sets one up (pulse src/lib/google.ts). */
 const HEALTH_SIGNUP_URL = "https://fitbit.google.com/auth/signup";
@@ -58,7 +59,7 @@ function DataTypes({ rows, now }: { rows: SettingsVM["sync"]; now: number }) {
   const behind = rows.filter((r) => r.status === "stale").length;
   const summary = failing ? `${failing} failing` : behind ? `${behind} behind` : rows.every((r) => r.status === "ok") ? "All up to date" : "Waiting for first sync";
   const [open, setOpen] = useState(failing + behind > 0);
-  const chevron = useAnimatedStyle(() => ({ transform: [{ rotate: withTiming(open ? "180deg" : "0deg", { duration: 200 }) }] }), [open]);
+  const chevron = useAnimatedStyle(() => ({ transform: [{ rotate: withTiming(open ? "180deg" : "0deg", { duration: DURATION.base }) }] }), [open]);
   return (
     <View className="mt-4 border-t border-border">
       <Pressable

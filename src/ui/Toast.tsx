@@ -12,6 +12,7 @@ import { haptic } from "./haptics";
 import { Icon } from "./Icon";
 import { usePanelStyle } from "./Panel";
 import { Text } from "./Text";
+import { DURATION } from "./motion";
 
 type Kind = "success" | "error";
 type Current = { id: number; kind: Kind; text: string } | null;
@@ -64,8 +65,8 @@ export function ToastHost() {
     <View pointerEvents="none" className="absolute inset-x-0 px-4" style={{ bottom }}>
       <Animated.View
         key={t.id}
-        entering={FadeInUp.duration(300)}
-        exiting={FadeOutDown.duration(150)}
+        entering={FadeInUp.duration(DURATION.enter)}
+        exiting={FadeOutDown.duration(DURATION.fast)}
         accessibilityRole="alert"
         accessibilityLiveRegion="polite"
         className="w-full flex-row items-center gap-1.5 self-center rounded-lg border border-border bg-popover p-4"

@@ -11,6 +11,7 @@ import { edge } from "@/ui/shadow";
 import { useTheme } from "@/ui/theme";
 import { push } from "@/ui/navigate";
 import { Press } from "@/ui/Press";
+import { RADIUS } from "@/ui/radius";
 
 /** The 48 px secondary button at a card's foot ("+ Add activity", "Behaviour insights"): the web's CARD_BUTTON. */
 export const CARD_BUTTON = "h-12 w-full flex-row items-center justify-center gap-2 rounded-xl bg-secondary";
@@ -51,7 +52,7 @@ export function GradientBanner({ from, to, onPress, role, accessibilityLabel, ch
     <Press activeScale={0.96} accessibilityRole={role} accessibilityLabel={accessibilityLabel} onPress={onPress} className="h-14 w-full flex-row items-center gap-3 overflow-hidden rounded-2xl px-4" style={shadow}>
       <Gradient from={from} to={to} />
       {/* The gradient covers the card's own lit top edge, so it is drawn again over it. */}
-      {scheme === "dark" && <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 16, boxShadow: edge(c["card-edge"]) }} />}
+      {scheme === "dark" && <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: RADIUS["2xl"], boxShadow: edge(c["card-edge"]) }} />}
       {children}
     </Press>
   );

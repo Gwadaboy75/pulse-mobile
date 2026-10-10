@@ -16,6 +16,7 @@ import { usePanelStyle } from "@/ui/Panel";
 import { ring as ringLayer } from "@/ui/shadow";
 import { useTheme } from "@/ui/theme";
 import { Press } from "@/ui/Press";
+import { DURATION } from "@/ui/motion";
 
 /** Body copy under a heading (web: max-w-[65ch] text-[15px] leading-[22px] text-foreground-secondary). */
 export const BODY = "text-[15px] leading-[22px] text-foreground-secondary";
@@ -115,7 +116,7 @@ export function RadioSegments<T extends string>({ value, options, onChange, labe
               else haptic.select();
               onChange(v);
             }}
-            className={cn("h-11 flex-1 flex-row items-center justify-center gap-2 rounded-[10px]", on && "bg-foreground")}
+            className={cn("h-11 flex-1 flex-row items-center justify-center gap-2 rounded-lg", on && "bg-foreground")}
           >
             {icon && <Icon icon={icon} size={16} tone={on ? "background" : "foreground-secondary"} strokeWidth={2} />}
             <Text className={cn("text-[15px] font-semibold", on ? "text-background" : "text-foreground-secondary")}>{text}</Text>
@@ -149,7 +150,7 @@ export function SmallButton({ label, accessibilityLabel, onPress, icon, solid, c
 
 /** The web's Switch (default size: 32 × 18.4 track, 16 px thumb), with a larger touch area. */
 export function Switch({ value, onValueChange, disabled, label }: { value: boolean; onValueChange: (v: boolean) => void; disabled?: boolean; label: string }) {
-  const thumb = useAnimatedStyle(() => ({ transform: [{ translateX: withTiming(value ? 14 : 0, { duration: 150 }) }] }), [value]);
+  const thumb = useAnimatedStyle(() => ({ transform: [{ translateX: withTiming(value ? 14 : 0, { duration: DURATION.fast }) }] }), [value]);
   return (
     <Pressable
       accessibilityRole="switch"

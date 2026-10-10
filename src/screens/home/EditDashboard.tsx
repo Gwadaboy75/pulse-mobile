@@ -23,6 +23,7 @@ import { useShadow } from "@/ui/shadow";
 import { useTheme } from "@/ui/theme";
 import { statIcon } from "../_lib/view";
 import { Press } from "@/ui/Press";
+import { DURATION } from "@/ui/motion";
 
 const CARD = "min-h-14 flex-row items-center gap-3 rounded-xl bg-foreground/[0.07] pl-4";
 const NAME = "min-w-0 flex-1 text-[13px] font-bold uppercase leading-4 tracking-[0.1em]";
@@ -189,7 +190,7 @@ function sortPan(p: Place, count: number, onMove: (from: number, to: number) => 
     .onBegin(() => {
       p.start.value = p.top.value;
       p.drag.value = 1;
-      p.lift.value = withTiming(1, { duration: 120 });
+      p.lift.value = withTiming(1, { duration: DURATION.lift });
       runOnJS(hold)(true);
     })
     .onUpdate((e) => {
@@ -204,8 +205,8 @@ function sortPan(p: Place, count: number, onMove: (from: number, to: number) => 
     })
     .onFinalize(() => {
       p.drag.value = 0;
-      p.lift.value = withTiming(0, { duration: 120 });
-      p.top.value = withTiming(p.at.value * PITCH, { duration: 150 });
+      p.lift.value = withTiming(0, { duration: DURATION.lift });
+      p.top.value = withTiming(p.at.value * PITCH, { duration: DURATION.fast });
       runOnJS(hold)(false);
     });
 }
@@ -226,7 +227,7 @@ function SortableRow({ id, index, count, onMove, onRemove }: { id: DashboardKey;
   // A row that is not held slides to its place when the list reorders or a row above it is removed.
   useEffect(() => {
     at.value = index;
-    if (drag.value === 0) top.value = withTiming(index * PITCH, { duration: 150 });
+    if (drag.value === 0) top.value = withTiming(index * PITCH, { duration: DURATION.fast });
   }, [index]); // eslint-disable-line react-hooks/exhaustive-deps -- the shared values are stable
 
   const hold = (on: boolean) => {

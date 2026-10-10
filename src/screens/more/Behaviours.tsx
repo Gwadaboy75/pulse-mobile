@@ -20,6 +20,7 @@ import { TextField } from "../settings/controls";
 import { toast } from "@/ui/Toast";
 import { useScreen } from "../useScreen";
 import { BehaviorPicker, saveSelection, shownOf } from "./BehaviorPicker";
+import { DURATION } from "@/ui/motion";
 
 const INTRO = "Choose what your journal asks. A behaviour you leave out keeps its past answers, and they still count in your insights.";
 
@@ -117,7 +118,7 @@ function Behaviours({ vm }: { vm: BehavioursVM }) {
       />
       {/* Pinned over the list once something changed, clear of the round action at the phone's foot. */}
       {(dirty || saving) && (
-        <Animated.View entering={FadeInDown.duration(200)} exiting={FadeOut.duration(150)} className="absolute inset-x-4" style={{ bottom: Math.max(insets.bottom + 84, 96) }}>
+        <Animated.View entering={FadeInDown.duration(DURATION.base)} exiting={FadeOut.duration(DURATION.fast)} className="absolute inset-x-4" style={{ bottom: Math.max(insets.bottom + 84, 96) }}>
           <Button size="sheet" disabled={saving} onPress={save}>
             {saving ? "Saving…" : "Save behaviours"}
           </Button>

@@ -13,6 +13,7 @@ import { DetailShell } from "@/ui/shells/DetailShell";
 import { EmptyState } from "@/ui/shells/EmptyState";
 import { Divided } from "@/ui/Divided";
 import { Press } from "@/ui/Press";
+import { DURATION } from "@/ui/motion";
 
 export const PERIOD: Record<TrendRange, { label: string; prior: string }> = {
   w: { label: "Last 7 days", prior: "the 7 days before" },
@@ -49,7 +50,7 @@ export function RangedTrendChart({ range, ...p }: Omit<TrendChartProps, "ranges"
 
 /** A chevron that turns half a way over 200 ms when `on` (the web's `transition-transform duration-200` with `rotate-180`). */
 export function Turn({ on, children }: { on: boolean; children: ReactNode }) {
-  const style = useAnimatedStyle(() => ({ transform: [{ rotate: withTiming(on ? "180deg" : "0deg", { duration: 200 }) }] }), [on]);
+  const style = useAnimatedStyle(() => ({ transform: [{ rotate: withTiming(on ? "180deg" : "0deg", { duration: DURATION.base }) }] }), [on]);
   return <Animated.View style={style}>{children}</Animated.View>;
 }
 

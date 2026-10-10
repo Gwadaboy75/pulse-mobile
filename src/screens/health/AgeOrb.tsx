@@ -26,7 +26,7 @@ import {
 } from "@shopify/react-native-skia";
 import { useIsFocused } from "expo-router";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Easing, Keyframe, makeMutable, useDerivedValue, useFrameCallback, useReducedMotion, useSharedValue, type SharedValue } from "react-native-reanimated";
+import Animated, { Keyframe, makeMutable, useDerivedValue, useFrameCallback, useReducedMotion, useSharedValue, type SharedValue } from "react-native-reanimated";
 import { AGE_LABEL, formatValue } from "@/lib/format";
 import { reasonCopy, type ReasonCode } from "@/lib/reasons";
 import { alpha, parseColor } from "@/ui/color";
@@ -38,6 +38,7 @@ import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { ageDelta } from "./format";
 import { blobRadius, easeOutCubic, mixRGB, ORB, orbColors, particleCount, rgba, rng, shadeRGB, type RGB, type Token } from "./orb";
+import { EASE } from "@/ui/motion";
 
 export type AgeOrbProps = {
   /** Pulse Age, the number in the middle. */
@@ -410,7 +411,7 @@ function OrbCanvas({ delta, size, compact }: { delta: number | null; size: numbe
 }
 
 /** The text's entry: opacity and a 4 px rise over 700 ms on the web's ease-out-expo, staggered (the web's `starting:` utilities; its 4 px blur has no React Native counterpart). */
-const enter = (delay: number) => new Keyframe({ 0: { opacity: 0, transform: [{ translateY: 4 }] }, 100: { opacity: 1, transform: [{ translateY: 0 }], easing: Easing.bezier(0.16, 1, 0.3, 1) } }).delay(delay).duration(700);
+const enter = (delay: number) => new Keyframe({ 0: { opacity: 0, transform: [{ translateY: 4 }] }, 100: { opacity: 1, transform: [{ translateY: 0 }], easing: EASE.outExpo } }).delay(delay).duration(700);
 
 /**
  * Pulse Age hero (docs/design/orb.md): a noise-edged blob of glowing particles, coloured by how much older or younger

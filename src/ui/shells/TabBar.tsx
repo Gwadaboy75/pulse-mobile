@@ -15,6 +15,11 @@ import { useFocusedBlurTarget } from "./blurTarget";
 import { CheckInAction } from "./CheckInAction";
 import { TAB_BAR_HEIGHT, useTabBarBottom } from "./layout";
 import { Press } from "../Press";
+import { DURATION } from "../motion";
+import { GLASS_RADIUS } from "../radius";
+
+/** The lens and each tab sit 4 px inside the bar (rounded-[18px] on the tabs, which a class must spell out). */
+const LENS_RADIUS = GLASS_RADIUS - 4;
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>>[0];
 
@@ -35,11 +40,11 @@ function Lens({ index, itemWidth }: { index: number; itemWidth: number }) {
   const { c } = useTheme();
   const x = useSharedValue(index * itemWidth);
   useEffect(() => {
-    x.value = withTiming(index * itemWidth, { duration: 150 });
+    x.value = withTiming(index * itemWidth, { duration: DURATION.fast });
   }, [index, itemWidth, x]);
   const style = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }], opacity: index < 0 ? 0 : 1 }));
   return (
-    <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 4, top: 4, bottom: 4, width: itemWidth, borderRadius: 18, overflow: "hidden" }, style]}>
+    <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 4, top: 4, bottom: 4, width: itemWidth, borderRadius: LENS_RADIUS, overflow: "hidden" }, style]}>
       <Gradient from={alpha(c.foreground, 0.02)} to={alpha(c.foreground, 0.16)} angle="y" />
     </Animated.View>
   );
@@ -50,7 +55,7 @@ function Bar({ state, navigation, current }: TabBarProps & { current: number }) 
   const [width, setWidth] = useState(0);
   const itemWidth = Math.max(0, (width - 8) / TABS.length);
   return (
-    <Glass radius={22} accessibilityRole="tablist" accessibilityLabel="Primary" onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={{ height: TAB_BAR_HEIGHT, flex: 1, minWidth: 0, padding: 4 }}>
+    <Glass radius={GLASS_RADIUS} accessibilityRole="tablist" accessibilityLabel="Primary" onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={{ height: TAB_BAR_HEIGHT, flex: 1, minWidth: 0, padding: 4 }}>
       {width > 0 && <Lens index={current} itemWidth={itemWidth} />}
       <View className="h-full flex-row">
         {TABS.map(({ route, label, icon }, i) => {

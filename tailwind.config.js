@@ -36,9 +36,9 @@ module.exports = {
     // Replaces Tailwind's palette: only Pulse's tokens (plus the ones every scale needs).
     colors: { ...colors, transparent: "transparent", current: "currentColor" },
     spacing,
-    // Tailwind's rem-based radii, restated in px with the web app's names (spec §2.4: chips 8, rows 10, buttons 12,
-    // cards 16, info card 24, sheets 28).
-    borderRadius: { none: "0px", sm: "4px", DEFAULT: "4px", md: "8px", lg: "10px", xl: "12px", "2xl": "16px", "3xl": "24px", "4xl": "28px", full: "9999px" },
+    // Tailwind's rem-based radii, restated in px with the web app's names (spec §2.4: swatches 2, chips 8, rows 10,
+    // buttons 12, cards 16, info card 24, sheets 28). src/ui/radius.ts holds the same numbers for style objects.
+    borderRadius: { none: "0px", xs: "2px", sm: "4px", DEFAULT: "4px", md: "8px", lg: "10px", xl: "12px", "2xl": "16px", "3xl": "24px", "4xl": "28px", full: "9999px" },
     fontSize: {
       xs: ["12px", "16px"],
       sm: ["14px", "20px"],

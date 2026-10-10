@@ -5,6 +5,7 @@ import { Check } from "lucide-react-native";
 import { haptic } from "../haptics";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
+import { DURATION } from "../motion";
 
 /** How long the confirmation stays before the task closes. */
 export const DONE_MS = 1600;
@@ -26,12 +27,12 @@ export function DoneScreen({ title, body, onDone }: { title: string; body: strin
   }, []);
   return (
     <View accessibilityRole="alert" className="flex-1 items-center justify-center gap-6 px-6 pb-16">
-      <Animated.View entering={ZoomIn.duration(300)}>
+      <Animated.View entering={ZoomIn.duration(DURATION.enter)}>
         <View className="size-30 items-center justify-center rounded-full border-[5px] border-optimal">
           <Check size={48} color={c["optimal-text"]} strokeWidth={2.5} />
         </View>
       </Animated.View>
-      <Animated.View entering={FadeIn.delay(100).duration(300)}>
+      <Animated.View entering={FadeIn.delay(100).duration(DURATION.enter)}>
         <View className="items-center gap-2">
           <Text className="text-xl font-bold uppercase leading-7 tracking-[0.1em]">{title}</Text>
           <Text className="text-center text-[15px] leading-[22px] text-muted-foreground">{body}</Text>

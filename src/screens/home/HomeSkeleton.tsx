@@ -98,7 +98,7 @@ export function HomeSkeleton({ stats = DASHBOARD_DEFAULT }: { stats?: DashboardK
               </View>
               <InsightSkeleton />
             </View>
-            <SectionShell variant="section" title="My Day" action={<View accessibilityElementsHidden className="size-[34px] rounded-[10px] bg-foreground/90" />}>
+            <SectionShell variant="section" title="My Day" action={<View accessibilityElementsHidden className="size-[34px] rounded-lg bg-foreground/90" />}>
               <View className="gap-3">
                 <BannerSkeleton />
                 <SectionShell variant="card" title="Today’s activities" action={ICON_SLOT}>

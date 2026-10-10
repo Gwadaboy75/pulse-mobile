@@ -54,7 +54,7 @@ function Answer({ kind, on, label, onPress }: { kind: "no" | "yes"; on: boolean;
   const fg = on ? (kind === "yes" ? c["on-color"] : c.background) : alpha(c.foreground, 0.8);
   const Glyph = kind === "yes" ? Check : X;
   return (
-    <Press activeScale={0.96} accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ selected: on }} onPress={onPress} className="size-11 items-center justify-center rounded-[10px]" style={{ backgroundColor: bg }}>
+    <Press activeScale={0.96} accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ selected: on }} onPress={onPress} className="size-11 items-center justify-center rounded-lg" style={{ backgroundColor: bg }}>
       <Glyph size={18} color={fg} strokeWidth={3} />
     </Press>
   );
