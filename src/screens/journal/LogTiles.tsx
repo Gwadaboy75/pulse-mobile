@@ -70,13 +70,9 @@ function Tile({ k, vm }: { k: LogKind; vm: LogVM }) {
       </View>
       <View className="min-w-0">
         {t && (
-          // The web's value is not ellipsised ("76.9 kg · Oct 7" runs on to the card's edge): a wider unclipped line overflows the 96 px tile's padding and the card clips it.
-          <View className="flex-row">
-            <Text numberOfLines={1} ellipsizeMode="clip" className="w-56 shrink-0 font-numeric text-[15px] font-bold leading-5 tabular-nums">
-              {t.value}
-              {t.sub && <Text className="font-medium text-muted-foreground"> · {t.sub}</Text>}
-            </Text>
-          </View>
+          <Text numberOfLines={1} className="font-numeric text-[15px] font-bold leading-5 tabular-nums">
+            {t.value}
+          </Text>
         )}
         <Text className="text-[13px] font-semibold leading-[18px]">{label}</Text>
       </View>

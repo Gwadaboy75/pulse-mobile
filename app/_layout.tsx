@@ -124,7 +124,6 @@ function Screens({ hasProfile }: { hasProfile: boolean }) {
           <Stack.Screen name="(sheets)/profile" options={sheetOptions("default", c)} />
           <Stack.Screen name="(sheets)/checkin" options={sheetOptions("screen", c)} />
           <Stack.Screen name="(sheets)/log" options={sheetOptions("default", c)} />
-          <Stack.Screen name="(sheets)/log-entry" options={sheetOptions("default", c)} />
           <Stack.Screen name="journal/impact" options={sheetOptions("default", c)} />
           <Stack.Screen name="dev/sheet" options={({ route }) => sheetOptions((route.params as { size?: SheetSize } | undefined)?.size ?? "default", c)} />
         </Stack.Protected>
