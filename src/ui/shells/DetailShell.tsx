@@ -71,7 +71,7 @@ export function DetailShell({ title, subtitle, info, backHref, dateSwitcher, dis
                   onLayout={() =>
                     compact &&
                     heroBox.current?.measureInWindow((_x, y, _w, h) => {
-                      threshold.value = Math.max(0, y + h + scrollY.value - (insets.top + HEADER_ROW));
+                      threshold.value = Math.max(0, y + h + scrollY.value - headerHeight);
                     })
                   }
                   className="items-center"

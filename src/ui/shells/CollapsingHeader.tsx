@@ -3,8 +3,8 @@ import { View } from "react-native";
 import Animated, { useAnimatedStyle, useDerivedValue, type DerivedValue } from "react-native-reanimated";
 import { cn } from "../cn";
 import { Text } from "../Text";
-import { DetailHeaderRow, type DetailHeaderProps } from "./DetailHeader";
-import { HEADER_ROW, HeaderFrame } from "./Header";
+import { DetailHeaderRow, detailRowHeight, type DetailHeaderProps } from "./DetailHeader";
+import { HeaderFrame } from "./Header";
 
 export type HeaderStat = {
   /** Formatted already: "3.4", "-0.8x". */
@@ -40,11 +40,12 @@ export function CollapsingHeader({ compact, stats, progress, onHeight, ...row }:
   const expanded = useDerivedValue(() => COLLAPSE_ROW * progress.value);
   const center = useAnimatedStyle(() => ({ opacity: 1 - progress.value }));
   const hero = useAnimatedStyle(() => ({ opacity: progress.value, transform: [{ scale: 0.85 + 0.15 * progress.value }] }));
+  const rowH = detailRowHeight(row);
   return (
-    <HeaderFrame expanded={expanded} extra={COLLAPSE_ROW} onHeight={onHeight}>
-      <View style={{ height: HEADER_ROW }}>
+    <HeaderFrame rows={rowH} expanded={expanded} extra={COLLAPSE_ROW} onHeight={onHeight}>
+      <View style={{ height: rowH }}>
         <DetailHeaderRow {...row} centerStyle={center} />
-        <View pointerEvents="none" className="absolute inset-x-0 flex-row items-center gap-2 px-4" style={{ top: HEADER_ROW, height: COLLAPSE_ROW }}>
+        <View pointerEvents="none" className="absolute inset-x-0 flex-row items-center gap-2 px-4" style={{ top: rowH, height: COLLAPSE_ROW }}>
           <Stat stat={stats?.left} progress={progress} />
           <Animated.View style={hero}>{compact}</Animated.View>
           <Stat stat={stats?.right} progress={progress} />

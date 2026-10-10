@@ -7,7 +7,7 @@ import { cn } from "../cn";
 import { Icon } from "../Icon";
 import { Text } from "../Text";
 import { DateSwitcher, type DateSwitcherProps } from "./DateSwitcher";
-import { HEADER_TITLE, HeaderFrame, HeaderRow } from "./Header";
+import { HEADER_ROW, HEADER_TITLE, HeaderFrame, HeaderRow } from "./Header";
 import { InfoButton, type InfoContent } from "./InfoButton";
 
 export type DetailHeaderProps = {
@@ -28,6 +28,12 @@ function goBack(backHref?: string) {
   if (router.canGoBack()) router.back();
   else router.replace((backHref ?? "/") as Href);
 }
+
+/**
+ * The detail row's height: 44 px, or 52 with a subtitle under the title (the web's sub row: pt-3, a 20 px title, a 16 px
+ * subtitle, pb-1). The header's solid fill and the content below it follow it, as the web's sticky header grows.
+ */
+export const detailRowHeight = ({ subtitle, dateTitle }: Pick<DetailHeaderProps, "subtitle" | "dateTitle">) => (subtitle && !dateTitle ? 52 : HEADER_ROW);
 
 export function DetailHeaderRow({ title, subtitle, info, backHref, dateTitle, dismiss = "back", align = "center", titleIcon, action, className, centerStyle }: DetailHeaderProps & { className?: string; centerStyle?: ComponentProps<typeof Animated.View>["style"] }) {
   const close = dismiss === "close";
@@ -76,7 +82,7 @@ export function DetailHeaderRow({ title, subtitle, info, backHref, dateTitle, di
 
 export function DetailHeader({ onHeight, ...props }: DetailHeaderProps & { onHeight?: (height: number) => void }) {
   return (
-    <HeaderFrame onHeight={onHeight}>
+    <HeaderFrame rows={detailRowHeight(props)} onHeight={onHeight}>
       <DetailHeaderRow {...props} />
     </HeaderFrame>
   );
