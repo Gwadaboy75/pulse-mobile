@@ -2,6 +2,7 @@ import { createContext, useContext } from "react";
 import { View, type StyleProp, type ViewProps, type ViewStyle } from "react-native";
 import { cn } from "./cn";
 import { Gradient } from "./Gradient";
+import { edge, ring as ringLayer, useShadow } from "./shadow";
 import { useTheme } from "./theme";
 
 /**
@@ -18,11 +19,12 @@ export const CARD_CLASS = "overflow-hidden rounded-2xl bg-card";
  */
 export function CardFill({ ring }: { ring?: string }) {
   const { c, scheme } = useTheme();
+  const shadow = useShadow();
   if (scheme !== "dark") return null;
   return (
     <>
       <Gradient from={c["card-top"]} to={c.card} angle="y" />
-      <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 16, boxShadow: `inset 0 1px 0 ${c["card-edge"]}${ring ? `, inset 0 0 0 1px ${ring}` : ""}` }} />
+      <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 16, boxShadow: shadow(edge(c["card-edge"]), ring && ringLayer(ring)) }} />
     </>
   );
 }
@@ -31,19 +33,19 @@ export function CardFill({ ring }: { ring?: string }) {
 const InCard = createContext(false);
 export const useInCard = () => useContext(InCard);
 
-export function useCardStyle(): ViewStyle & { boxShadow: string } {
-  const { c, scheme } = useTheme();
-  return {
-    boxShadow: scheme === "dark" ? `inset 0 1px 0 ${c["card-edge"]}` : "0 1px 2px rgba(16, 21, 24, 0.05), 0 0 0 1px rgba(16, 21, 24, 0.05)",
-  };
+/** The card's own shadow (the web's shadow-card: the lit edge and --card-shadow), then any `extra` layers (a ring). */
+export function useCardStyle(...extra: (string | false | undefined)[]): ViewStyle & { boxShadow: string } {
+  const { c } = useTheme();
+  const shadow = useShadow();
+  return { boxShadow: shadow(edge(c["card-edge"]), "card", ...extra) };
 }
 
 /** `ring`: a 1 px ring colour (the web's `ring-1 ring-*`: an alert's red, a selected card's white) drawn inside the edge. */
 export function Card({ className, style, ring, children, ...props }: ViewProps & { style?: StyleProp<ViewStyle>; ring?: string }) {
-  const shadow = useCardStyle();
+  const shadow = useCardStyle(ring && ringLayer(ring));
   return (
     <InCard.Provider value>
-      <View className={cn(CARD_CLASS, "py-4", className)} style={[ring ? { boxShadow: `${shadow.boxShadow}, inset 0 0 0 1px ${ring}` } : shadow, style]} {...props}>
+      <View className={cn(CARD_CLASS, "py-4", className)} style={[shadow, style]} {...props}>
         <CardFill ring={ring} />
         {children}
       </View>

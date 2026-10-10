@@ -10,9 +10,8 @@ const TILE = 7;
  * 5 px period, under zone rows, impact rows and stage rows. Children draw over it. Give it a height and a radius in `className`.
  */
 export function Hatch({ children, className, ...props }: ViewProps) {
-  const { scheme } = useTheme();
-  // The web writes the stripe colour in the token: white 9 % on dark, ink 8 % on light.
-  const stripe = scheme === "dark" ? "rgba(255, 255, 255, 0.09)" : "rgba(16, 21, 24, 0.08)";
+  const { c } = useTheme();
+  const stripe = c["pattern-hatch"];
   return (
     <View className={cn("overflow-hidden", className)} {...props}>
       <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">

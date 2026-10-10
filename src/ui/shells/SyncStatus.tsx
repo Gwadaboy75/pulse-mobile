@@ -5,6 +5,7 @@ import { BandIcon } from "../brand";
 import { cn } from "../cn";
 import { push } from "../navigate";
 import { Text } from "../Text";
+import { ring } from "../shadow";
 import { useTheme } from "../theme";
 import { useShellSync, type ShellSync } from "./ShellStatus";
 import { Press } from "../Press";
@@ -48,7 +49,7 @@ export function SyncStatus({ hideText = false }: { hideText?: boolean }) {
       {/* The band with its dot at the top right, ringed in the header's colour (the web's Band). */}
       <View className="ml-1 size-6 items-center justify-center">
         <BandIcon size={22} color={c.foreground} />
-        <View className={cn("absolute -right-1.5 -top-1 size-2 rounded-full", v.dot)} style={{ boxShadow: `0 0 0 2px ${c["background-top"]}` }} />
+        <View className={cn("absolute -right-1.5 -top-1 size-2 rounded-full", v.dot)} style={{ boxShadow: ring(c["background-top"], { width: 2, inset: false }) }} />
       </View>
     </Press>
   );

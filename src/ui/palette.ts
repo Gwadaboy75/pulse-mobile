@@ -129,6 +129,9 @@ export const LIGHT = {
   "ground-healthspan": "#eef1f3",
   "pattern-hatch": "rgba(16, 21, 24, 0.08)",
   "selection": "rgba(16, 21, 24, 0.16)",
+  "overlay-ring": "rgba(16, 21, 24, 0.1)",
+  "popover-ring": "rgba(16, 21, 24, 0.08)",
+  "selected-ring": "rgba(255, 255, 255, 0.6)",
 } as const;
 
 export const DARK = {
@@ -258,6 +261,9 @@ export const DARK = {
   "ground-healthspan": "#101518",
   "pattern-hatch": "rgba(255, 255, 255, 0.09)",
   "selection": "rgba(255, 255, 255, 0.25)",
+  "overlay-ring": "rgba(255, 255, 255, 0.1)",
+  "popover-ring": "rgba(255, 255, 255, 0.08)",
+  "selected-ring": "rgba(255, 255, 255, 0.6)",
 } as const;
 
 /**
@@ -270,6 +276,8 @@ export const VALUES = {
     "overlay-shadow": "0 8px 24px rgba(16, 21, 24, 0.14)",
     "thumb-shadow": "0 1px 3px rgba(16, 21, 24, 0.3)",
     "glass-shadow": "0 10px 30px rgba(16, 21, 24, 0.12), 0 2px 6px rgba(16, 21, 24, 0.08)",
+    "lifted-shadow": "0 8px 24px rgba(0, 0, 0, 0.35)",
+    "toast-shadow": "0 4px 12px rgba(0, 0, 0, 0.1)",
     "orb-lift": 1,
     "orb-sparkle": 0,
     "orb-blend": "source-over",
@@ -279,6 +287,8 @@ export const VALUES = {
     "overlay-shadow": "0 8px 24px rgba(0, 0, 0, 0.45)",
     "thumb-shadow": "0 1px 3px rgba(0, 0, 0, 0.4)",
     "glass-shadow": "0 10px 30px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35)",
+    "lifted-shadow": "0 8px 24px rgba(0, 0, 0, 0.35)",
+    "toast-shadow": "0 4px 12px rgba(0, 0, 0, 0.1)",
     "orb-lift": 1.3,
     "orb-sparkle": 0.12,
     "orb-blend": "lighter",

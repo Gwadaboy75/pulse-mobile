@@ -19,6 +19,7 @@ import { Icon } from "@/ui/Icon";
 import { SheetScreen, SheetSection } from "@/ui/shells/SheetScreen";
 import { closeSheet, openSheet } from "@/ui/shells/sheets";
 import { Text } from "@/ui/Text";
+import { useShadow } from "@/ui/shadow";
 import { useTheme } from "@/ui/theme";
 import { statIcon } from "../_lib/view";
 import { Press } from "@/ui/Press";
@@ -235,9 +236,10 @@ function SortableRow({ id, index, count, onMove, onRemove }: { id: DashboardKey;
   const pan = sortPan({ top, start, at, lift, drag }, count, onMove, hold);
 
   const place = useAnimatedStyle(() => ({ transform: [{ translateY: top.value }, { scale: 1 + 0.02 * lift.value }] }));
+  const shadow = useShadow();
   return (
     <Animated.View style={[{ position: "absolute", left: 0, right: 0, height: ROW_H, zIndex: lifted ? 10 : 0 }, place]}>
-      <View className={cn(CARD, "h-14")} style={lifted ? { boxShadow: "0 8px 24px rgba(0, 0, 0, 0.35)" } : undefined}>
+      <View className={cn(CARD, "h-14")} style={lifted ? { boxShadow: shadow("lifted") } : undefined}>
         <View accessibilityElementsHidden className="size-5 shrink-0 items-center justify-center">{statIcon(id)}</View>
         <Text className={NAME}>{label}</Text>
         {/* dashboard-03: the chart tile carries a small bar-chart glyph. */}

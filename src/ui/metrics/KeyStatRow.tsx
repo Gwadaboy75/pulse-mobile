@@ -11,6 +11,7 @@ import { Icon } from "../Icon";
 import { MetricState, type MetricMeta } from "../shells/MetricState";
 import { SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
+import { ring } from "../shadow";
 import { useTheme } from "../theme";
 import { CAPTION, DeltaMark, LABEL, MetricTags, StatusChip, ValueUnit } from "./primitives";
 import { Sparkline } from "./Sparkline";
@@ -139,7 +140,6 @@ function Row({ p, c }: { p: KeyStatRowProps; c: Computed }) {
 
 function Tile({ p, c }: { p: KeyStatRowProps; c: Computed }) {
   const { c: colors } = useTheme();
-  const shadow = useCardStyle();
   const flagged = !c.reason && !c.loading && (p.chip?.tone === "warning" || p.chip?.tone === "alert");
   const wide = !!p.wide;
   const sentence = c.loading
@@ -147,13 +147,13 @@ function Tile({ p, c }: { p: KeyStatRowProps; c: Computed }) {
     : c.reason
       ? `${p.label}: ${c.reason}`
       : [statSentence({ label: p.label, valueText: c.valueText, unit: p.unit, averageText: p.chip ? undefined : c.avgText, averageLabel: p.averageLabel, dir: c.dir, tone: c.tone }), p.chip?.text].filter(Boolean).join(", ");
-  const ring = flagged ? `, inset 0 0 0 1px ${alpha(colors.warning, 0.5)}` : "";
+  const shadow = useCardStyle(flagged && ring(alpha(colors.warning, 0.5)));
   return (
     <Frame
       p={c.loading ? { ...p, href: undefined, onSelect: undefined } : p}
       sentence={sentence}
       className={cn(CARD_CLASS, "min-w-0 gap-3 p-3", wide ? "flex-row items-center" : "min-h-[124px]", p.className)}
-      style={{ boxShadow: `${shadow.boxShadow}${ring}` }}
+      style={shadow}
     >
       <CardFill ring={flagged ? alpha(colors.warning, 0.5) : undefined} />
       <View className={cn(wide ? "min-w-0 flex-1 gap-2" : "flex-1 gap-3", p.spark && "flex-none")}>

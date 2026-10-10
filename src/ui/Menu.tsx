@@ -1,9 +1,9 @@
 import { useRef, useState, type ReactNode } from "react";
 import { Modal, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { alpha } from "./color";
 import { cn } from "./cn";
 import { placeMenu, type Box } from "./menuPlace";
+import { ring, useShadow } from "./shadow";
 import { useTheme } from "./theme";
 
 /** A dropdown's trigger: put `ref` on the trigger view (collapsable={false}); `open` measures it and shows the panel. */
@@ -29,7 +29,8 @@ export function useMenu() {
  * the same offset in both readings cancels out.
  */
 export function MenuPanel({ anchor, onClose, align, className, children }: { anchor: Box | null; onClose: () => void; align: "start" | "end" | "stretch"; className?: string; children: ReactNode }) {
-  const { c, scheme } = useTheme();
+  const { c } = useTheme();
+  const shadow = useShadow();
   const insets = useSafeAreaInsets();
   const root = useRef<View>(null);
   const [frame, setFrame] = useState<Box | null>(null);
@@ -58,7 +59,7 @@ export function MenuPanel({ anchor, onClose, align, className, children }: { anc
             className={cn("absolute rounded-2xl bg-popover p-1.5", className)}
             style={{
               ...(place ?? { left: 0, top: 0, width: align === "stretch" ? anchor.w : undefined, opacity: 0 }),
-              boxShadow: `0 0 0 1px ${alpha(c.foreground, 0.1)}, 0 8px 24px ${scheme === "dark" ? "rgba(0, 0, 0, 0.45)" : "rgba(16, 21, 24, 0.14)"}`,
+              boxShadow: shadow(ring(c["overlay-ring"], { inset: false }), "overlay"),
             }}
           >
             {children}

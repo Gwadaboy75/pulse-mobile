@@ -3,6 +3,7 @@ import { Platform, View, type ViewProps } from "react-native";
 import { BlurView } from "expo-blur";
 import { alpha } from "./color";
 import { Gradient } from "./Gradient";
+import { edge, ring, useShadow } from "./shadow";
 import { useTheme } from "./theme";
 
 const FILL = { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 } as const;
@@ -22,16 +23,16 @@ export const BlurTargetContext = createContext<RefObject<View | null> | null>(nu
 export function Glass({ radius, action, children, style, ...props }: ViewProps & { radius: number; /** The indigo-tinted fill of the round action. */ action?: boolean; children?: ReactNode }) {
   const { c, scheme } = useTheme();
   const target = useContext(BlurTargetContext);
-  const shadow = scheme === "dark" ? "0 10px 30px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35)" : "0 10px 30px rgba(16, 21, 24, 0.12), 0 2px 6px rgba(16, 21, 24, 0.08)";
+  const shadow = useShadow();
   const rim = action ? alpha(c["action-rim-from"], 0.25) : c["glass-rim"];
   return (
-    <View style={[{ borderRadius: radius, boxShadow: shadow }, style]} {...props}>
+    <View style={[{ borderRadius: radius, boxShadow: shadow("glass") }, style]} {...props}>
       <View style={{ ...FILL, borderRadius: radius, overflow: "hidden" }}>
         {(Platform.OS !== "android" || target) && <BlurView blurTarget={target ?? undefined} blurMethod="dimezisBlurViewSdk31Plus" intensity={50} tint={scheme} style={FILL} />}
         <Gradient from={action ? c["glass-action-top"] : c["glass-top"]} to={action ? c["glass-action-bottom"] : c["glass-bottom"]} angle="y" />
       </View>
       {/* The lit top edge and the faint rim, over the fill. */}
-      <View pointerEvents="none" style={{ ...FILL, borderRadius: radius, boxShadow: `inset 0 1px 0 ${c["glass-edge"]}, inset 0 0 0 1px ${rim}` }} />
+      <View pointerEvents="none" style={{ ...FILL, borderRadius: radius, boxShadow: shadow(edge(c["glass-edge"]), ring(rim)) }} />
       {children}
     </View>
   );

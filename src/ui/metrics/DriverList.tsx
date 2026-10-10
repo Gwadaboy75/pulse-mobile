@@ -4,6 +4,8 @@ import { formatValue } from "@/lib/format";
 import type { Metric } from "@/lib/reasons";
 import { CARD_CLASS, CardFill, useCardStyle, useInCard } from "../Card";
 import { cn } from "../cn";
+import { ring as ringLayer } from "../shadow";
+import { useTheme } from "../theme";
 import { Hatch } from "../Hatch";
 import { Icon } from "../Icon";
 import { EmptyState } from "../shells/EmptyState";
@@ -81,6 +83,7 @@ function Item({ i, max, p }: { i: DriverItem; max: number; p: DriverListProps })
   const e = effectOf(i);
   const inCard = useInCard();
   const shadow = useCardStyle();
+  const { c } = useTheme();
   const impact = p.variant === "impact";
   const value = <Text className={cn("shrink-0 font-numeric text-base font-bold tabular-nums", e === "positive" ? "text-optimal-text" : e === "negative" ? "text-warning-text" : "text-foreground-secondary")}>{fmt(i.delta, p.unit)}</Text>;
   const track = (
@@ -123,8 +126,9 @@ function Item({ i, max, p }: { i: DriverItem; max: number; p: DriverListProps })
   const cls = cn(inCard ? "rounded-lg bg-secondary" : CARD_CLASS, "px-4 py-3");
   const style = inCard ? undefined : shadow;
   const selected = p.selectedKey === i.key;
-  const ring = selected ? { boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.6)" } : null;
-  const fill = !inCard && <CardFill ring={selected ? "rgba(255, 255, 255, 0.6)" : undefined} />;
+  // The ring replaces the card's own shadow while selected (a later style wins), as it always has.
+  const ring = selected ? { boxShadow: ringLayer(c["selected-ring"]) } : null;
+  const fill = !inCard && <CardFill ring={selected ? c["selected-ring"] : undefined} />;
   return p.onSelect ? (
     <Press activeScale={0.96} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => p.onSelect?.(i.key)} className={cls} style={[style, ring]}>
       {fill}

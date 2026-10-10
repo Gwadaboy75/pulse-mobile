@@ -5,6 +5,7 @@ import type { ChipTone } from "@/lib/bands";
 import { Button } from "../Button";
 import { StatusChip } from "../metrics/primitives";
 import { Text } from "../Text";
+import { ring, useShadow } from "../shadow";
 import { useTheme } from "../theme";
 import { push } from "../navigate";
 import { Press } from "../Press";
@@ -26,7 +27,8 @@ export type InfoContent = {
  * blur. A native <Modal> (fade), so the OS back gesture closes it and focus returns to the opener on its own.
  */
 export function InfoDialog({ open, onClose, title, body, icon, chip, action }: InfoContent & { open: boolean; onClose: () => void }) {
-  const { c, scheme } = useTheme();
+  const { c } = useTheme();
+  const shadow = useShadow();
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
       <Pressable accessibilityLabel="Close" onPress={onClose} className="flex-1 items-center justify-center bg-dim-strong px-4">
@@ -35,7 +37,7 @@ export function InfoDialog({ open, onClose, title, body, icon, chip, action }: I
           accessible={false}
           onPress={() => {}}
           className="max-h-[80%] w-full max-w-[360px] overflow-hidden rounded-3xl bg-popover"
-          style={{ boxShadow: `inset 0 0 0 1px ${scheme === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(16, 21, 24, 0.08)"}, ${scheme === "dark" ? "0 8px 24px rgba(0, 0, 0, 0.45)" : "0 8px 24px rgba(16, 21, 24, 0.14)"}`, backgroundColor: c.popover }}
+          style={{ boxShadow: shadow(ring(c["popover-ring"]), "overlay"), backgroundColor: c.popover }}
         >
           <ScrollView contentContainerClassName="p-6" showsVerticalScrollIndicator={false}>
             {icon && <View className="mb-4">{icon}</View>}

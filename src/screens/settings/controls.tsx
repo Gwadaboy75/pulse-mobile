@@ -12,6 +12,7 @@ import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
+import { ring as ringLayer } from "@/ui/shadow";
 import { useTheme } from "@/ui/theme";
 import { Press } from "@/ui/Press";
 
@@ -51,7 +52,7 @@ export function Field({ label, hint, error, optional, children }: { label: strin
 }
 
 /** The inset ring the web draws with `ring-2` on focus or on an invalid field. */
-export const ringStyle = (color: string | null) => (color ? { boxShadow: `inset 0 0 0 2px ${color}` } : undefined);
+export const ringStyle = (color: string | null) => (color ? { boxShadow: ringLayer(color, { width: 2 }) } : undefined);
 
 const FIELDS = {
   /** Profile fields (web FIELD): h-13 rounded-xl bg-field px-4 text-[17px]. */
@@ -69,7 +70,7 @@ export function TextField({ invalid, left, right, variant = "field", ...props }:
   const v = FIELDS[variant];
   const ring = invalid ? c["recovery-red-text"] : focus ? alpha(c.foreground, 0.7) : null;
   return (
-    <View className={cn("w-full min-w-0 flex-row items-center", v.box)} style={variant === "input" ? (ring ? { borderColor: ring, boxShadow: `0 0 0 2px ${alpha(ring, 0.35)}` } : undefined) : ringStyle(ring)}>
+    <View className={cn("w-full min-w-0 flex-row items-center", v.box)} style={variant === "input" ? (ring ? { borderColor: ring, boxShadow: ringLayer(alpha(ring, 0.35), { width: 2, inset: false }) } : undefined) : ringStyle(ring)}>
       {left}
       <TextInput
         {...props}
@@ -211,7 +212,7 @@ export function ConfirmDialog({
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={() => !pending && onCancel()} statusBarTranslucent navigationBarTranslucent>
       <Pressable accessibilityLabel="Close" accessible={false} onPress={() => !pending && onCancel()} className="flex-1 items-center justify-center bg-dim-strong px-4">
-        <Pressable accessible={false} onPress={() => {}} className="w-full max-w-sm overflow-hidden rounded-xl bg-popover" style={{ boxShadow: `inset 0 0 0 1px ${c.border}`, backgroundColor: c.popover }}>
+        <Pressable accessible={false} onPress={() => {}} className="w-full max-w-sm overflow-hidden rounded-xl bg-popover" style={{ boxShadow: ringLayer(c.border), backgroundColor: c.popover }}>
           <View className="gap-4 p-4">
             <View className="gap-2">
               <Text accessibilityRole="header" className="text-base font-medium leading-[16px]">

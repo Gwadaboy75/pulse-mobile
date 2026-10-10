@@ -35,6 +35,7 @@ import { SectionShell } from "@/ui/shells/SectionShell";
 import { useSelectedDay } from "@/ui/shells/DateSwitcher";
 import { useShellCalendar, useShellSync } from "@/ui/shells/ShellStatus";
 import { Text } from "@/ui/Text";
+import { ring } from "@/ui/shadow";
 import { useTheme } from "@/ui/theme";
 import { ADD_ACTIVITY_INFO, ENERGY_INFO, STRAIN_RECOVERY_INFO, TONIGHT_INFO } from "../_lib/info";
 import { energySeries, statProps, stressSeries } from "../_lib/view";
@@ -288,13 +289,12 @@ function JournalWeek({ vm, at }: { vm: HomeVM; at: (href: string) => string }) {
 
 function MonitorAlert({ alert, href }: { alert: NonNullable<HomeVM["monitorAlert"]>; href: string }) {
   const { c } = useTheme();
-  const shadow = useCardStyle();
   const illness = alert.kind === "illness";
   const names = alert.names.length > 1 ? `${alert.names.slice(0, -1).join(", ")} and ${alert.names.at(-1)}` : (alert.names[0] ?? "Some vitals");
   // ring-1 ring-recovery-red/60 (or warning/50): one more shadow on the card's own.
-  const ring = alpha(illness ? c["recovery-red"] : c.warning, illness ? 0.6 : 0.5);
+  const shadow = useCardStyle(ring(alpha(illness ? c["recovery-red"] : c.warning, illness ? 0.6 : 0.5), { inset: false }));
   return (
-    <View accessibilityRole="alert" className={`${CARD_CLASS} flex-row gap-x-3 px-4 py-3`} style={{ boxShadow: `${shadow.boxShadow}, 0 0 0 1px ${ring}` }}>
+    <View accessibilityRole="alert" className={`${CARD_CLASS} flex-row gap-x-3 px-4 py-3`} style={shadow}>
       <CardFill />
       <View className="pt-px">
         <Icon icon={illness ? CircleAlert : TriangleAlert} size={20} tone={illness ? "recovery-red-text" : "warning-text"} strokeWidth={1.75} />

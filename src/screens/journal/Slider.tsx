@@ -6,8 +6,7 @@ import { useMemo, useState } from "react";
 import { View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
-import { alpha } from "@/ui/color";
-import { useTheme } from "@/ui/theme";
+import { useShadow } from "@/ui/shadow";
 
 const THUMB = 20;
 
@@ -23,7 +22,7 @@ export type SliderProps = {
 };
 
 export function Slider({ min, max, step, value, onChange, label, valueText }: SliderProps) {
-  const { c, scheme } = useTheme();
+  const shadow = useShadow();
   const [width, setWidth] = useState(0);
   const travel = Math.max(1, width - THUMB);
   const snap = (x: number) => Math.min(max, Math.max(min, min + Math.round((Math.min(1, Math.max(0, (x - THUMB / 2) / travel)) * (max - min)) / step) * step));
@@ -59,7 +58,7 @@ export function Slider({ min, max, step, value, onChange, label, valueText }: Sl
         <View
           pointerEvents="none"
           className="absolute rounded-full bg-foreground"
-          style={{ width: THUMB, height: THUMB, left: at * travel, boxShadow: `0 1px 3px ${scheme === "dark" ? "rgba(0, 0, 0, 0.4)" : alpha(c.foreground, 0.3)}` }}
+          style={{ width: THUMB, height: THUMB, left: at * travel, boxShadow: shadow("thumb") }}
         />
       </View>
     </GestureDetector>

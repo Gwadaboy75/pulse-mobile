@@ -7,6 +7,7 @@ import { useCardStyle } from "@/ui/Card";
 import { Gradient } from "@/ui/Gradient";
 import { Icon } from "@/ui/Icon";
 import { Text } from "@/ui/Text";
+import { edge } from "@/ui/shadow";
 import { useTheme } from "@/ui/theme";
 import { push } from "@/ui/navigate";
 import { Press } from "@/ui/Press";
@@ -50,7 +51,7 @@ export function GradientBanner({ from, to, onPress, role, accessibilityLabel, ch
     <Press activeScale={0.96} accessibilityRole={role} accessibilityLabel={accessibilityLabel} onPress={onPress} className="h-14 w-full flex-row items-center gap-3 overflow-hidden rounded-2xl px-4" style={shadow}>
       <Gradient from={from} to={to} />
       {/* The gradient covers the card's own lit top edge, so it is drawn again over it. */}
-      {scheme === "dark" && <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 16, boxShadow: `inset 0 1px 0 ${c["card-edge"]}` }} />}
+      {scheme === "dark" && <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 16, boxShadow: edge(c["card-edge"]) }} />}
       {children}
     </Press>
   );

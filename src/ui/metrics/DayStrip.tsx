@@ -7,6 +7,7 @@ import { DAY, formatDay } from "@/lib/format";
 import { cn } from "../cn";
 import { Skeleton } from "../Skeleton";
 import { Text } from "../Text";
+import { ring } from "../shadow";
 import { useTheme } from "../theme";
 import { useSelectedDay } from "../shells/DateSwitcher";
 import { Icon } from "../Icon";
@@ -76,7 +77,7 @@ function Strip({ indicator, days, variant = "tile", value: controlled, onSelect 
             }}
             // Sized by its contents with 8 px above and below, so the badge sits fully inside the lit tile (SYM1).
             className={cn("items-center justify-center", pill ? "w-12 gap-1.5 rounded-full py-3" : "w-11 gap-1 rounded-xl py-2", pill ? "bg-foreground/[0.07]" : on && "bg-foreground/10")}
-            style={pill && on ? { boxShadow: `inset 0 0 0 2px ${c.foreground}` } : undefined}
+            style={pill && on ? { boxShadow: ring(c.foreground, { width: 2 }) } : undefined}
           >
             <Text accessible={false} className={cn("font-semibold leading-3 text-muted-foreground", pill ? "text-xs" : "text-[11px]")}>
               {formatDay(day.date, { weekday: pill ? "short" : "narrow" })}
