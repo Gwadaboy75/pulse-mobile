@@ -131,6 +131,8 @@ function Profile() {
         onSaved={() => {
           haptic.success();
           profileSaved();
+          // Scores need the profile: a first sync that finished meanwhile scored nothing, so run it again (it joins one still running).
+          void syncNow();
         }}
         footer={({ pending, submit }) => (
           <View className="mt-4">

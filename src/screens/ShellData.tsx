@@ -8,6 +8,7 @@ import { store } from "@/data/store";
 import { ctxOf, firstDay, todayOf } from "@/queries/common";
 import { getShellStatus } from "@/queries/settings";
 import { ShellCalendarProvider, ShellSyncProvider, useShellCalendar, type ShellCalendar, type ShellSync } from "@/ui/shells/ShellStatus";
+import { isSyncing } from "./settings/connect";
 import { useDataVersion } from "./useScreen";
 
 const loadMonth = (month: string) => loadCalendarMonth(store, month);
@@ -24,7 +25,7 @@ export function ShellData({ children }: { children: ReactNode }) {
     ctxOf(store)
       .then(async (ctx) => {
         // The header's sync status and streak (getShellStatus), read with the calendar.
-        const [status, sample] = await Promise.all([getShellStatus(ctx), ctx.store.settings.get("sample")]);
+        const [status, sample] = await Promise.all([getShellStatus(ctx, isSyncing()), ctx.store.settings.get("sample")]);
         const sync: ShellSync = { sync: status.sync, connection: status.connection, streak: status.streak, timeZone: ctx.timeZone, importProgress: status.importProgress, sample: !!sample };
         return { today: todayOf(ctx), firstDay: await firstDay(ctx), timeZone: ctx.timeZone, sync };
       })

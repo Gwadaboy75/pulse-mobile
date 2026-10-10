@@ -1,7 +1,7 @@
 // Disconnect Google and delete everything (Settings). Disconnect is pulse's settings/actions.ts `disconnectGoogle` with
-// the phone's meaning: there is no server and nothing to revoke from here, so it forgets the grant and what Google
-// synced, as pulse avatar.ts `forgetSyncedData` does. The journal, profile, dashboard, log and coach stay.
-import type { Store } from "../data/repos";
+// the phone's meaning: it forgets the grant and what Google synced, as pulse avatar.ts `forgetSyncedData` does, and the
+// caller's `forgetTokens` revokes the grant at Google and empties the secure store. The journal, profile, dashboard, log and coach stay.
+import type { Repos, Store } from "../data/repos";
 import { dataChanged } from "../screens/useScreen";
 import type { ActionResult } from "./journal";
 
@@ -12,12 +12,7 @@ import type { ActionResult } from "./journal";
 export async function disconnectGoogle(store: Store, forgetTokens: () => Promise<void> = async () => {}): Promise<ActionResult> {
   try {
     await store.transaction(async (tx) => {
-      await tx.samples.clearSynced();
-      await tx.series.clearSynced();
-      await tx.scores.clearSynced();
-      await tx.daily.clearSynced();
-      await tx.sessions.clearSynced();
-      await tx.settings.clearSynced();
+      await forgetSynced(tx);
       await tx.settings.remove("google.grant");
     });
     await forgetTokens();
@@ -26,6 +21,16 @@ export async function disconnectGoogle(store: Store, forgetTokens: () => Promise
   }
   dataChanged();
   return { ok: true, data: undefined };
+}
+
+/** Everything synced from Google, each owner's `clearSynced()`: run it inside a transaction. The grant stays. */
+export async function forgetSynced(tx: Repos): Promise<void> {
+  await tx.samples.clearSynced();
+  await tx.series.clearSynced();
+  await tx.scores.clearSynced();
+  await tx.daily.clearSynced();
+  await tx.sessions.clearSynced();
+  await tx.settings.clearSynced();
 }
 
 /**

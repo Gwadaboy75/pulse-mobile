@@ -1,22 +1,22 @@
 // Logging from Pulse (spec §11 LG1): pulse's src/server/actions/log.ts and the validation and entry building of
 // src/server/logging.ts (`logFor`). The Google parts (access check, write, mirror in logged_entries, sync cursors) are
-// src/google/logging.ts. A write needs a Google token: `tokenSource()` below is where the connect step plugs in. Until
-// it does, every write answers pulse's not-connected result (RECONNECT) before anything is stored, as pulse did for a
-// grant that could not write.
+// src/google/logging.ts. A write needs a Google token from `tokenSource()`; without a grant that can write, a write
+// answers pulse's not-connected result (RECONNECT) before anything is stored, as pulse did for a grant that could not write.
 import { randomUUID } from "expo-crypto";
 import { z } from "zod";
 import { CYCLE_SYMPTOMS, FLOWS, isCycleKind, MEALS, MOODS, OVULATION_RESULTS, READABLE, RECONNECT, SYMPTOMS, VALENCES } from "@/lib/log";
 import type { Store } from "../data/repos";
 import { deleteEntry, type LogWriter, type NewEntry } from "../google/log";
 import { LOG_MESSAGE, logEntries, logWriter } from "../google/logging";
+import { googleAuth } from "../google/auth";
 import type { TokenSource } from "../google/token";
 import { getProfile } from "../profile";
 import { dataChanged } from "../screens/useScreen";
 import { addDays, fromWall, localDay, localMidnight } from "../time";
 import type { ActionResult } from "./journal";
 
-/** Where the Google access token comes from. The connect step returns the secure-store source here; null means not connected. */
-export const tokenSource = (): TokenSource | null => null;
+/** Where the Google access token comes from (src/google/auth.ts); null where the app has none (the Node tests). */
+export const tokenSource = (): TokenSource | null => googleAuth;
 
 type Deps = { tokens?: TokenSource | null; writer?: LogWriter; now?: number; newId?: () => string };
 const writerOf = (tz: string, d: Deps): LogWriter | null => {

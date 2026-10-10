@@ -15,6 +15,8 @@ import { deleteLogEntry, logEntry } from "./log";
 const h = vi.hoisted(() => ({ changed: vi.fn(), uuid: vi.fn() }));
 vi.mock("../screens/useScreen", () => ({ dataChanged: h.changed }));
 vi.mock("expo-crypto", () => ({ randomUUID: h.uuid }));
+// No token source in Node: the device one needs the secure store and the native module.
+vi.mock("../google/auth", () => ({ googleAuth: null }));
 
 const NOW = Date.parse("2026-10-02T06:00:00Z") / 1000; // 11:30 in Kolkata
 const NAME = "users/1/dataTypes/x/dataPoints/1";

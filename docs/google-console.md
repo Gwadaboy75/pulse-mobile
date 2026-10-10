@@ -42,10 +42,10 @@ console for this work. If a scope is missing from the list, stop and tell the de
    required before you create a client.
 3. Open the EAS project for Pulse Mobile (`in.portlabs.pulse`). You need its Android keystore fingerprint (step A1).
 
-**Open question for the developer, not for this runbook.** Google's native-app docs say "Custom URI schemes are no
-longer supported on Android and Chrome apps." So on Android the app will use Google's own Android library instead of a
-browser redirect. That changes the app's code, not the console: every Android option needs the same Android client
-(package name plus SHA-1). Create it now.
+**How each platform connects.** Google's native-app docs say "Custom URI schemes are no longer supported on Android
+and Chrome apps." So Android uses Google's Authorization API from Play services (no browser, no redirect), and only iOS
+uses a redirect, to its reversed client id scheme. Both are described under "Connect flow" below. Neither needs a client
+secret or a server.
 
 ## Android client
 
@@ -111,12 +111,10 @@ page. If it does not, build it from the client ID. The label may differ.
 
 B3. What the app needs from the iOS client.
 
-- The client ID, for the sign-in request.
-- The reversed client ID, registered as a URL scheme in the iOS build (`CFBundleURLSchemes`).
-- A redirect URI in this form: `com.googleusercontent.apps.<number>-<hash>:<path>`. Google's docs show the form
-  `com.googleusercontent.apps.123:redirect_uri_path`. The developer picks the path. The page says custom URI schemes
-  are no longer supported on Android and Chrome apps, and it does not say whether iOS clients need the reversed client
-  ID scheme. Confirm the iOS redirect with the developer before testing.
+- The client ID, for the consent request (`src/google/clients.ts`).
+- The reversed client ID, registered as the iOS URL scheme (`ios.scheme` in `app.json`).
+- The redirect URI `com.googleusercontent.apps.<number>-<hash>:/oauthredirect`. Google allows this custom scheme for
+  iOS clients, and nothing needs to be entered in the console for it.
 
 B4. Client secret.
 
@@ -152,20 +150,92 @@ clients, and none is needed. Do not send any client secret, Google account passw
 
 If you added a Play App Signing client (step A4), also send its client ID.
 
-## Connect flow (iOS)
+## Connect flow
+
+The code is `src/google/token.ts` (`createGoogleAuth`: connect, token renewal, disconnect), `src/google/auth.ts` (the
+device's modules), `modules/google-auth/` (the Android Authorization API) and `src/screens/settings/connect.ts`
+(`connectGoogle`, `syncNow`). Tokens live only in `expo-secure-store` (`google.session`, readable after the first
+unlock, never restored onto another device). SQLite holds only the granted scope list (`settings` `google.grant`).
+Neither platform asks for `openid`, `email` or `profile`, and the app never learns which Google account was chosen.
+
+### Android: Google's Authorization API
+
+Docs: [Authorize access to Google user data](https://developer.android.com/identity/authorization). Play services
+matches the request to the Android client by package name and signing SHA-1, so the app passes no client id. Every
+screen is Google's own native UI over the app; nothing opens a browser.
 
 ```mermaid
-flowchart LR
-  A["App opens Google consent<br/>in a system browser sheet"] --> B["Owner approves the scopes<br/>on Google's consent screen"]
-  B --> C["Google redirects to the app<br/>with a code and the state value"]
-  C --> D["App sends the code plus the PKCE verifier<br/>to Google's token endpoint"]
-  D --> E["Google returns an access token<br/>and a refresh token"]
-  E --> F[("expo-secure-store<br/>keeps the refresh token")]
+sequenceDiagram
+  actor P as Person
+  participant App as Pulse (ConnectFlow)
+  participant M as modules/google-auth
+  participant GMS as Google Play services
+  participant API as Google Health API
+  P->>App: Connect Google Health
+  App->>M: authorize(SCOPES, interactive)
+  M->>GMS: AuthorizationClient.authorize(scopes, prompt SELECT_ACCOUNT)
+  GMS-->>M: result with a consent PendingIntent
+  M->>GMS: startIntentSenderForResult(PendingIntent)
+  GMS->>P: Choose an account, then "Select what Pulse can access"
+  P-->>GMS: ticks some or all scopes
+  GMS-->>M: access token + granted scopes
+  M-->>App: { accessToken, grantedScopes }
+  App->>App: secure store: token; settings: granted scopes
+  App->>API: first sync (Bearer token)
+  Note over App,GMS: Later: an expired token, or a 401
+  App->>M: clearToken(old), authorize(granted scopes, silent)
+  M->>GMS: authorize without UI
+  GMS-->>App: fresh access token, or "consent required" (the grant shows as revoked: Reconnect)
 ```
 
-The app creates the PKCE verifier and challenge on the phone. The token exchange needs no client secret. On Android
-the developer's chosen Google library replaces the browser and redirect steps; the result is the same: a token kept on
-the phone.
+- A cancelled consent returns `cancelled`: the Connect screen shows "Reconnect Google Health".
+- No Play services: `play_services`, with a message to update it. A package or SHA-1 that does not match the Android
+  client: `misconfigured`.
+- A partial grant is kept as granted. Silent renewals ask for exactly the granted scopes, so they never need consent
+  again; Settings shows "Pulse needs new permissions" for the missing ones.
+- Disconnect revokes the grant at `https://oauth2.googleapis.com/revoke` with a live access token (revoking an access
+  token revokes its grant) and clears Play services' cached token.
+
+### iOS: authorization code with PKCE in the in-app sign-in sheet
+
+Docs: [OAuth 2.0 for iOS and desktop apps](https://developers.google.com/identity/protocols/oauth2/native-app) and
+[`WebBrowser.openAuthSessionAsync`](https://docs.expo.dev/versions/v57.0.0/sdk/webbrowser/). The sheet is
+`ASWebAuthenticationSession`, which stays over the app (not Safari).
+
+```mermaid
+sequenceDiagram
+  actor P as Person
+  participant App as Pulse (ConnectFlow)
+  participant S as Sign-in sheet (ASWebAuthenticationSession)
+  participant G as accounts.google.com
+  participant T as oauth2.googleapis.com/token
+  P->>App: Connect Google Health
+  App->>App: PKCE verifier + S256 challenge, random state
+  App->>S: open consent URL (iOS client id, SCOPES, prompt select_account consent)
+  S->>G: consent page
+  G->>P: choose an account, choose what Pulse can read
+  P-->>G: allow
+  G-->>S: redirect com.googleusercontent.apps...:/oauthredirect?code&state
+  S-->>App: redirect URL (sheet closes)
+  App->>App: check state
+  App->>T: code + code_verifier + client_id (no secret)
+  T-->>App: access token, refresh token, granted scopes
+  App->>App: secure store: tokens; settings: granted scopes
+  Note over App,T: Later: within a minute of expiry, or a 401
+  App->>T: refresh_token + client_id
+  T-->>App: new access token, or invalid_grant (the grant shows as revoked: Reconnect)
+```
+
+- Closing the sheet or "Cancel" on Google's page returns `cancelled`.
+- Only `invalid_grant` marks the grant revoked. A 5xx or no network leaves it alone and the next sync tries again.
+- Disconnect revokes the refresh token at `https://oauth2.googleapis.com/revoke`.
+
+## For the owner in the console
+
+- Google Auth Platform › Data access lists the 13 scopes above. The consent screen shows only what is listed there.
+- Google Auth Platform › Audience: the account that holds the Fitbit data is a test user while the app is in testing.
+- The Android client's SHA-1 must be the keystore that signs the installed build (EAS development or preview). A build
+  signed with another key fails the connect with "Google doesn’t recognise this build of Pulse yet".
 
 ## Checklist
 

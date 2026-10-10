@@ -261,3 +261,11 @@ Onboarding is one route with steps held in state, so the navigator's back would 
 ## Animating SVG on the UI thread: Reanimated `animatedProps`
 
 The welcome mark's heartbeat (`src/screens/onboarding/HeartbeatMark.tsx`) moves two `react-native-svg` rects. `Animated.createAnimatedComponent(Rect)` plus `useAnimatedProps` writes their `y` from shared values on the UI thread, so the beat never waits on JavaScript. CSS keyframes become `withRepeat(withSequence(withTiming(...)))`: each `withTiming` is one keyframe step with the web's easing, and `withDelay` stands in for `animation-delay`. `useReducedMotion()` replaces `motion-safe:` and leaves everything still.
+
+## A local Expo module: `modules/google-auth`
+
+Google's Android Authorization API is a Play services library with no Expo or React Native wrapper, so the app carries a small Expo module of its own in `modules/google-auth/`: an `expo-module.config.json` that names the Kotlin class, a `build.gradle` that adds `play-services-auth`, the Kotlin module, and an `index.ts` that loads it with `requireOptionalNativeModule` (null on iOS and in Expo Go). Autolinking finds folders under `modules/` by itself, and `npx expo prebuild` links it into the generated `android/` like any package, so Continuous Native Generation stays intact. Google's consent arrives as a `PendingIntent`; the module launches it through Expo's activity-result registry (`RegisterActivityContracts` with a contract whose intent carries an `IntentSenderRequest`), which is the registry's `startIntentSenderForResult` path. A change to the Kotlin needs a new development build; Fast Refresh only reloads JavaScript.
+
+## The iOS consent sheet: `openAuthSessionAsync`
+
+`expo-web-browser`'s `openAuthSessionAsync(url, redirect)` runs `ASWebAuthenticationSession`: Google's consent in a sheet over the app that closes itself when Google redirects to the app's scheme, here the iOS client's reversed client id (`ios.scheme` in `app.json`). It is not Safari and not a web view inside the app (Google refuses embedded web views). `expo-auth-session` wraps the same call; the app does the PKCE and the token requests itself in `src/google/token.ts`, which keeps them testable in Node.
