@@ -4,24 +4,38 @@
 import type { Db } from "../types";
 import { todo } from "./todo";
 
-// The JSON columns' shapes are pulse's stored types (src/server/pipeline/types.ts). They are `unknown` here because
-// src/pipeline/types.ts (stream B) and src/core do not exist yet; when they land, replace each alias with the import
-// (`Stage1Day`, `Stage1Activity`, `RecoveryRow`, `SleepRow`, `TrainingLoadRow`, `StrainTargetRow`, `SleepPlannerRow`,
-// `EnergyBankRow`, `StressRow`, `HealthMonitorRow`, `HealthspanRow`, `FitnessRow`, `JournalImpactRow`, `Report`).
-export type Stage1DayJson = unknown;
-export type Stage1ActivityJson = unknown;
-export type RecoveryJson = unknown;
-export type SleepJson = unknown;
-export type TrainingLoadJson = unknown;
-export type StrainTargetJson = unknown;
-export type SleepPlannerJson = unknown;
-export type EnergyBankJson = unknown;
-export type StressJson = unknown;
-export type HealthMonitorJson = unknown;
-export type HealthspanJson = unknown;
-export type FitnessJson = unknown;
-export type JournalImpactJson = unknown;
-export type ReportJson = unknown;
+// The JSON columns' shapes are pulse's stored types (src/pipeline/types.ts, ported from pulse src/server/pipeline/types.ts).
+import type { Report } from "../../core/algorithms/reports";
+import type {
+  EnergyBankRow,
+  FitnessRow,
+  HealthMonitorRow,
+  HealthspanRow,
+  JournalImpactRow,
+  RecoveryRow,
+  SleepPlannerRow,
+  SleepRow,
+  Stage1Activity,
+  Stage1Day,
+  StrainTargetRow,
+  StressRow,
+  TrainingLoadRow,
+} from "../../pipeline/types";
+
+export type Stage1DayJson = Stage1Day;
+export type Stage1ActivityJson = Stage1Activity;
+export type RecoveryJson = RecoveryRow;
+export type SleepJson = SleepRow;
+export type TrainingLoadJson = TrainingLoadRow;
+export type StrainTargetJson = StrainTargetRow;
+export type SleepPlannerJson = SleepPlannerRow;
+export type EnergyBankJson = EnergyBankRow;
+export type StressJson = StressRow;
+export type HealthMonitorJson = HealthMonitorRow;
+export type HealthspanJson = HealthspanRow;
+export type FitnessJson = FitnessRow;
+export type JournalImpactJson = JournalImpactRow;
+export type ReportJson = Report;
 
 /** A day's daily_scores row as the queries read it; a column is null until its stage has written it. queries/common.ts:107 `loadDays` */
 export type ScoreRow = {
