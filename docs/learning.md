@@ -101,3 +101,67 @@ SQLite has no `IS DISTINCT FROM`, but `IS NOT` compares null-safely. A repeat sy
 
 Hermes has no `node:crypto`, so the pipeline's stage-1 and journal-impact keys use `sha1` from `@noble/hashes/legacy.js` (pure JS, same hex; `src/pipeline/data.test.ts` checks it against Node).
 `localeCompare` follows the platform's collation (Hermes differs from V8), so the pipeline sorts ids with `byteCompare` (the database's "C" order); the same test proves both orders agree on every fixture id. `src/core` still calls `localeCompare` on days and tags (reports.ts:103, journalImpact.ts:133): a fix belongs in pulse first.
+
+## NativeWind tokens: CSS variables for light and dark
+
+`global.css` holds every colour of the web's `globals.css` as a CSS variable, same names: `:root` is light and `.dark:root` is dark, because `tailwind.config.js` sets `darkMode: "class"` and NativeWind reads exactly those two selectors. `colorScheme.set("dark")` flips the class at runtime and every `bg-card` follows. A solid colour is stored as `R G B` channels so `bg-foreground/10` still works; `tailwind.config.js` reads `global.css` itself, so a token is added in one place.
+
+## 1rem is 14 px in NativeWind
+
+NativeWind turns `1rem` into 14 px (its `inlineRem` default), where the web means 16 px, so every Tailwind scale in rem would be 12% too small. `tailwind.config.js` restates spacing, radii, font sizes and line heights in px instead of changing the Metro config, so `p-4` is 16 px and `rounded-2xl` is 16 px, as on the web.
+
+## Colours in Skia and SVG: `palette.ts`
+
+Skia and react-native-svg draw with colour strings, not CSS variables. `src/ui/palette.ts` holds the same tokens as hex, `useTheme()` returns the palette of the active scheme, and a Vitest test (`palette.test.ts`) fails if `global.css` and the palette ever differ. `resolveCss("var(--strain)")` lets the ported code keep the web's `DATA_COLORS[..].css` strings.
+
+## Fonts: one family name per weight
+
+React Native picks a custom font by its exact name (`Barlow_700Bold`), not by family plus `fontWeight`. `app/_layout.tsx` loads seven files with `useFonts`, and `src/ui/Text.tsx` reads the web's `font-numeric font-bold` classes off `className`, drops them and sets `fontFamily`. Nested `<Text>` inherits the family and weight, as CSS does. The splash screen stays up until the fonts and the migrations are ready.
+
+## Text colour does not inherit from a `View`
+
+On the web `body` sets `text-foreground` and everything inherits it. In React Native only a parent `<Text>` passes its colour down, so `<Text>` adds `text-foreground` when a top-level text names no colour of its own. Icons take a `tone` (a token name) for the same reason: there is no `currentColor`.
+
+## Root providers: gesture handler, safe area, bottom sheets
+
+`src/ui/providers.tsx` wraps the app once. `GestureHandlerRootView` is required for any gesture (chart scrubbing, bottom sheets); `SafeAreaProvider` gives headers and the floating bar the notch and home-indicator insets; `BottomSheetModalProvider` is where `@gorhom/bottom-sheet` draws its sheets.
+
+## Expo Router tabs with a custom bar
+
+`app/(tabs)/_layout.tsx` uses Expo Router's `<Tabs>` for the navigation state and passes `tabBar` to draw our own floating glass bar. The parentheses make `(tabs)` a route group: it groups screens without adding to the URL, so Home stays `/`. Detail screens live outside the group, in the root `Stack`, so they cover the tab bar the way the web's detail screens do.
+
+## Reanimated for header motion
+
+Scroll position lives in a Reanimated shared value updated on the UI thread (`useAnimatedScrollHandler`); a derived value turns it into a 0 to 1 "collapsed" state and `useAnimatedStyle` maps that to opacity, scale and height. Nothing re-renders while scrolling. The headers are absolute views over the scroll view, with content padded under them.
+
+## Plain Skia for charts, not victory-native
+
+`victory-native` is a wrapper that draws standard cartesian charts; the web charts need band-coloured gradient lines, gaps that break a line, labelled drain pills and a hypnogram. Each chart here is one `<Canvas>` of Skia shapes, with the path maths in `src/ui/charts/geometry.ts` (pure functions, unit-tested in Node) and axis text as ordinary `<Text>` laid over the canvas, so text keeps the app's fonts, theme and accessibility.
+
+## react-native-svg for rings, gradients and the hatch
+
+The score dials, mini rings, wordmark, page ground, glass fill and hatched tracks are small static drawings: react-native-svg is bundled in Expo Go and draws them with the same arc and gradient vocabulary the web used. There is no `expo-linear-gradient` in the project, so `Gradient.tsx` is an SVG rectangle behind the content.
+
+## Bottom sheets and the info card
+
+The web's Vaul drawer becomes `BottomSheetModal` from `@gorhom/bottom-sheet`: `present()` and `dismiss()` are driven from the controlled `open` prop, so a screen uses it like the web's `ResponsiveSheet`. The centred info card and the calendar panel are plain React Native `<Modal>`s, which close on the Android back gesture for free.
+
+## Gestures: scrubbing a chart
+
+The web shows a tooltip on hover. A phone has no hover, so `ScrubLayer` puts a gesture-handler pan (horizontal drag only, so a vertical swipe still scrolls the page) and a tap over the plot; the touched x becomes a cursor and a tooltip card. Tapping the pinned point again clears it.
+
+## No `tailwind-merge`, no `class-variance-authority`
+
+The web components lean on `twMerge` so a later class overrides an earlier one. NativeWind resolves two conflicting classes by stylesheet order, not class order, so the ports write each class once and `cn()` only joins strings.
+
+## `boxShadow` style for card edges
+
+React Native 0.86 on the new architecture takes a CSS-like `boxShadow` string, including `inset`. The card's top hairline (dark) and its 1 px ring with a soft shadow (light) are written that way, as the web writes `shadow-card`.
+
+## `Pressable` with `active:` classes
+
+`active:scale-[0.96]` works on a NativeWind-styled `Pressable`: it maps to the press state. Every pressable row, card and chip uses it for the web's pressed look. The OS back gesture, haptics and screen-reader roles (`accessibilityRole`, `accessibilityLabel`) replace the web's focus rings and `sr-only` text.
+
+## Why the kit runs in Expo Go
+
+Everything the kit uses (Skia, Reanimated, gesture handler, SVG, safe-area, expo-font) is bundled in Expo Go for SDK 57; NativeWind, the bottom-sheet library and the icons are plain JavaScript. So `npx expo start --go` is enough on Android. An iPhone needs a development build, since the App Store's Expo Go stops at SDK 54.

@@ -1,0 +1,87 @@
+import type { ReactNode } from "react";
+import { View } from "react-native";
+import Animated, { useAnimatedStyle, type DerivedValue } from "react-native-reanimated";
+import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { cn } from "../cn";
+import { alpha } from "../color";
+import { Ground, groundColorAt } from "../Ground";
+import { Text } from "../Text";
+import { useTheme } from "../theme";
+import { DateSwitcher, type DateSwitcherProps } from "./DateSwitcher";
+
+// The pieces every header shares (spec §4.3, §4.4): the ground fill, the 24 px fade, the three-slot row.
+
+/** Detail header title, date pill label and tab-root title roles (spec §3.4): 12 px caps. */
+export const HEADER_TITLE = "text-xs font-bold uppercase leading-5 tracking-[0.1em]";
+/** A header row is 44 px tall. */
+export const HEADER_ROW = 44;
+/** The lower 24 px fade content scrolls into. */
+export const HEADER_FADE = 24;
+
+/** The height of the header's solid part: the status-bar inset plus `rows` px of rows. */
+export function useHeaderHeight(rows = HEADER_ROW) {
+  return useSafeAreaInsets().top + rows;
+}
+
+/**
+ * The header frame: ground fill, safe area, a 24 px fade at the bottom (no blur: the reference app fades, it does not
+ * frost). It is laid over the top of a screen (absolute); the screen's scroll content starts under it with
+ * `paddingTop: useHeaderHeight(rows)`. The web masks the fill with a CSS mask; here the fill is the ground painted at
+ * the same screen position, and the fade a strip going from the ground's colour to transparent. `expanded` (a shared
+ * value, px) grows the fill below the row, for the collapsing header's second row.
+ */
+export function HeaderFrame({ children, rows = HEADER_ROW, expanded, onHeight }: { children: ReactNode; rows?: number; expanded?: DerivedValue<number>; /** Told the header's resting height (safe area plus its rows), so a screen can pad its content below it. */ onHeight?: (height: number) => void }) {
+  const { c } = useTheme();
+  const top = useSafeAreaInsets().top;
+  const solid = top + rows;
+  const edge = groundColorAt(c, solid);
+  const fill = useAnimatedStyle(() => ({ height: solid + (expanded?.value ?? 0) }));
+  const fade = useAnimatedStyle(() => ({ top: solid + (expanded?.value ?? 0) }));
+  return (
+    <View pointerEvents="box-none" className="absolute inset-x-0 top-0 z-20">
+      <Animated.View pointerEvents="none" style={[{ position: "absolute", top: 0, left: 0, right: 0, overflow: "hidden" }, fill]}>
+        <Ground />
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, right: 0, height: HEADER_FADE }, fade]}>
+        <Svg width="100%" height={HEADER_FADE}>
+          <Defs>
+            <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset={0} stopColor={edge} stopOpacity={1} />
+              <Stop offset={1} stopColor={alpha(edge, 0)} stopOpacity={1} />
+            </LinearGradient>
+          </Defs>
+          <Rect width="100%" height={HEADER_FADE} fill="url(#fade)" />
+        </Svg>
+      </Animated.View>
+      <View pointerEvents="box-none" style={{ paddingTop: top }} onLayout={onHeight && ((e) => onHeight(e.nativeEvent.layout.height))}>
+        {children}
+      </View>
+    </View>
+  );
+}
+
+/** A three-slot header row: left, centred title, right. */
+export function HeaderRow({ left, center, right, className, tall }: { left?: ReactNode; center: ReactNode; right?: ReactNode; className?: string; tall?: boolean }) {
+  return (
+    <View className={cn("flex-row items-center gap-2 px-2", tall ? "min-h-11 items-start pb-1" : "h-11", className)}>
+      <View className="min-w-0 flex-1 flex-row items-center justify-start">{left}</View>
+      <View className="min-w-0 shrink items-center">{center}</View>
+      <View className="min-w-0 flex-1 flex-row items-center justify-end">{right}</View>
+    </View>
+  );
+}
+
+/** Health, Journal and More (spec §4.3 "Other tab roots"): centred title, optional right slot (sync status), optional date pill under it. */
+export function TitleHeader({ title, dateSwitcher, right }: { title: string; dateSwitcher?: DateSwitcherProps; right?: ReactNode }) {
+  return (
+    <HeaderFrame rows={HEADER_ROW + (dateSwitcher ? 40 : 0)}>
+      <HeaderRow center={<Text accessibilityRole="header" className={cn(HEADER_TITLE, "px-2")} numberOfLines={1}>{title}</Text>} right={right} className="px-4" />
+      {dateSwitcher && (
+        <View className="items-center pt-1">
+          <DateSwitcher {...dateSwitcher} />
+        </View>
+      )}
+    </HeaderFrame>
+  );
+}
