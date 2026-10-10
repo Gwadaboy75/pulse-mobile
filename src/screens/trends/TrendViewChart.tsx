@@ -7,6 +7,7 @@ import { DATA_COLORS, deltaTone, partColor, recoveryColor, type GoodDirection } 
 import { formatDay, formatValue, hmm } from "@/lib/format";
 import { ChartFigure, ChartLabel, GridLines, HollowDot, Pill, PlotCanvas, wholeTick } from "@/ui/charts/ChartFrame";
 import { areaPath, bandCenters, barWidth, linePath, linearScale } from "@/ui/charts/geometry";
+import { placeLabels, runs } from "@/ui/charts/labels";
 import { FadeFill } from "@/ui/charts/paint";
 import type { Palette } from "@/ui/palette";
 import { useTheme } from "@/ui/theme";
@@ -75,6 +76,23 @@ function Plot({ p, m, width, height }: { p: TrendViewChartProps; m: Model; width
   };
   const yText = (v: number) => (range ? clockOf(v) : p.format === "duration" ? hmm(v) : `${wholeTick(fmt)(v)}${p.unit === "%" ? "%" : ""}`);
   const halo = c.card;
+  const pointLabels = [
+    ...(p.chart === "line" && !m.faint && p.range === "w" ? rows.flatMap((r, i) => (r.value === null ? [] : [{ key: r.key, x: xs[i], y: y(r.value), text: r.text, prefer: "above" as const, color: single }])) : []),
+    ...(pair && p.range === "w"
+      ? pair.flatMap((s, k) =>
+          rows.flatMap((r, i) => {
+            const v = r.parts?.[s.key];
+            if (v == null) return [];
+            const other = r.parts?.[pair[1 - k].key];
+            const below = other != null && (v < other || (v === other && k === 0));
+            return [{ key: `${s.key}-${r.key}`, x: xs[i], y: y(v), text: fmt(v), prefer: below ? ("below" as const) : ("above" as const), color: css(partColor(s.key)) }];
+          }),
+        )
+      : []),
+  ];
+  const lines = pair ? pair.flatMap((s) => runs(rows.map((r, i) => ({ x: xs[i], y: r.parts?.[s.key] == null ? null : y(r.parts[s.key]) })))) : runs(rows.map((r, i) => ({ x: xs[i], y: r.value === null ? null : y(r.value) })));
+  // The dots are r 4.5 with a 2 px stroke; the X ticks start 11 px under the plot.
+  const placed = placeLabels(pointLabels, { dots: pointLabels.map((l) => ({ x: l.x, y: l.y, r: 5.5 })), lines, top: 0, bottom: y1 + 9, above: -14, below: 16 });
 
   return (
     <>
@@ -172,21 +190,13 @@ function Plot({ p, m, width, height }: { p: TrendViewChartProps; m: Model; width
           </ChartLabel>
         )))}
       {/* A line's labels: W over every point, M on the last one only. */}
-      {p.chart === "line" && !m.faint && p.range === "w" && rows.map((r, i) => (r.value === null ? null : <ChartLabel key={r.key} x={xs[i]} y={y(r.value) - 14} className="font-bold" color={single} halo={halo}>{r.text}</ChartLabel>))}
+      {/* W's point labels: one line's over each point; with two lines the lower one's under and the upper one's over (the web's sides), kept off every other label and dot. */}
+      {pointLabels.map((l, n) => (
+        <ChartLabel key={l.key} x={l.x} y={placed[n]} className="font-bold" color={l.color} halo={halo}>{l.text}</ChartLabel>
+      ))}
       {p.chart === "line" && !m.faint && p.range === "m" && m.last >= 0 && (
         <ChartLabel x={lastX + 9} y={y(rows[m.last].value!) - 14} anchor="start" className="font-bold" color={single} halo={halo}>{rows[m.last].text}</ChartLabel>
       )}
-      {/* Each day the lower line labels under its point and the upper over it, so the two never collide. */}
-      {pair && p.range === "w" &&
-        pair.map((s, k) =>
-          rows.map((r, i) => {
-            const v = r.parts?.[s.key];
-            if (v == null) return null;
-            const other = r.parts?.[pair[1 - k].key];
-            const below = other != null && (v < other || (v === other && k === 0));
-            return <ChartLabel key={`${s.key}-${r.key}`} x={xs[i]} y={y(v) + (below ? 16 : -14)} className="font-bold" color={css(partColor(s.key))} halo={halo}>{fmt(v)}</ChartLabel>;
-          }),
-        )}
       {/* Time in bed: bed time over the bar, wake time under it. */}
       {range && rows.map((r, i) => (r.span ? (
         <ChartLabel key={r.key} x={xs[i]} y={y(r.span[0]) - 11} w={48} className="text-[11px] font-bold" color={single}>{clockOf(r.parts!.bed)}</ChartLabel>

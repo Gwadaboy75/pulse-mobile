@@ -6,6 +6,7 @@ import { Skeleton } from "../Skeleton";
 import { useTheme } from "../theme";
 import { ChartFigure, ChartLabel, GridLines, HollowDot, PlotCanvas } from "./ChartFrame";
 import { bandCenters, barWidth, linePath, linearScale } from "./geometry";
+import { placeLabels, runs } from "./labels";
 import { StrokePath } from "./paint";
 
 export type StrainRecoveryPoint = { day: string; strain: number | null; recovery: number | null };
@@ -28,6 +29,7 @@ type Row = StrainRecoveryPoint & { weekday: string; dayOfMonth: string; date: st
 const heightOf = (r: Row | undefined, k: "strain" | "recovery") => (r?.[k] == null ? null : k === "strain" ? r.strain! / 21 : r.recovery! / 100);
 
 /**
+ * The web's preferred side for each label (labelDy's sign; placeLabels then keeps it off every other label and dot).
  * Each label sits where neither line runs: when the other series' dot is close, on the side away from it; otherwise
  * above a peak and under a valley, off its own line; on a slope, away from the other dot (Recovery above, Strain under
  * with one series missing, as the reference app draws them). Near the floor it always goes above, clear of the day ticks.
@@ -80,6 +82,13 @@ export function StrainRecoveryChart({ points, today }: { points: StrainRecoveryP
         const rec = rows.map((r, i) => ({ x: centers[i], y: r.recovery === null ? null : yr(r.recovery) }));
         const str = rows.map((r, i) => ({ x: centers[i], y: r.strain === null ? null : ys(r.strain) }));
         const halo = alpha(c.card, 1);
+        const side = (i: number, k: "strain" | "recovery") => (labelDy(rows, i, k) < 0 ? ("above" as const) : ("below" as const));
+        const labels = rows.flatMap((r, i) => [
+          ...(r.recovery === null ? [] : [{ key: `rv${r.day}`, x: centers[i], y: yr(r.recovery), text: `${Math.round(r.recovery)}%`, prefer: side(i, "recovery"), color: css(`var(--${BAND_TEXT[recoveryBand(r.recovery)]})`) }]),
+          ...(r.strain === null ? [] : [{ key: `sv${r.day}`, x: centers[i], y: ys(r.strain), text: formatValue("decimal1", r.strain), prefer: side(i, "strain"), color: c["strain-text"] }]),
+        ]);
+        // Centre offsets equal to the web's baselines (10 above, 20 below the point) for 12 px text; the day ticks start 8 px under the plot.
+        const placed = placeLabels(labels, { dots: labels.map((l) => ({ x: l.x, y: l.y, r: 5 })), lines: [...runs(rec), ...runs(str)], top: 0, bottom: y1 + 6, above: -14, below: 16 });
         return (
           <>
             <PlotCanvas width={width} height={height}>
@@ -104,16 +113,9 @@ export function StrainRecoveryChart({ points, today }: { points: StrainRecoveryP
               </ChartLabel>
             ))}
             {/* Value labels where neither line runs. */}
-            {rows.map((r, i) =>
-              r.recovery === null ? null : (
-                <ChartLabel key={`rv${r.day}`} x={centers[i]} y={yr(r.recovery) + labelDy(rows, i, "recovery")} className="font-bold" color={css(`var(--${BAND_TEXT[recoveryBand(r.recovery)]})`)} halo={halo}>{`${Math.round(r.recovery)}%`}</ChartLabel>
-              ),
-            )}
-            {rows.map((r, i) =>
-              r.strain === null ? null : (
-                <ChartLabel key={`sv${r.day}`} x={centers[i]} y={ys(r.strain) + labelDy(rows, i, "strain")} className="font-bold" color={c["strain-text"]} halo={halo}>{formatValue("decimal1", r.strain)}</ChartLabel>
-              ),
-            )}
+            {labels.map((l, n) => (
+              <ChartLabel key={l.key} x={l.x} y={placed[n]} className="font-bold" color={l.color} halo={halo}>{l.text}</ChartLabel>
+            ))}
           </>
         );
       }}
