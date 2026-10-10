@@ -159,7 +159,8 @@ export function EditDashboardSheet({ keys: rawKeys, empty: rawEmpty }: { keys?: 
               >
                 <View accessibilityElementsHidden className="size-5 shrink-0 items-center justify-center">{statIcon(m.key)}</View>
                 <View className="min-w-0 flex-1">
-                  <Text className={NAME}>{m.label}</Text>
+                  {/* In a column, flex-1 would stretch the label down the row (on the web it is inert inside a block span). */}
+                  <Text className={NAME.replace("flex-1 ", "")}>{m.label}</Text>
                   {noData.has(m.key) && <Text className="mt-0.5 text-xs font-medium leading-4 text-muted-foreground">No data yet</Text>}
                 </View>
                 <Icon icon={Plus} size={24} tone="foreground" strokeWidth={2} />
