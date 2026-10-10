@@ -43,7 +43,7 @@ export function SyncStatus() {
   const short = s.sync.lastSuccessAt ? agoShort(s.sync.lastSuccessAt, now) : "";
   return (
     <Press activeScale={0.96} accessibilityRole="button" accessibilityLabel={v.label} onPress={() => push("/settings?s=source")} className="h-11 min-w-11 flex-row items-center justify-end gap-1.5 rounded-full pl-2 pr-0.5">
-      <Text className="min-w-[3ch] text-right font-numeric text-[15px] font-semibold leading-5 tabular-nums text-muted-foreground">{short}</Text>
+      <Text className="min-w-[3ch] whitespace-nowrap text-right font-numeric text-[15px] font-semibold leading-5 tabular-nums text-muted-foreground">{short}</Text>
       {/* The band with its dot at the top right, ringed in the header's colour (the web's Band). */}
       <View className="ml-1 size-6 items-center justify-center">
         <BandIcon size={22} color={c.foreground} />

@@ -29,7 +29,7 @@ export type DateSwitcherProps = {
 };
 
 // 32 px visual, 44 px hit area (spec §4.3.1); the next chevron greys out on today.
-const LABEL = "text-[11px] font-bold uppercase leading-4 tracking-[0.1em]";
+const LABEL = "whitespace-nowrap text-[11px] font-bold uppercase leading-4 tracking-[0.1em]";
 
 /** The selected day: the route's `d` search param (parseDay: missing or bad means today), and a setter that replaces it. */
 export function useSelectedDay() {
@@ -92,7 +92,7 @@ export function DateSwitcher({ mode, calendar, placement = "body", narrow: narro
         hitSlop={{ top: bare ? 4 : 8, bottom: bare ? 4 : 8 }}
         className={cn("items-center justify-center rounded-full", bare ? "h-9 min-w-28 px-2" : cn("h-7 bg-foreground/[0.08] px-4", narrow ? "min-w-0 px-2.5" : "min-w-24"))}
       >
-        <Text className={cn(bare ? "text-xs font-bold uppercase leading-4 tracking-[0.1em]" : LABEL, "tabular-nums")}>{label}</Text>
+        <Text className={cn(bare ? "whitespace-nowrap text-xs font-bold uppercase leading-4 tracking-[0.1em]" : LABEL, "tabular-nums")}>{label}</Text>
       </Press>
       {steppers && stepper(1, atEnd)}
       <CalendarPanel open={open} onClose={() => setOpen(false)} selected={d} context={calendar ?? calendarContext(pathname)} onSelect={(day) => (setDay(day), setOpen(false))} />

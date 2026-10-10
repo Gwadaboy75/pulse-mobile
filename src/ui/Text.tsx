@@ -37,7 +37,7 @@ const NestedContext = createContext(false);
 export function Text({ className, style, numberOfLines, ...props }: ComponentProps<typeof RNText>) {
   const inherited = useContext(FaceContext);
   const nested = useContext(NestedContext);
-  const { face, rest, lines } = readFont(className, inherited);
+  const { face, rest, lines, shrink } = readFont(className, inherited);
   const TextBase = nested ? RNText : OuterText;
   return (
     <NestedContext.Provider value>
@@ -46,7 +46,7 @@ export function Text({ className, style, numberOfLines, ...props }: ComponentPro
           {...props}
           className={nested || hasColorClass(rest) ? rest : `${rest} text-foreground`}
           numberOfLines={numberOfLines ?? lines}
-          style={[{ fontFamily: FACES[face.family][face.weight] }, style]}
+          style={[{ fontFamily: FACES[face.family][face.weight], flexShrink: nested ? undefined : shrink }, style]}
         />
       </FaceContext.Provider>
     </NestedContext.Provider>

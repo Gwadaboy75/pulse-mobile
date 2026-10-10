@@ -131,7 +131,7 @@ function Headline({ vm }: { vm: TrendViewVM }) {
         </View>
         <View accessibilityRole="toolbar" accessibilityLabel="Period" className="flex-row items-center gap-1">
           <PeriodStep dir="prev" enabled={vm.canPrev} onPress={() => go({ p: vm.offset + 1 })} className={arrow} color={c.foreground} dim={c["muted-foreground"]} />
-          <Text className="font-numeric text-[13px] font-bold uppercase leading-4 tracking-[0.06em] tabular-nums">{vm.period}</Text>
+          <Text className="whitespace-nowrap font-numeric text-[13px] font-bold uppercase leading-4 tracking-[0.06em] tabular-nums">{vm.period}</Text>
           <PeriodStep dir="next" enabled={vm.offset > 0} onPress={() => go({ p: vm.offset - 1 })} className={arrow} color={c.foreground} dim={c["muted-foreground"]} />
         </View>
       </View>

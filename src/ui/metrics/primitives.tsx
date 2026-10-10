@@ -97,7 +97,7 @@ const SPACE_13 = 0.241 * 13;
 
 export function ValueUnit({ value, unit, className, unitClassName }: { value: string; unit?: string; className?: string; unitClassName?: string }) {
   return (
-    <Text className={cn("tabular-nums", className)}>
+    <Text className={cn("whitespace-nowrap tabular-nums", className)}>
       {value}
       {unit && value !== "--" && (
         <>
