@@ -3,7 +3,7 @@
 import { and, asc, eq, gte, inArray, lt, lte } from "drizzle-orm";
 import type { SQLiteColumn } from "drizzle-orm/sqlite-core";
 import { exercises, sleepSegments, sleepSessions } from "../schema";
-import type { Db } from "../types";
+import type { Db, ReadDb } from "../types";
 import { atomic, chunks, upsertChanged } from "./sql";
 
 export type Stage = "awake" | "light" | "deep" | "rem";
@@ -76,7 +76,7 @@ export interface SessionsRepo {
   clearSynced(): Promise<void>;
 }
 
-export function sessionsRepo(db: Db): SessionsRepo {
+export function sessionsRepo(db: Db, read: ReadDb = db): SessionsRepo {
   const s = sleepSessions;
   const e = exercises;
   const sg = sleepSegments;
@@ -103,34 +103,34 @@ export function sessionsRepo(db: Db): SessionsRepo {
   return {
     // Text tie-breaks sort bytewise: SQLite's default collation is BINARY, pulse's "C".
     async readSessions() {
-      return db.select(sessionCols).from(s).orderBy(asc(s.startTs), asc(s.id)).all();
+      return read.select(sessionCols).from(s).orderBy(asc(s.startTs), asc(s.id)).all();
     },
     async readExercises() {
-      return db
+      return read
         .select({ id: e.id, day: e.day, startTs: e.startTs, endTs: e.endTs, type: e.type, name: e.name, calories: e.calories })
         .from(e)
         .orderBy(asc(e.startTs), asc(e.id))
         .all();
     },
     async readSegments() {
-      return db.select(segmentCols).from(sg).orderBy(asc(sg.startTs)).all();
+      return read.select(segmentCols).from(sg).orderBy(asc(sg.startTs)).all();
     },
     async segmentsOf(sessionId) {
-      return db.select(segmentCols).from(sg).where(eq(sg.sessionId, sessionId)).orderBy(asc(sg.startTs)).all();
+      return read.select(segmentCols).from(sg).where(eq(sg.sessionId, sessionId)).orderBy(asc(sg.startTs)).all();
     },
     async sessionById(id) {
-      const [r] = db.select({ ...sessionCols, source: s.source }).from(s).where(eq(s.id, id)).all();
+      const [r] = await read.select({ ...sessionCols, source: s.source }).from(s).where(eq(s.id, id)).all();
       return r ?? null;
     },
     async exercisesBetween(from, to) {
-      return db.select(exerciseCols).from(e).where(and(gte(e.day, from), lte(e.day, to))).orderBy(asc(e.startTs), asc(e.id)).all();
+      return read.select(exerciseCols).from(e).where(and(gte(e.day, from), lte(e.day, to))).orderBy(asc(e.startTs), asc(e.id)).all();
     },
     async exerciseById(id) {
-      const [r] = db.select(exerciseCols).from(e).where(eq(e.id, id)).all();
+      const [r] = await read.select(exerciseCols).from(e).where(eq(e.id, id)).all();
       return r ?? null;
     },
     async hasExerciseBefore(day) {
-      return db.select({ id: e.id }).from(e).where(lt(e.day, day)).limit(1).all().length > 0;
+      return (await read.select({ id: e.id }).from(e).where(lt(e.day, day)).limit(1).all()).length > 0;
     },
 
     async upsertSleepSessions(rows) {

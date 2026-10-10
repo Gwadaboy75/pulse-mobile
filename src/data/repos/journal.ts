@@ -3,7 +3,7 @@
 // and pipeline/stage2.ts. Every write is diff-only.
 import { and, asc, count, eq, gte, inArray, lte, max, notInArray, sql } from "drizzle-orm";
 import { journalEntries, journalNotes, journalTags } from "../schema";
-import type { Db } from "../types";
+import type { Db, ReadDb } from "../types";
 import { atomic, upsertChanged } from "./sql";
 
 /** A behaviour the check-in asks, in check-in order (position, then seq). */
@@ -58,7 +58,7 @@ export interface JournalRepo {
   deleteNote(day: string): Promise<void>;
 }
 
-export function journalRepo(db: Db): JournalRepo {
+export function journalRepo(db: Db, read: ReadDb = db): JournalRepo {
   const t = journalTags;
   const e = journalEntries;
   const n = journalNotes;
@@ -71,16 +71,16 @@ export function journalRepo(db: Db): JournalRepo {
 
   return {
     async tags() {
-      return db.select({ tag: t.tag, label: t.label, isDefault: t.isDefault, hidden: t.hidden, position: t.position, seq: t.seq }).from(t).orderBy(asc(t.position), asc(t.seq)).all();
+      return read.select({ tag: t.tag, label: t.label, isDefault: t.isDefault, hidden: t.hidden, position: t.position, seq: t.seq }).from(t).orderBy(asc(t.position), asc(t.seq)).all();
     },
     async tagKeys() {
-      return db.select({ tag: t.tag }).from(t).all().map((r) => r.tag);
+      return (await read.select({ tag: t.tag }).from(t).all()).map((r) => r.tag);
     },
     async hasTag(tag) {
-      return db.select({ tag: t.tag }).from(t).where(eq(t.tag, tag)).all().length > 0;
+      return (await read.select({ tag: t.tag }).from(t).where(eq(t.tag, tag)).all()).length > 0;
     },
     async tagCounts() {
-      const [r] = db.select({ total: count(), shown: sql<number>`coalesce(sum(case when ${t.hidden} = 0 then 1 else 0 end), 0)` }).from(t).all();
+      const [r] = await read.select({ total: count(), shown: sql<number>`coalesce(sum(case when ${t.hidden} = 0 then 1 else 0 end), 0)` }).from(t).all();
       return { total: r.total, shown: Number(r.shown) };
     },
 
@@ -125,17 +125,17 @@ export function journalRepo(db: Db): JournalRepo {
     },
 
     async entriesBetween(from, to) {
-      return db.select({ day: e.day, tag: e.tag, value: e.value, detail: e.detail }).from(e).where(and(gte(e.day, from), lte(e.day, to))).orderBy(asc(e.day), asc(e.tag)).all();
+      return read.select({ day: e.day, tag: e.tag, value: e.value, detail: e.detail }).from(e).where(and(gte(e.day, from), lte(e.day, to))).orderBy(asc(e.day), asc(e.tag)).all();
     },
     async entryDays(from, to) {
-      return db.selectDistinct({ day: e.day }).from(e).where(and(gte(e.day, from), lte(e.day, to))).orderBy(asc(e.day)).all().map((r) => r.day);
+      return (await read.selectDistinct({ day: e.day }).from(e).where(and(gte(e.day, from), lte(e.day, to))).orderBy(asc(e.day)).all()).map((r) => r.day);
     },
     // Tags in byte order (SQLite's BINARY collation): their order is part of journal impact's memo key.
     async entriesForScoring() {
-      return db.select({ day: e.day, tag: e.tag, value: e.value }).from(e).orderBy(asc(e.day), asc(e.tag)).all();
+      return read.select({ day: e.day, tag: e.tag, value: e.value }).from(e).orderBy(asc(e.day), asc(e.tag)).all();
     },
     async answerCount() {
-      return db.select({ n: count() }).from(e).all()[0].n;
+      return (await read.select({ n: count() }).from(e).all())[0].n;
     },
     async saveEntry(entry) {
       return upsertChanged(db, e, ["day", "tag"], [entry]).length > 0;
@@ -144,7 +144,7 @@ export function journalRepo(db: Db): JournalRepo {
       db.delete(e).where(and(eq(e.day, day), eq(e.tag, tag))).run();
     },
     async entriesWithLabels() {
-      const rows = db
+      const rows = await read
         .select({ day: e.day, tag: e.tag, label: t.label, value: e.value, detail: e.detail })
         .from(e)
         .leftJoin(t, eq(t.tag, e.tag))
@@ -154,10 +154,10 @@ export function journalRepo(db: Db): JournalRepo {
     },
 
     async noteOn(day) {
-      return db.select({ text: n.text }).from(n).where(eq(n.day, day)).all()[0]?.text ?? null;
+      return (await read.select({ text: n.text }).from(n).where(eq(n.day, day)).all())[0]?.text ?? null;
     },
     async notes() {
-      return db.select({ day: n.day, text: n.text }).from(n).orderBy(asc(n.day)).all();
+      return read.select({ day: n.day, text: n.text }).from(n).orderBy(asc(n.day)).all();
     },
     async saveNote(day, text) {
       upsertChanged(db, n, ["day"], [{ day, text }]);

@@ -14,7 +14,7 @@
 //
 // A Google account switch ("forgetSyncedData", pulse avatar.ts:45) is each owner's `clearSynced()` in one `transaction`.
 import { sql } from "drizzle-orm";
-import type { Db } from "../types";
+import type { Db, ReadDb } from "../types";
 import { coachRepo, type CoachRepo } from "./coach";
 import { dailyRepo, type DailyRepo } from "./daily";
 import { journalRepo, type JournalRepo } from "./journal";
@@ -74,20 +74,32 @@ export type Repos = {
  * callback, so the SQLite implementation issues BEGIN/COMMIT/ROLLBACK on the one connection behind a queue. The in-memory
  * implementation used by the pipeline stream implements this same type.
  */
-export type Store = Repos & { transaction<T>(fn: (tx: Repos) => Promise<T>): Promise<T> };
+export type Store = Repos & {
+  transaction<T>(fn: (tx: Repos) => Promise<T>): Promise<T>;
+  /**
+   * Changes whenever what the store reads may have changed: SQLite's `data_version` (bumped by another connection's
+   * commit) and `total_changes()` (this connection's own writes), both read on the read connection. Caches of query
+   * results key on it (queries/common.ts `loadDays`).
+   */
+  dataVersion(): Promise<string>;
+};
 
-export function createRepos(db: Db): Repos {
+/**
+ * Writes, and the reads a write depends on, go through `db`. Pure reads go through `read`: in the app the async read
+ * connection (src/data/db.ts), in tests and inside a transaction `db` itself.
+ */
+export function createRepos(db: Db, read: ReadDb = db): Repos {
   return {
-    samples: samplesRepo(db),
-    series: seriesRepo(db),
-    scores: scoresRepo(db),
-    daily: dailyRepo(db),
-    sessions: sessionsRepo(db),
-    journal: journalRepo(db),
-    log: logRepo(db),
-    profile: profileRepo(db),
-    settings: settingsRepo(db),
-    coach: coachRepo(db),
+    samples: samplesRepo(db, read),
+    series: seriesRepo(db, read),
+    scores: scoresRepo(db, read),
+    daily: dailyRepo(db, read),
+    sessions: sessionsRepo(db, read),
+    journal: journalRepo(db, read),
+    log: logRepo(db, read),
+    profile: profileRepo(db, read),
+    settings: settingsRepo(db, read),
+    coach: coachRepo(db, read),
   };
 }
 
@@ -101,7 +113,11 @@ export function clearAllTables(db: Db): void {
   for (const table of Object.keys(TABLE_OWNER)) db.run(sql.raw(`delete from "${table}"`));
 }
 
-export function createStore(db: Db): Store {
+/**
+ * `read`, when given, is a second connection to the same file: the store's own reads see committed data only, while a
+ * transaction's repositories (`tx`) read and write on `db`, so they see their own uncommitted writes.
+ */
+export function createStore(db: Db, read: ReadDb = db): Store {
   const repos = createRepos(db);
   // Transactions run one after another: each starts when the one before has finished (committed or rolled back).
   let last: Promise<unknown> = Promise.resolve();
@@ -123,7 +139,13 @@ export function createStore(db: Db): Store {
     return result;
   };
   return {
-    ...repos,
+    // One connection (tests): the same repositories as `tx`, so a spy on `store.x` also sees calls made in a transaction.
+    ...(read === db ? repos : createRepos(db, read)),
+    async dataVersion() {
+      // `values`: rows as arrays on every driver (the async proxy returns arrays for raw SQL).
+      const [[v]] = await read.values<[string]>(sql`select data_version || ':' || total_changes() from pragma_data_version`);
+      return v;
+    },
     // ponytail: one connection, so a write made on `store` (not `tx`) while a transaction is open joins it, and calling
     // `store.transaction` inside a callback waits for itself. The port keeps writes on `tx` inside a callback.
     transaction<T>(fn: (tx: Repos) => Promise<T>): Promise<T> {

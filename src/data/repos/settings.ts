@@ -5,7 +5,7 @@
 // There is no Google account identity (email, name, picture) anywhere: the app asks for Health scopes only.
 import { and, asc, eq, gt, isNotNull, sql } from "drizzle-orm";
 import { dashboardMetrics, settings, syncState } from "../schema";
-import type { Db } from "../types";
+import type { Db, ReadDb } from "../types";
 import { atomic, excluded, upsertChanged } from "./sql";
 
 /** The keys in the `settings` table and the JSON each holds. */
@@ -74,13 +74,13 @@ export interface SettingsRepo {
   clearSynced(): Promise<void>;
 }
 
-export function settingsRepo(db: Db): SettingsRepo {
+export function settingsRepo(db: Db, read: ReadDb = db): SettingsRepo {
   const s = settings;
   const st = syncState;
   const syncCols = { type: st.type, syncedThrough: st.syncedThrough, backfillDaysDone: st.backfillDaysDone, backfillDaysTotal: st.backfillDaysTotal, lastAttemptAt: st.lastAttemptAt, lastSuccessAt: st.lastSuccessAt, lastError: st.lastError };
   return {
     async get(key) {
-      const [r] = db.select({ value: s.value }).from(s).where(eq(s.key, key)).all();
+      const [r] = await read.select({ value: s.value }).from(s).where(eq(s.key, key)).all();
       return r ? JSON.parse(r.value) : null;
     },
     async set(key, value) {
@@ -101,10 +101,10 @@ export function settingsRepo(db: Db): SettingsRepo {
     },
 
     async readSyncState() {
-      return db.select(syncCols).from(st).all();
+      return read.select(syncCols).from(st).all();
     },
     async getSyncState(type) {
-      return db.select(syncCols).from(st).where(eq(st.type, type)).all()[0] ?? null;
+      return (await read.select(syncCols).from(st).where(eq(st.type, type)).all())[0] ?? null;
     },
     async setSyncState(type, patch) {
       upsertChanged(db, st, ["type"], [{ type, ...patch }]);
@@ -117,7 +117,7 @@ export function settingsRepo(db: Db): SettingsRepo {
     },
 
     async dashboardKeys() {
-      return db.select({ key: dashboardMetrics.key }).from(dashboardMetrics).orderBy(asc(dashboardMetrics.position)).all().map((r) => r.key);
+      return (await read.select({ key: dashboardMetrics.key }).from(dashboardMetrics).orderBy(asc(dashboardMetrics.position)).all()).map((r) => r.key);
     },
     async saveDashboard(keys) {
       atomic(db, () => {

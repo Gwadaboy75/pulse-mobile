@@ -42,7 +42,8 @@ export async function deleteEverything(forgetSecrets: () => Promise<void> = asyn
   try {
     await forgetSecrets();
     // Loaded here: only this action touches the file itself, and Node tests have no expo modules.
-    const [{ sqlite }, { deleteDatabaseAsync }, { reloadAppAsync }] = await Promise.all([import("../data/db"), import("expo-sqlite"), import("expo")]);
+    const [{ sqlite, reader }, { deleteDatabaseAsync }, { reloadAppAsync }] = await Promise.all([import("../data/db"), import("expo-sqlite"), import("expo")]);
+    reader.closeSync();
     sqlite.closeSync();
     // Reload even when the delete failed: the closed handle is only usable again after a restart.
     try {

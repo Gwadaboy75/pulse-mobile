@@ -3,7 +3,7 @@
 // queries/common.ts, queries/{health,log}.ts, profile.ts and sources/google/sync.ts. Every write is diff-only.
 import { and, asc, desc, eq, gte, isNotNull, lte } from "drizzle-orm";
 import { dailyMetrics, dailyValues, healthRecords } from "../schema";
-import type { Db } from "../types";
+import type { Db, ReadDb } from "../types";
 import { atomic, upsertChanged } from "./sql";
 
 /** A whole daily_metrics row. */
@@ -90,13 +90,13 @@ export interface DailyRepo {
   clearSynced(): Promise<void>;
 }
 
-export function dailyRepo(db: Db): DailyRepo {
+export function dailyRepo(db: Db, read: ReadDb = db): DailyRepo {
   const m = dailyMetrics;
   const v = dailyValues;
   const h = healthRecords;
   return {
     async readMetrics() {
-      return db
+      return read
         .select({
           day: m.day, hrvMs: m.hrvMs, rhrBpm: m.rhrBpm, respBpm: m.respBpm, nightlyTempC: m.nightlyTempC, spo2Pct: m.spo2Pct,
           vo2maxDaily: m.vo2maxDaily, vo2maxRun: m.vo2maxRun, steps: m.steps, calories: m.calories, weightKg: m.weightKg,
@@ -109,7 +109,7 @@ export function dailyRepo(db: Db): DailyRepo {
         .all();
     },
     async readMetricsBetween(from, to) {
-      return db
+      return read
         .select({
           day: m.day, hrvMs: m.hrvMs, rhrBpm: m.rhrBpm, respBpm: m.respBpm, nightlyTempC: m.nightlyTempC, spo2Pct: m.spo2Pct,
           vo2maxDaily: m.vo2maxDaily, vo2maxRun: m.vo2maxRun, steps: m.steps, calories: m.calories, weightKg: m.weightKg,
@@ -121,7 +121,7 @@ export function dailyRepo(db: Db): DailyRepo {
     },
     // daily_values.day is text ('latest' sorts after every date, so the range already excludes it).
     async readValuesBetween(from, to) {
-      return db.select({ day: v.day, key: v.key, value: v.value }).from(v).where(and(gte(v.day, from), lte(v.day, to))).all();
+      return read.select({ day: v.day, key: v.key, value: v.value }).from(v).where(and(gte(v.day, from), lte(v.day, to))).all();
     },
 
     async upsertDailyMetrics(rows) {
@@ -135,19 +135,19 @@ export function dailyRepo(db: Db): DailyRepo {
     },
 
     async googleHeight() {
-      const [r] = db.select({ v: v.value }).from(v).where(and(eq(v.day, "latest"), eq(v.key, "height_cm"))).all();
+      const [r] = await read.select({ v: v.value }).from(v).where(and(eq(v.day, "latest"), eq(v.key, "height_cm"))).all();
       return r?.v ?? null;
     },
     async valueReadings(key) {
-      return db.select({ day: v.day, value: v.value }).from(v).where(eq(v.key, key)).orderBy(desc(v.day)).all();
+      return read.select({ day: v.day, value: v.value }).from(v).where(eq(v.key, key)).orderBy(desc(v.day)).all();
     },
     async metricReadings(column) {
       const col = m[column];
-      const rows = db.select({ day: m.day, value: col }).from(m).where(isNotNull(col)).orderBy(desc(m.day)).all();
+      const rows = await read.select({ day: m.day, value: col }).from(m).where(isNotNull(col)).orderBy(desc(m.day)).all();
       return rows as { day: string; value: number }[];
     },
     async recentWeights(from, to, limit) {
-      const rows = db
+      const rows = await read
         .select({ day: m.day, kg: m.weightKg })
         .from(m)
         .where(and(gte(m.day, from), lte(m.day, to), isNotNull(m.weightKg)))
@@ -157,7 +157,7 @@ export function dailyRepo(db: Db): DailyRepo {
       return rows as { day: string; kg: number }[];
     },
     async healthRecordsUpTo(day) {
-      return db.select().from(h).where(lte(h.day, day)).orderBy(desc(h.ts)).all();
+      return read.select().from(h).where(lte(h.day, day)).orderBy(desc(h.ts)).all();
     },
 
     async clearSynced() {

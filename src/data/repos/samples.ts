@@ -5,7 +5,7 @@
 import { and, asc, between, desc, eq, lt } from "drizzle-orm";
 import { decodeDay, decodeOffsets, encodeDay, u8, varint, type Codec } from "../encoding";
 import { hrDays, stepsDays } from "../schema";
-import type { Db } from "../types";
+import type { Db, ReadDb } from "../types";
 import { atomic } from "./sql";
 
 export type SampleTable = "hr" | "steps";
@@ -63,17 +63,23 @@ const fit = (table: SampleTable, v: number) => (table === "hr" ? Math.min(255, M
 
 type Row = { bucket: number; offsets: number[]; values: number[] };
 
-function load(db: Db, table: SampleTable, lo: number, hi: number): Row[] {
+type Stored = { bucket: number; offsets: Uint8Array; values: Uint8Array };
+
+/** The rows covering [lo, hi): synchronous on a `Db`, a promise on the async read connection. */
+const select = (db: ReadDb, table: SampleTable, lo: number, hi: number) => {
   const t = T[table];
-  if (hi <= lo) return [];
   return db
     .select({ bucket: t.bucket, offsets: t.offsets, values: t.values })
     .from(t)
     .where(between(t.bucket, bucketOf(lo), bucketOf(hi - 1)))
     .orderBy(asc(t.bucket))
-    .all()
-    .map((r) => ({ bucket: r.bucket, ...decodeDay(CODEC[table], r.offsets, r.values) }));
-}
+    .all();
+};
+const decode = (table: SampleTable, rows: Stored[]): Row[] => rows.map((r) => ({ bucket: r.bucket, ...decodeDay(CODEC[table], r.offsets, r.values) }));
+
+/** For the write paths: read and write on the one connection, with nothing in between. */
+const load = (db: Db, table: SampleTable, lo: number, hi: number): Row[] => (hi <= lo ? [] : decode(table, select(db, table, lo, hi) as Stored[]));
+const loadAsync = async (read: ReadDb, table: SampleTable, lo: number, hi: number): Promise<Row[]> => (hi <= lo ? [] : decode(table, await select(read, table, lo, hi)));
 
 const save = (db: Db, table: SampleTable, bucket: number, offsets: number[], values: number[]) => {
   const t = T[table];
@@ -82,10 +88,10 @@ const save = (db: Db, table: SampleTable, bucket: number, offsets: number[], val
   db.insert(t).values({ bucket, ...set }).onConflictDoUpdate({ target: t.bucket, set }).run();
 };
 
-export function samplesRepo(db: Db): SamplesRepo {
+export function samplesRepo(db: Db, read: ReadDb = db): SamplesRepo {
   const readSamples: SamplesRepo["readSamples"] = async (table, lo, hi) => {
     const out: Sample[] = [];
-    for (const r of load(db, table, lo, hi)) {
+    for (const r of await loadAsync(read, table, lo, hi)) {
       const base = r.bucket * DAY;
       for (let i = 0; i < r.offsets.length; i++) {
         const ts = base + r.offsets[i];
@@ -98,12 +104,11 @@ export function samplesRepo(db: Db): SamplesRepo {
   // Reads only the first and last bucket, and only their offsets.
   const sampleRange: SamplesRepo["sampleRange"] = async (table) => {
     const t = T[table];
-    const edge = (order: typeof asc) => {
-      const [r] = db.select({ bucket: t.bucket, offsets: t.offsets }).from(t).orderBy(order(t.bucket)).limit(1).all();
+    const edge = async (order: typeof asc) => {
+      const [r] = await read.select({ bucket: t.bucket, offsets: t.offsets }).from(t).orderBy(order(t.bucket)).limit(1).all();
       return r ? { bucket: r.bucket, offsets: decodeOffsets(r.offsets) } : null;
     };
-    const first = edge(asc);
-    const last = edge(desc);
+    const [first, last] = await Promise.all([edge(asc), edge(desc)]);
     if (!first?.offsets.length || !last?.offsets.length) return null;
     return { min: first.bucket * DAY + first.offsets[0], max: last.bucket * DAY + last.offsets[last.offsets.length - 1] };
   };
@@ -115,7 +120,7 @@ export function samplesRepo(db: Db): SamplesRepo {
     lastSample: async (table) => (await sampleRange(table))?.max ?? null,
 
     async hasHr() {
-      return db.select({ b: hrDays.bucket }).from(hrDays).limit(1).all().length > 0;
+      return (await read.select({ b: hrDays.bucket }).from(hrDays).limit(1).all()).length > 0;
     },
 
     async mergeSamples(table, win, incoming, mode) {

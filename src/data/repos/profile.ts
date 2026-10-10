@@ -2,7 +2,7 @@
 // (Tanaka) and the Google height fallback (`dailyRepo.googleHeight`) stays in the port's `getProfile`.
 import { eq } from "drizzle-orm";
 import { profile } from "../schema";
-import type { Db } from "../types";
+import type { Db, ReadDb } from "../types";
 
 /** The stored row. `maxHr` null means estimate it from age. */
 export type ProfileRow = {
@@ -30,18 +30,18 @@ export interface ProfileRepo {
   saveProfile(input: ProfileInput, now: number): Promise<boolean>;
 }
 
-export function profileRepo(db: Db): ProfileRepo {
+export function profileRepo(db: Db, read: ReadDb = db): ProfileRepo {
   const p = profile;
-  const read = () => db.select({ birthDate: p.birthDate, sex: p.sex, maxHr: p.maxHr, heightCm: p.heightCm, timeZone: p.timeZone, updatedAt: p.updatedAt }).from(p).where(eq(p.id, 1)).all()[0] ?? null;
+  const stored = (h: ReadDb) => h.select({ birthDate: p.birthDate, sex: p.sex, maxHr: p.maxHr, heightCm: p.heightCm, timeZone: p.timeZone, updatedAt: p.updatedAt }).from(p).where(eq(p.id, 1)).all();
   return {
     async getProfileRow() {
-      return read();
+      return (await stored(read))[0] ?? null;
     },
     async userTimeZone() {
-      return db.select({ tz: p.timeZone }).from(p).where(eq(p.id, 1)).all()[0]?.tz ?? null;
+      return (await read.select({ tz: p.timeZone }).from(p).where(eq(p.id, 1)).all())[0]?.tz ?? null;
     },
     async saveProfile(input, now) {
-      const before = read();
+      const [before] = stored(db) as Awaited<ReturnType<typeof stored>>;
       if (before && before.birthDate === input.birthDate && before.sex === input.sex && before.maxHr === input.maxHr && before.heightCm === input.heightCm && before.timeZone === input.timeZone) {
         return false;
       }

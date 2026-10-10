@@ -55,7 +55,7 @@ function timeSliced(store: Store): Store {
         Object.fromEntries(Object.entries(repo as object).map(([m, fn]) => [m, async (...args: unknown[]) => (await turn(), (fn as (...a: unknown[]) => unknown)(...args))])),
       ]),
     ) as unknown as Repos;
-  return { ...wrap(store), transaction: (fn) => store.transaction((tx) => fn(wrap(tx))) };
+  return { ...wrap(store), transaction: (fn) => store.transaction((tx) => fn(wrap(tx))), dataVersion: () => store.dataVersion() };
 }
 
 export const NOT_EMPTY = "This app already holds data. Delete everything in Settings first, then load the demo data again.";

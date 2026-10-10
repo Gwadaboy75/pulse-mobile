@@ -5,7 +5,7 @@
 import { and, asc, eq, gte, inArray, lt, lte, or, sql } from "drizzle-orm";
 import { addDays } from "../../time";
 import { dailyValues, loggedEntries, syncState } from "../schema";
-import type { Db } from "../types";
+import type { Db, ReadDb } from "../types";
 import { atomic, chunks, jsonText } from "./sql";
 
 /** `source`: "pulse" logged in Pulse, "google" logged in another app and brought home by the sync. `data` depends on `type` (src/lib/log.ts). */
@@ -58,15 +58,19 @@ export interface LogRepo {
   foodOn(day: string): Promise<Food | null>;
 }
 
-export function logRepo(db: Db): LogRepo {
+export function logRepo(db: Db, read: ReadDb = db): LogRepo {
   const l = loggedEntries;
   const v = dailyValues;
-  const read = (id: string) => db.select().from(l).where(eq(l.id, id)).all()[0] as LoggedEntryRow | undefined;
+  const byId = (h: ReadDb, id: string) => h.select().from(l).where(eq(l.id, id)).all();
 
   /** Pulse-logged entries of `types` not yet in Google's roll-up: created after that type's last successful sync (0 when never). */
-  const pending = (types: string[], where: ReturnType<typeof and>) => {
-    const synced = new Map(db.select({ type: syncState.type, at: syncState.lastSuccessAt }).from(syncState).where(inArray(syncState.type, types)).all().map((r) => [r.type, r.at ?? 0]));
-    return (db.select().from(l).where(and(where, eq(l.source, "pulse"), inArray(l.type, types))).all() as LoggedEntryRow[]).filter((r) => r.createdAt > (synced.get(r.type) ?? 0));
+  const pending = async (types: string[], where: ReturnType<typeof and>) => {
+    const [cursors, rows] = await Promise.all([
+      read.select({ type: syncState.type, at: syncState.lastSuccessAt }).from(syncState).where(inArray(syncState.type, types)).all(),
+      read.select().from(l).where(and(where, eq(l.source, "pulse"), inArray(l.type, types))).all(),
+    ]);
+    const synced = new Map(cursors.map((r) => [r.type, r.at ?? 0]));
+    return (rows as LoggedEntryRow[]).filter((r) => r.createdAt > (synced.get(r.type) ?? 0));
   };
   const num = (data: unknown, k: string) => {
     const x = Number((data as Record<string, unknown> | null)?.[k]);
@@ -79,10 +83,10 @@ export function logRepo(db: Db): LogRepo {
       db.insert(l).values({ ...entry, source: entry.source ?? "pulse", app: entry.app ?? null }).run();
     },
     async entryById(id) {
-      return read(id) ?? null;
+      return ((await byId(read, id))[0] as LoggedEntryRow | undefined) ?? null;
     },
     async updateEntry(id, patch) {
-      const held = read(id);
+      const held = (byId(db, id) as Awaited<ReturnType<typeof byId>>)[0] as LoggedEntryRow | undefined;
       if (!held) return;
       const set: LoggedEntryPatch = {};
       if (patch.ts !== undefined && patch.ts !== held.ts) set.ts = patch.ts;
@@ -101,32 +105,34 @@ export function logRepo(db: Db): LogRepo {
       });
     },
     async heldEntries(type, from, to) {
-      return db.select().from(l).where(and(eq(l.type, type), gte(l.ts, from), lt(l.ts, to))).all() as LoggedEntryRow[];
+      return (await read.select().from(l).where(and(eq(l.type, type), gte(l.ts, from), lt(l.ts, to))).all()) as LoggedEntryRow[];
     },
     async entriesOnDay(day) {
-      return db
+      return (await read
         .select()
         .from(l)
         .where(or(eq(l.day, day), and(eq(l.type, "menstrual-period"), sql`json_extract(${l.data}, '$.start') <= ${day}`, sql`json_extract(${l.data}, '$.end') >= ${day}`)))
         .orderBy(asc(l.ts), asc(l.createdAt))
-        .all() as LoggedEntryRow[];
+        .all()) as LoggedEntryRow[];
     },
     async entriesOn(type, day) {
-      return db.select().from(l).where(and(eq(l.type, type), eq(l.day, day))).orderBy(asc(l.ts), asc(l.createdAt)).all() as LoggedEntryRow[];
+      return (await read.select().from(l).where(and(eq(l.type, type), eq(l.day, day))).orderBy(asc(l.ts), asc(l.createdAt)).all()) as LoggedEntryRow[];
     },
 
     async waterOn(day) {
-      const [r] = db.select({ value: v.value }).from(v).where(and(eq(v.day, day), eq(v.key, "water"))).all();
-      return (r?.value ?? 0) + sum(pending(["hydration-log"], eq(l.day, day)), "ml");
+      const [[r], mine] = await Promise.all([read.select({ value: v.value }).from(v).where(and(eq(v.day, day), eq(v.key, "water"))).all(), pending(["hydration-log"], eq(l.day, day))]);
+      return (r?.value ?? 0) + sum(mine, "ml");
     },
 
     async totalsBetween(from, to) {
-      const synced = db
-        .select({ day: v.day, key: v.key, value: v.value })
-        .from(v)
-        .where(and(gte(v.day, from), lte(v.day, to), inArray(v.key, ["water", "calories_in"])))
-        .all();
-      const mine = pending(["hydration-log", "nutrition-log"], and(gte(l.day, from), lte(l.day, to)));
+      const [synced, mine] = await Promise.all([
+        read
+          .select({ day: v.day, key: v.key, value: v.value })
+          .from(v)
+          .where(and(gte(v.day, from), lte(v.day, to), inArray(v.key, ["water", "calories_in"])))
+          .all(),
+        pending(["hydration-log", "nutrition-log"], and(gte(l.day, from), lte(l.day, to))),
+      ]);
       const out: DayTotals[] = [];
       for (let day = from; day <= to; day = addDays(day, 1)) {
         const value = (key: string) => synced.find((x) => x.day === day && x.key === key)?.value ?? null;
@@ -138,8 +144,10 @@ export function logRepo(db: Db): LogRepo {
     },
 
     async foodOn(day) {
-      const rows = db.select({ key: v.key, value: v.value }).from(v).where(and(eq(v.day, day), inArray(v.key, ["calories_in", "protein", "carbs", "fat"]))).all();
-      const mine = pending(["nutrition-log"], eq(l.day, day));
+      const [rows, mine] = await Promise.all([
+        read.select({ key: v.key, value: v.value }).from(v).where(and(eq(v.day, day), inArray(v.key, ["calories_in", "protein", "carbs", "fat"]))).all(),
+        pending(["nutrition-log"], eq(l.day, day)),
+      ]);
       if (!rows.length && !mine.length) return null;
       const synced = (key: string) => rows.find((r) => r.key === key)?.value ?? 0;
       const add = (a: number, b: number) => Math.round((a + b) * 10) / 10;

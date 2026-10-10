@@ -394,6 +394,8 @@ export function memoryStore(initial: State = emptyState()): MemoryStore {
   return {
     ...repos,
     transaction,
+    // A rolled-back transaction restores `writes` with the rows, so an equal count means equal data.
+    dataVersion: async () => String(writes),
     get writes() {
       return writes;
     },

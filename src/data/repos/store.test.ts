@@ -1,5 +1,15 @@
-import { describe, expect, it } from "vitest";
+import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { drizzle as proxy } from "drizzle-orm/sqlite-proxy";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { afterAll, describe, expect, it } from "vitest";
+import * as schema from "../schema";
 import { testDb, testStore } from "../testing";
+import { createStore } from ".";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -99,5 +109,50 @@ describe("Store.transaction", () => {
     await store.sessions.replaceSegments(["a"], [bad[0]]);
     await expect(store.sessions.replaceSegments(["a"], bad)).rejects.toThrow();
     expect(await store.sessions.readSegments()).toEqual([bad[0]]); // the old segments survived
+  });
+});
+
+describe("a store with a separate read connection (the app's setup)", () => {
+  // Two connections to one WAL file, the reads through drizzle's async proxy as src/data/db.ts does on expo-sqlite.
+  const dir = mkdtempSync(join(tmpdir(), "pulse-store-"));
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+  const open = () => {
+    const file = join(dir, `${Math.random()}.db`);
+    const writer = new Database(file);
+    writer.pragma("journal_mode = WAL");
+    const db = drizzle(writer, { schema });
+    migrate(db, { migrationsFolder: fileURLToPath(new URL("../migrations", import.meta.url)) });
+    const reader = new Database(file);
+    const readDb = proxy(async (sql, params, method) => {
+      const rows = reader.prepare(sql).raw().all(...params) as unknown[][];
+      return { rows: method === "get" ? rows[0] : rows };
+    }, { schema });
+    return createStore(db, readDb);
+  };
+
+  it("reads committed data through the proxy, JSON columns included", async () => {
+    const store = open();
+    await store.daily.upsertDailyMetrics([{ day: "2026-10-01", source: "google", hrvMs: 50, hrZones: [90, 120, 150, 170, 190] }]);
+    await store.settings.set("theme", "dark");
+    expect(await store.daily.readMetricsBetween("2026-10-01", "2026-10-01")).toMatchObject([{ day: "2026-10-01", hrvMs: 50 }]);
+    expect((await store.daily.readMetrics())[0].hrZones).toEqual([90, 120, 150, 170, 190]);
+    expect(await store.settings.get("theme")).toBe("dark");
+    expect(await store.profile.getProfileRow()).toBeNull();
+  });
+
+  it("a transaction sees its own writes; the store's reads see them once it commits, with a new data version", async () => {
+    const store = open();
+    const before = await store.dataVersion();
+    let inside: string[] = [];
+    let outside: string[] = [];
+    await store.transaction(async (tx) => {
+      await tx.scores.markDirty(["2026-10-01"]);
+      inside = await tx.scores.dirtyDays();
+      outside = await store.scores.dirtyDays();
+    });
+    expect(inside).toEqual(["2026-10-01"]);
+    expect(outside).toEqual([]);
+    expect(await store.scores.dirtyDays()).toEqual(["2026-10-01"]);
+    expect(await store.dataVersion()).not.toBe(before);
   });
 });

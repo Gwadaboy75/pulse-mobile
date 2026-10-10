@@ -6,3 +6,9 @@ import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
 import type * as schema from "./schema";
 
 export type Db = BaseSQLiteDatabase<"sync", unknown, typeof schema>;
+
+/**
+ * The handle pure reads go through: the app's async read connection (drizzle-orm/sqlite-proxy over expo-sqlite's async
+ * API, off the JS thread) or, in a transaction and in tests, the same synchronous `Db`. Every read awaits its result.
+ */
+export type ReadDb = BaseSQLiteDatabase<"sync" | "async", unknown, typeof schema>;

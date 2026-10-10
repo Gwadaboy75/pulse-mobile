@@ -82,9 +82,35 @@ export type DayRow = {
   extra: Partial<Record<ExtraKey, number>>;
 };
 
-/** Every day in [from, to], one query per table (in parallel); days without rows come back empty. */
+/** Recent `loadDays` results per store, valid while its data version stands. Callers must not change what they get. */
+const dayCache = new WeakMap<Store, { version: string; ranges: Map<string, Promise<Map<string, DayRow>>> }>();
+const CACHED_RANGES = 16;
+
+/**
+ * Every day in [from, to], one query per table (in parallel); days without rows come back empty. A range read since the
+ * last database write comes from memory: the screens ask for the same 30 to 180 days again and again, and parsing them
+ * is most of a screen's query time.
+ */
 export async function loadDays(ctx: QueryCtx, from: string, to: string): Promise<Map<string, DayRow>> {
   const { store } = ctx;
+  // The version is read before the rows, so a write landing in between only costs a re-read later, never a stale hit.
+  const version = await store.dataVersion();
+  let cache = dayCache.get(store);
+  if (cache?.version !== version) dayCache.set(store, (cache = { version, ranges: new Map() }));
+  const key = `${from}|${to}`;
+  let rows = cache.ranges.get(key);
+  if (rows) {
+    cache.ranges.delete(key); // re-inserted below: the Map's order is least recently used first
+  } else {
+    rows = readDays(store, from, to);
+    rows.catch(() => cache.ranges.delete(key));
+    if (cache.ranges.size >= CACHED_RANGES) cache.ranges.delete(cache.ranges.keys().next().value!);
+  }
+  cache.ranges.set(key, rows);
+  return rows;
+}
+
+async function readDays(store: Store, from: string, to: string): Promise<Map<string, DayRow>> {
   const [scoreRows, metricRows, extraRows] = await Promise.all([
     store.scores.readDays(from, to),
     store.daily.readMetricsBetween(from, to),

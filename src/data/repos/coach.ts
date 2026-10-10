@@ -3,7 +3,7 @@
 // claim. Every write is diff-only where it can repeat.
 import { and, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
 import { coachChats, coachSettings } from "../schema";
-import type { Db } from "../types";
+import type { Db, ReadDb } from "../types";
 import { anyDiffers, excluded } from "./sql";
 
 export type CoachSettingsRow = {
@@ -60,29 +60,29 @@ export interface CoachRepo {
   exportChats(): Promise<{ id: string; title: string; createdAt: number; updatedAt: number; messages: ChatMessages }[]>;
 }
 
-export function coachRepo(db: Db): CoachRepo {
+export function coachRepo(db: Db, read: ReadDb = db): CoachRepo {
   const c = coachSettings;
   const ch = coachChats;
-  const read = () => db.select().from(c).where(eq(c.id, 1)).all()[0] ?? null;
+  const row = (h: ReadDb) => h.select().from(c).where(eq(c.id, 1)).all();
+  const held = () => (row(db) as Awaited<ReturnType<typeof row>>)[0] ?? null;
   /**
    * Writes the given fields (and `updatedAt`) unless the row already holds them: `updatedAt` alone never counts, so a
    * repeat call writes nothing (pulse bumped `updated_at` each time; nothing reads it for that).
    */
   const patch = (values: Partial<Omit<CoachSettingsRow, "updatedAt">>, now: number) => {
-    const held = read();
-    if (held && (Object.keys(values) as (keyof typeof values)[]).every((k) => held[k] === values[k])) return;
+    const h = held();
+    if (h && (Object.keys(values) as (keyof typeof values)[]).every((k) => h[k] === values[k])) return;
     const row = { ...values, updatedAt: now };
     db.insert(c).values({ id: 1, ...row }).onConflictDoUpdate({ target: c.id, set: row }).run();
   };
-  const chatBy = (id: string) => db.select({ messages: ch.messages }).from(ch).where(eq(ch.id, id)).all()[0];
 
   return {
     async getSettings() {
-      return read();
+      return (await row(read))[0] ?? null;
     },
     async setConsent(on, now) {
       // Already consented: keep the time of the first consent.
-      patch({ consentAt: on ? (read()?.consentAt ?? now) : null }, now);
+      patch({ consentAt: on ? (held()?.consentAt ?? now) : null }, now);
     },
     async setPreferences(p, now) {
       patch({ ...("instructions" in p && { customInstructions: p.instructions }), ...("briefMinute" in p && { briefMinute: p.briefMinute }) }, now);
@@ -91,7 +91,7 @@ export function coachRepo(db: Db): CoachRepo {
       patch({ provider, model, keyLast4 }, now);
     },
     async removeProvider(now) {
-      if (read()) patch({ provider: null, model: null, keyLast4: null }, now);
+      if (held()) patch({ provider: null, model: null, keyLast4: null }, now);
     },
     async claimBriefDay(day) {
       const claimed = db
@@ -104,7 +104,7 @@ export function coachRepo(db: Db): CoachRepo {
     },
 
     async listChats(before) {
-      const rows = db
+      const rows = await read
         .select({ id: ch.id, title: ch.title, updatedAt: ch.updatedAt })
         .from(ch)
         .where(before && or(lt(ch.updatedAt, before.updatedAt), and(eq(ch.updatedAt, before.updatedAt), lt(ch.id, before.id))))
@@ -116,7 +116,8 @@ export function coachRepo(db: Db): CoachRepo {
       return { chats, next: rows.length > CHAT_PAGE && last ? { updatedAt: last.updatedAt, id: last.id } : null };
     },
     async loadChat(id) {
-      return (chatBy(id)?.messages as ChatMessages | undefined) ?? null;
+      const [r] = await read.select({ messages: ch.messages }).from(ch).where(eq(ch.id, id)).all();
+      return (r?.messages as ChatMessages | undefined) ?? null;
     },
     async saveChat(id, title, messages, now) {
       // The title follows the first question, so editing it renames the chat. Unchanged title and messages: not written.
@@ -142,7 +143,7 @@ export function coachRepo(db: Db): CoachRepo {
       db.delete(ch).run();
     },
     async exportChats() {
-      return db.select().from(ch).orderBy(desc(ch.updatedAt), desc(ch.id)).all() as { id: string; title: string; createdAt: number; updatedAt: number; messages: ChatMessages }[];
+      return (await read.select().from(ch).orderBy(desc(ch.updatedAt), desc(ch.id)).all()) as { id: string; title: string; createdAt: number; updatedAt: number; messages: ChatMessages }[];
     },
   };
 }

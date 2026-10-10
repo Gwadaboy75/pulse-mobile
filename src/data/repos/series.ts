@@ -2,7 +2,7 @@
 // series parts of pulse pipeline/data.ts, stage2.ts and queries/common.ts. Every write is diff-only.
 import { and, between, eq, gt, inArray, lt, or } from "drizzle-orm";
 import { intradaySeries } from "../schema";
-import type { Db } from "../types";
+import type { Db, ReadDb } from "../types";
 import { anyDiffers, atomic, chunks, excluded } from "./sql";
 
 /** `data` is one value per minute of the local day, null for a gap. */
@@ -23,7 +23,7 @@ export interface SeriesRepo {
   clearSynced(): Promise<void>;
 }
 
-export function seriesRepo(db: Db): SeriesRepo {
+export function seriesRepo(db: Db, read: ReadDb = db): SeriesRepo {
   const t = intradaySeries;
   return {
     async upsertSeries(rows) {
@@ -37,12 +37,12 @@ export function seriesRepo(db: Db): SeriesRepo {
       });
     },
     async loadSeries(day, kind) {
-      const [r] = db.select({ data: t.data }).from(t).where(and(eq(t.day, day), eq(t.kind, kind))).all();
+      const [r] = await read.select({ data: t.data }).from(t).where(and(eq(t.day, day), eq(t.kind, kind))).all();
       return r?.data ?? null;
     },
     async readSeries(kinds, from, to) {
       if (!kinds.length) return [];
-      return db.select().from(t).where(and(inArray(t.kind, kinds), between(t.day, from, to))).all();
+      return read.select().from(t).where(and(inArray(t.kind, kinds), between(t.day, from, to))).all();
     },
     async deleteSeries(kind, days) {
       atomic(db, () => {

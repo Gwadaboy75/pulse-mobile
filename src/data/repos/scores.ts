@@ -3,7 +3,7 @@
 // queries/{home,reports,journal,health,settings}.ts and push.ts. Every write is diff-only.
 import { and, asc, count, desc, eq, gt, gte, isNotNull, like, lt, lte, max, min, ne, notInArray, or, sql } from "drizzle-orm";
 import { dailyMetrics, dailyScores, foldCheckpoints, intradayDirty, reports } from "../schema";
-import type { Db } from "../types";
+import type { Db, ReadDb } from "../types";
 import { anyDiffers, atomic, chunks, excluded } from "./sql";
 
 // The JSON columns' shapes are pulse's stored types (src/pipeline/types.ts, ported from pulse src/server/pipeline/types.ts).
@@ -179,7 +179,7 @@ export interface ScoresRepo {
 /** ISO weeks are `2026-W40`, months `2026-10`: the LIKE patterns that match them. */
 const PERIOD = { week: "____-W__", month: "____-__" } as const;
 
-export function scoresRepo(db: Db): ScoresRepo {
+export function scoresRepo(db: Db, read: ReadDb = db): ScoresRepo {
   const s = dailyScores;
   const ck = foldCheckpoints;
   const r = reports;
@@ -189,7 +189,7 @@ export function scoresRepo(db: Db): ScoresRepo {
 
   return {
     async readDays(from, to) {
-      return db
+      return (await read
         .select({
           day: s.day, strain: s.strain, activities: s.activities, sessionRhr: s.sessionRhrBpm, recovery: s.recovery, sleep: s.sleep,
           trainingLoad: s.trainingLoad, strainTarget: s.strainTarget, sleepPlanner: s.sleepPlanner, energyBank: s.energyBank,
@@ -197,21 +197,21 @@ export function scoresRepo(db: Db): ScoresRepo {
         })
         .from(s)
         .where(and(gte(s.day, from), lte(s.day, to)))
-        .all() as ScoreRow[];
+        .all()) as ScoreRow[];
     },
     async firstDay() {
-      return db.select({ d: min(s.day) }).from(s).all()[0]?.d ?? null;
+      return (await read.select({ d: min(s.day) }).from(s).all())[0]?.d ?? null;
     },
     async lastStoredDay(onOrBefore) {
-      return db.select({ d: max(s.day) }).from(s).where(lte(s.day, onOrBefore)).all()[0]?.d ?? null;
+      return (await read.select({ d: max(s.day) }).from(s).where(lte(s.day, onOrBefore)).all())[0]?.d ?? null;
     },
     async latestJournalImpact(onOrBefore) {
-      const [row] = db.select({ day: s.day, impact: s.journalImpact }).from(s).where(and(lte(s.day, onOrBefore), isNotNull(s.journalImpact))).orderBy(desc(s.day)).limit(1).all();
+      const [row] = await read.select({ day: s.day, impact: s.journalImpact }).from(s).where(and(lte(s.day, onOrBefore), isNotNull(s.journalImpact))).orderBy(desc(s.day)).limit(1).all();
       // JSON columns read back as stored; pulse casts the same way (queries/journal.ts).
       return row ? { day: row.day, impact: row.impact as JournalImpactJson } : null;
     },
     async wearDays(onOrBefore) {
-      return db
+      return read
         .select({
           day: s.day,
           hrCount: sql<number>`coalesce(json_extract(${s.strain}, '$.hrCount'), 0)`.mapWith(Number),
@@ -223,15 +223,15 @@ export function scoresRepo(db: Db): ScoresRepo {
         .all();
     },
     async countDays(onOrBefore) {
-      return db.select({ n: count() }).from(s).where(lte(s.day, onOrBefore)).all()[0].n;
+      return (await read.select({ n: count() }).from(s).where(lte(s.day, onOrBefore)).all())[0].n;
     },
     async recoveryValue(day) {
-      const [row] = db.select({ value: sql<number | null>`json_extract(${s.recovery}, '$.value')` }).from(s).where(eq(s.day, day)).all();
+      const [row] = await read.select({ value: sql<number | null>`json_extract(${s.recovery}, '$.value')` }).from(s).where(eq(s.day, day)).all();
       return row?.value ?? null;
     },
 
     async stage1Stored() {
-      return db.select({ day: s.day, scoringVersion: s.scoringVersion, key: sql<string | null>`json_extract(${s.strain}, '$.key')` }).from(s).all();
+      return read.select({ day: s.day, scoringVersion: s.scoringVersion, key: sql<string | null>`json_extract(${s.strain}, '$.key')` }).from(s).all();
     },
     async writeStage1(rows) {
       atomic(db, () => {
@@ -250,11 +250,11 @@ export function scoresRepo(db: Db): ScoresRepo {
     },
 
     async readStage2Inputs() {
-      return db
+      return (await read
         .select({ day: s.day, strain: s.strain, activities: s.activities, sessionRhr: s.sessionRhrBpm, recovery: s.recovery, impact: s.journalImpact })
         .from(s)
         .orderBy(asc(s.day))
-        .all() as Stage2Input[];
+        .all()) as Stage2Input[];
     },
     async writeStage2(rows) {
       atomic(db, () => {
@@ -270,14 +270,14 @@ export function scoresRepo(db: Db): ScoresRepo {
       db.delete(s).where(or(lt(s.day, first), gt(s.day, last))).run();
     },
     async needsRecompute(scoringVersion) {
-      if (db.select({ d: d.day }).from(d).limit(1).all().length) return true;
-      if (db.select({ d: s.day }).from(s).where(ne(s.scoringVersion, scoringVersion)).limit(1).all().length) return true;
-      const newest = db.select({ d: max(dailyMetrics.day) }).from(dailyMetrics).all()[0]?.d;
-      return !!newest && db.select({ d: s.day }).from(s).where(eq(s.day, newest)).all().length === 0;
+      if ((await read.select({ d: d.day }).from(d).limit(1).all()).length) return true;
+      if ((await read.select({ d: s.day }).from(s).where(ne(s.scoringVersion, scoringVersion)).limit(1).all()).length) return true;
+      const newest = (await read.select({ d: max(dailyMetrics.day) }).from(dailyMetrics).all())[0]?.d;
+      return !!newest && (await read.select({ d: s.day }).from(s).where(eq(s.day, newest)).all()).length === 0;
     },
 
     async readCheckpoint() {
-      return db.select({ day: ck.day, scoringVersion: ck.scoringVersion, inputsKey: ck.inputsKey, fold: ck.fold }).from(ck).where(eq(ck.id, 1)).all()[0] ?? null;
+      return (await read.select({ day: ck.day, scoringVersion: ck.scoringVersion, inputsKey: ck.inputsKey, fold: ck.fold }).from(ck).where(eq(ck.id, 1)).all())[0] ?? null;
     },
     async writeCheckpoint(c) {
       const cols = [ck.day, ck.scoringVersion, ck.inputsKey, ck.fold];
@@ -291,7 +291,7 @@ export function scoresRepo(db: Db): ScoresRepo {
     },
 
     async dirtyDays() {
-      return db.select({ day: d.day }).from(d).orderBy(asc(d.day)).all().map((x) => x.day);
+      return (await read.select({ day: d.day }).from(d).orderBy(asc(d.day)).all()).map((x) => x.day);
     },
     async markDirty(days) {
       atomic(db, () => {
@@ -317,10 +317,10 @@ export function scoresRepo(db: Db): ScoresRepo {
       db.delete(r).where(keep.length ? notInArray(r.period, keep) : undefined).run();
     },
     async readReport(period) {
-      return (db.select({ data: r.data }).from(r).where(eq(r.period, period)).all()[0]?.data ?? null) as ReportJson | null;
+      return ((await read.select({ data: r.data }).from(r).where(eq(r.period, period)).all())[0]?.data ?? null) as ReportJson | null;
     },
     async reportNeighbour(kind, period, dir) {
-      const [row] = db
+      const [row] = await read
         .select({ period: r.period })
         .from(r)
         .where(and(like(r.period, PERIOD[kind]), dir < 0 ? lt(r.period, period) : gt(r.period, period)))
@@ -330,13 +330,13 @@ export function scoresRepo(db: Db): ScoresRepo {
       return row?.period ?? null;
     },
     async latestReports(kind, limit) {
-      return db.select({ period: r.period, data: r.data }).from(r).where(like(r.period, PERIOD[kind])).orderBy(desc(r.period)).limit(limit).all() as { period: string; data: ReportJson }[];
+      return (await read.select({ period: r.period, data: r.data }).from(r).where(like(r.period, PERIOD[kind])).orderBy(desc(r.period)).limit(limit).all()) as { period: string; data: ReportJson }[];
     },
     async listReports() {
-      return db.select({ period: r.period, data: r.data }).from(r).orderBy(desc(r.period)).all() as { period: string; data: ReportJson }[];
+      return (await read.select({ period: r.period, data: r.data }).from(r).orderBy(desc(r.period)).all()) as { period: string; data: ReportJson }[];
     },
     async countReportsWithData() {
-      return db.select({ n: count() }).from(r).where(sql`json_extract(${r.data}, '$.days') > 0`).all()[0].n;
+      return (await read.select({ n: count() }).from(r).where(sql`json_extract(${r.data}, '$.days') > 0`).all())[0].n;
     },
 
     async clearSynced() {
