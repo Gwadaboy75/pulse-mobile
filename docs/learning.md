@@ -72,3 +72,11 @@ project in Expo Go instead. On iPhone, the App Store's Expo Go stops at SDK 54, 
 
 SQLite turns foreign keys off for every new connection. `src/data/db.ts` runs `PRAGMA foreign_keys = ON` right after
 opening the database, so deleting a sleep session also deletes its segments.
+
+## `fetch` on React Native
+
+The Google client uses the global `fetch`, as Node does, but React Native's `AbortSignal` has no `AbortSignal.timeout()`. The client makes an `AbortController` and a 30 s timer per request instead, and clears the timer in a `finally`. `res.body` can be missing on React Native, so the client only calls `res.body?.cancel()`.
+
+## Ids without `node:crypto`
+
+Pulse made log-entry ids with node's `randomUUID`. Hermes has `crypto.randomUUID` only when a polyfill adds it, so `src/google/log.ts` uses it when present and otherwise builds a version 4 shaped id from `Math.random`. The ids are local keys, not secrets; callers can inject a better `newId`.
