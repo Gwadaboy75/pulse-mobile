@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
 
+// Scaffold smoke screen: the one place outside src/data/repos that reads the database. Stream E replaces it with Home.
 import { sqlite } from "@/data/db";
 
 export default function Home() {
