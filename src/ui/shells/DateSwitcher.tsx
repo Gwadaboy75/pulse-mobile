@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, useWindowDimensions } from "react-native";
+import { View } from "react-native";
 import { router, useLocalSearchParams, usePathname } from "expo-router";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { pillLabel, rangeLabel } from "@/lib/format";
@@ -11,6 +11,7 @@ import { calendarContext, type CalendarContext } from "@/lib/calendar";
 import { Text } from "../Text";
 import { CalendarPanel } from "./CalendarPanel";
 import { useShellCalendar } from "./ShellStatus";
+import { useNarrow } from "./layout";
 import { Press } from "../Press";
 
 export type DateSwitcherProps = {
@@ -47,8 +48,8 @@ export function useSelectedDay() {
 /** The reference app's date pill (spec §4.3). Reads `?d=` (useSelectedDay); changes it by replacing the param. */
 export function DateSwitcher({ mode, calendar, placement = "body", narrow: narrowProp = false, steppers = true }: DateSwitcherProps) {
   // The web's narrow sizes apply below a 400 px viewport only (max-[400px]: on NARROW_STEP and NARROW_LABEL).
-  const { width } = useWindowDimensions();
-  const narrow = narrowProp && width < 400;
+  const { lt400 } = useNarrow();
+  const narrow = narrowProp && lt400;
   const { today, firstDay } = useShellCalendar();
   const pathname = usePathname();
   const [d, setDay] = useSelectedDay();

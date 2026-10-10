@@ -32,9 +32,10 @@ function useMinute() {
 /**
  * Sync freshness in the reference app's battery slot (the web's SyncStatus): "12m", the band icon and a status dot, at
  * the right of Home's top row and of the Health, Journal and More headers. The web opens a popover whose one link is
- * Settings › Data source (with Sync now); here the tap goes straight there.
+ * Settings › Data source (with Sync now); here the tap goes straight there. `hideText`: Home's top row drops the "12m" on
+ * narrow phones (the band, its dot and the accessible name still carry it).
  */
-export function SyncStatus() {
+export function SyncStatus({ hideText = false }: { hideText?: boolean }) {
   const s = useShellSync();
   const now = useMinute();
   const { c } = useTheme();
@@ -43,7 +44,7 @@ export function SyncStatus() {
   const short = s.sync.lastSuccessAt ? agoShort(s.sync.lastSuccessAt, now) : "";
   return (
     <Press activeScale={0.96} accessibilityRole="button" accessibilityLabel={v.label} onPress={() => push("/settings?s=source")} className="h-11 min-w-11 flex-row items-center justify-end gap-1.5 rounded-full pl-2 pr-0.5">
-      <Text className="min-w-[3ch] whitespace-nowrap text-right font-numeric text-[15px] font-semibold leading-5 tabular-nums text-muted-foreground">{short}</Text>
+      {!hideText && <Text className="min-w-[3ch] whitespace-nowrap text-right font-numeric text-[15px] font-semibold leading-5 tabular-nums text-muted-foreground">{short}</Text>}
       {/* The band with its dot at the top right, ringed in the header's colour (the web's Band). */}
       <View className="ml-1 size-6 items-center justify-center">
         <BandIcon size={22} color={c.foreground} />
