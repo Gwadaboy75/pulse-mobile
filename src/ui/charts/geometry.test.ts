@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arcPath, areaPath, evenTicks, linePath, linearScale, nearestIndex, segments } from "./geometry";
+import { arcPath, areaPath, evenTicks, linePath, linearScale, nearestIndex, segments, ticksIn } from "./geometry";
 
 describe("scales", () => {
   it("maps a domain onto a reversed range", () => {
@@ -58,7 +58,19 @@ describe("nearestIndex and ticks", () => {
     expect(nearestIndex([], 3)).toBe(-1);
   });
   it("rounds ticks to a nice step", () => {
-    expect(evenTicks(0, 90, 3)).toEqual([0, 50, 100]);
-    expect(evenTicks(0, 21, 4)).toEqual([0, 10, 20, 30]);
+    // Recharts' getNiceTickValues, as the web's axes print them.
+    expect(evenTicks(0, 90, 3)).toEqual([0, 45, 90]);
+    expect(evenTicks(0, 21, 4)).toEqual([0, 7, 14, 21]);
+    expect(evenTicks(42.3, 47.6, 3)).toEqual([42, 45, 48]);
+    expect(evenTicks(0, 180, 5)).toEqual([0, 45, 90, 135, 180]);
+    expect(evenTicks(-12, 30, 4)).toEqual([-15, 0, 15, 30]);
+    expect(evenTicks(45, 45, 3)).toEqual([44, 45, 46]);
+    expect(evenTicks(0, 1, 5)).toEqual([0, 0.25, 0.5, 0.75, 1]);
+    expect(evenTicks(0.3, 0.9, 3)).toEqual([0.3, 0.6, 0.9]);
+    expect(evenTicks(3, 7, 4)).toEqual([2, 4, 6, 8]);
+    expect(evenTicks(0, 7.2, 3)).toEqual([0, 4, 8]);
+    // A fixed numeric domain: Recharts' getTickValuesFixedDomain.
+    expect(ticksIn(40, 180, 4)).toEqual([40, 90, 140, 180]);
+    expect(ticksIn(50, 170, 4)).toEqual([50, 90, 130, 170]);
   });
 });
