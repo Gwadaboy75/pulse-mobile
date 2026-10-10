@@ -5,7 +5,7 @@ import { formatValue, type FormatKey } from "@/lib/format";
 import { alpha } from "../color";
 import { Skeleton } from "../Skeleton";
 import { useTheme } from "../theme";
-import { evenTicks, bandCenters, linearScale, nearestIndex } from "./geometry";
+import { bandCenters, linearScale, nearestIndex, ticksIn } from "./geometry";
 import { ChartFigure, ChartLabel, DashedLine, GridLines, labelGutter, Pill, PlotCanvas, ScrubLayer, ScrubTick, TooltipCard, TooltipLine } from "./ChartFrame";
 
 export type Column = {
@@ -51,7 +51,9 @@ export function ColumnChart({ summary, data, format, unit, tickEvery = 1, refere
         const [x0, x1] = [margin.left, width - margin.right];
         const [y0, y1] = [margin.top, height - margin.bottom - AXIS_H];
         const max = Math.max(...data.map((d) => d.value ?? 0), reference?.y ?? 0);
-        const top = evenTicks(0, max || 1, 5).at(-1)!;
+        // The web's YAxis domain is [0, data max] (a function, so Recharts does not round it up), its grid the
+        // fixed-domain ticks of tickCount 5.
+        const top = max || 1;
         const y = linearScale([0, top], [y1, y0]);
         const { step, centers } = bandCenters(data.length, x0, x1, 0.1);
         const bw = Math.min(MAX_BAR, step * 0.9);
@@ -60,7 +62,7 @@ export function ColumnChart({ summary, data, format, unit, tickEvery = 1, refere
         return (
           <>
             <PlotCanvas width={width} height={height}>
-              <GridLines ys={evenTicks(0, top, 5).map(y)} x0={x0} x1={x1} />
+              <GridLines ys={ticksIn(0, top, 5).map(y)} x0={x0} x1={x1} />
               {/* the cursor: a faint column behind the one being read */}
               {active >= 0 && <RoundedRect x={centers[active] - step / 2} y={y0} width={step} height={y1 - y0} r={0} color={alpha(c.foreground, 0.05)} />}
               {reference && <DashedLine x1={x0} x2={x1} y1={y(reference.y)} y2={y(reference.y)} color={c["chart-cursor"]} />}
