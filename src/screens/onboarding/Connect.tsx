@@ -3,8 +3,7 @@
 // `connectGoogle()` is still a stub, so today it comes back with "isn't available in this build yet" on the explainer.
 import { useEffect, useState } from "react";
 import { ActivityIndicator, BackHandler, View } from "react-native";
-import { Activity, Footprints, HeartPulse, Moon, PenLine, Utensils, Watch, type LucideIcon } from "lucide-react-native";
-import { Button } from "@/ui/Button";
+import { Activity, Footprints, HeartPulse, Moon, Utensils, Watch, type LucideIcon } from "lucide-react-native";
 import { Card } from "@/ui/Card";
 import { Divided } from "@/ui/Divided";
 import { Icon } from "@/ui/Icon";
@@ -12,17 +11,18 @@ import { haptic } from "@/ui/haptics";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { connectGoogle } from "../settings/connect";
+import { GoogleButton, TextButton } from "./buttons";
 import { Frame } from "./Frame";
 
-// What each health scope in src/google/oauth.ts SCOPES lets Pulse read, in the person's words, with the icon the app
-// uses for that data elsewhere.
-const READS: { icon: LucideIcon; title: string; body: string }[] = [
-  { icon: Footprints, title: "Activity", body: "Steps, workouts, calories and active minutes" },
-  { icon: HeartPulse, title: "Heart and body", body: "Heart rate, HRV, oxygen, breathing, skin temperature and weight" },
-  { icon: Moon, title: "Sleep", body: "Sleep stages and when you slept" },
-  { icon: Activity, title: "Heart rhythm", body: "ECG readings and irregular rhythm notifications" },
-  { icon: Utensils, title: "Nutrition", body: "Food and water you log" },
-  { icon: Watch, title: "Profile and tracker", body: "Your age, your tracker’s battery and its last sync" },
+// What the health scopes in src/google/oauth.ts SCOPES let Pulse read, in the person's words, with the app's icons. Titles
+// only, so the screen fits without scrolling; Google's own consent screen has the detail.
+const READS: { icon: LucideIcon; title: string }[] = [
+  { icon: Footprints, title: "Activity and workouts" },
+  { icon: HeartPulse, title: "Heart rate, HRV and body" },
+  { icon: Moon, title: "Sleep" },
+  { icon: Activity, title: "ECG and heart rhythm" },
+  { icon: Utensils, title: "Food and water you log" },
+  { icon: Watch, title: "Your age and tracker" },
 ];
 
 /**
@@ -76,12 +76,8 @@ export function ConnectFlow({ sample, onConnected, onCancel }: { sample?: boolea
               {error}
             </Text>
           )}
-          <Button size="sheet" onPress={connect}>
-            Connect Google Health
-          </Button>
-          <Button size="sheet" variant="ghost" haptic={false} onPress={onCancel}>
-            Not now
-          </Button>
+          <GoogleButton onPress={connect} />
+          <TextButton label="Not now" onPress={onCancel} />
         </>
       }
     >
@@ -89,27 +85,18 @@ export function ConnectFlow({ sample, onConnected, onCancel }: { sample?: boolea
         What Pulse reads
       </Text>
       <Text className="mt-2 text-[15px] leading-[22px] text-foreground-secondary">
-        From Google Health, kept on this phone. On the next screen Google asks which of these to share.
+        From Google Health, kept on this phone.{sample ? " Your sample data is cleared once you connect." : ""}
       </Text>
       <Card className="mt-6 px-4 py-1">
         <Divided>
           {READS.map((r) => (
-            <View key={r.title} className="min-h-14 flex-row items-center gap-3.5 py-3">
+            <View key={r.title} className="min-h-12 flex-row items-center gap-3.5 py-2.5">
               <Icon icon={r.icon} size={20} tone="foreground-secondary" />
-              <View className="min-w-0 flex-1 gap-0.5">
-                <Text className="text-[15px] font-semibold leading-5">{r.title}</Text>
-                <Text className="text-[13px] leading-[18px] text-muted-foreground">{r.body}</Text>
-              </View>
+              <Text className="min-w-0 flex-1 text-[15px] font-medium leading-5">{r.title}</Text>
             </View>
           ))}
         </Divided>
       </Card>
-      <View className="mt-4 flex-row gap-3.5 px-4">
-        <Icon icon={PenLine} size={20} tone="muted-foreground" />
-        <Text className="min-w-0 flex-1 text-[13px] leading-[18px] text-muted-foreground">
-          Pulse writes back only what you log in Journal.{sample ? " Your sample data is cleared once Google says yes." : ""}
-        </Text>
-      </View>
     </Frame>
   );
 }
