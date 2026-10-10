@@ -7,7 +7,8 @@ import type { DailyMetricsPatch } from "../data/repos/daily";
 import type { Segment, SleepSessionRow } from "../data/repos/sessions";
 import { localMidnight } from "../time";
 import { lastRun, type PipelineOptions, recompute, type RecoveryRow } from ".";
-import { dump, firstDiff, loadSeed, memoryStore } from "./testing/memoryStore";
+import { testStore } from "../data/testing";
+import { dump, firstDiff, loadSeed } from "./testing/memoryStore";
 
 const camel = <T>(r: Record<string, unknown>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k.replace(/_(\w)/g, (_, c: string) => c.toUpperCase()), v])) as T;
 
@@ -18,7 +19,7 @@ it("a late night for day 200 then an incremental recompute equals F4's rows and 
   const session = camel<SleepSessionRow>(f4.change.session);
   const segments = f4.change.segments.map((g) => camel<Segment>(g));
   const metrics = camel<Omit<DailyMetricsPatch, "day" | "source">>(f4.change.metrics);
-  const late = memoryStore();
+  const late = testStore(); // the SQLite repositories (better-sqlite3 in Node)
   await loadSeed(late, { tables: f4.seed });
   expect((await late.daily.readMetrics()).length).toBe(220);
 
