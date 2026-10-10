@@ -37,4 +37,4 @@ done
 scripts/github-release.sh "v0.1.0-$sha" ~/personal/pulse-mobile-builds/pulse-$sha-*.apk
 ```
 
-The script creates the release on `HEAD` with GitHub's generated notes, or adds to it when the tag already has one, and prints each APK's download link. It reads the token from `$GITHUB_TOKEN`, else from git's credential helper (the same one `git push` uses). Any single APK can be added later the same way.
+The script creates the release on `HEAD` with GitHub's generated notes, or adds to it when the tag already has one, and prints each APK's download link. It reads the token from `$GH_TOKEN`, which `~/.zshrc` sets to the adityaongit account's under `~/personal/` (its `$GITHUB_TOKEN` is the work account's and is ignored), else from git's credential helper. Any single APK can be added later the same way.
