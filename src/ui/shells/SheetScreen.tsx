@@ -84,7 +84,9 @@ export function SheetScreen({ title, description, children, footer, size = "defa
       {screen && <StatusBar style={scheme === "dark" ? "light" : "dark"} />}
       {/* The web drawer's handle on both platforms: 40 × 6, 10 px from the top, foreground at 25 % (the system grabber is off). */}
       {!screen && <View className="mt-2.5 h-1.5 w-10 self-center rounded-full" style={{ backgroundColor: alpha(c.foreground, 0.25) }} />}
-      <View style={[fit ? undefined : styles.fill, { paddingTop: screen ? insets.top : 8 }]}>
+      {/* A screen is `presentation: "modal"`: on iOS a page-sheet card that already starts below the status bar (React
+          Navigation's own header drops the top inset for iOS modals too), so only Android's full-screen modal needs it. */}
+      <View style={[fit ? undefined : styles.fill, { paddingTop: screen ? (Platform.OS === "ios" ? 0 : insets.top) : 8 }]}>
         {done ? (
           <View style={fit ? styles.doneFit : styles.fill}>
             <DoneScreen {...done} />

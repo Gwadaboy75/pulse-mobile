@@ -17,7 +17,8 @@ import type { Palette } from "../palette";
 
 /**
  * default: as tall as its content (`fitToContents`, as the web's drawer grows to at most 92 % of the screen).
- * tall: 92 % of the screen, the web's `h-[92svh]`. screen: the whole phone (a modal, for the Journal-style full tasks).
+ * tall: 92 % of the screen, the web's `h-[92svh]`. screen: a modal for the Journal-style full tasks (the whole phone on
+ * Android, a page-sheet card below the status bar on iOS).
  */
 export type SheetSize = "default" | "tall" | "screen";
 
