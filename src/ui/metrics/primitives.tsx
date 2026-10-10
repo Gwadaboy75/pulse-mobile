@@ -5,6 +5,7 @@ import { isSymbolUnit } from "@/lib/format";
 import { TAG_COPY, type MetricTag } from "@/lib/reasons";
 import { cn } from "../cn";
 import { Icon } from "../Icon";
+import type { Family } from "../fontClasses";
 import type { TokenName } from "../palette";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
@@ -14,8 +15,18 @@ import { useTheme } from "../theme";
 /** Shared type styles: the uppercase small label and the muted caption. */
 export const LABEL = "text-xs leading-4 font-bold tracking-[0.1em] uppercase";
 export const CAPTION = "text-xs leading-4 font-medium text-muted-foreground";
-// The web's CAP_TRIM (text-box-trim) has no React Native counterpart; `leading-none` is the nearest.
-export const CAP_TRIM = "leading-none";
+/**
+ * The web's CAP_TRIM (`leading-none` and `text-box: trim-both cap alphabetic`): the text's box runs from the capital
+ * height to the baseline, so a margin measures from the letters themselves. React Native has no text-box-trim, so this
+ * sets a 1 em line and cuts it with negative margins from the fonts' metrics (ascent 1.0 / 0.95 em, descent 0.2 / 0.25
+ * em for Barlow / Figtree, capital height 0.7 em for both), with the glyphs placed as CSS places them (<Text> does that
+ * on iOS). Add a margin of your own to the returned one.
+ */
+export function capTrim(fontSize: number, family: Family = "sans") {
+  const [ascent, descent] = family === "numeric" ? [1, 0.2] : [0.95, 0.25];
+  const half = (1 - ascent - descent) / 2; // the half-leading of a 1 em line (negative)
+  return { lineHeight: fontSize, marginTop: -(half + ascent - 0.7) * fontSize, marginBottom: -(half + descent) * fontSize };
+}
 
 export type TagKind = keyof typeof TAG_COPY | "so_far" | "partial_week" | "partial_month" | "estimate" | "beta";
 const EXTRA_TAGS: Record<Exclude<TagKind, keyof typeof TAG_COPY>, string> = {
