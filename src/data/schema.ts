@@ -30,21 +30,6 @@ export const syncState = sqliteTable("sync_state", {
   lastError: text("last_error"),
 });
 
-/** Gzipped raw Google pages; insert with ON CONFLICT DO NOTHING so an unchanged re-fetch is free. Pruned by fetched_at. */
-export const rawPayloads = sqliteTable(
-  "raw_payloads",
-  {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    type: text("type").notNull(),
-    rangeStart: ts("range_start").notNull(),
-    rangeEnd: ts("range_end").notNull(),
-    bodyHash: text("body_hash").notNull(),
-    gzBody: bytes("gz_body").notNull(),
-    fetchedAt: ts("fetched_at").notNull(),
-  },
-  (t) => [unique("raw_payloads_dedupe").on(t.type, t.rangeStart, t.rangeEnd, t.bodyHash), index("raw_payloads_fetched_at").on(t.fetchedAt)],
-);
-
 /**
  * Band heart rate, one row per UTC day (`bucket` = floor(ts / 86400)): second-of-day offsets and bpm, sorted by
  * offset. `offsets` is delta-encoded varints, `values` is uint8 (the encoding is the samples repository's job: a later

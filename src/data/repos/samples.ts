@@ -1,5 +1,6 @@
-// Band heart rate and per-minute steps (hr_days, steps_days), plus the raw Google page archive (raw_payloads).
-// Replaces pulse src/server/samples.ts, the sample parts of sync.ts and the archive in sources/google/client.ts.
+// Band heart rate and per-minute steps (hr_days, steps_days).
+// Replaces pulse src/server/samples.ts and the sample parts of sync.ts. Pulse's raw page archive (raw_payloads) is
+// dropped on the phone: nothing read it.
 // Rows are decoded: `offsets` and `values` are plain number arrays (delta-varint / uint8 BLOBs are this repository's
 // concern, a later stream). Every write method writes nothing when the stored row is unchanged.
 import type { Db } from "../types";
@@ -19,7 +20,6 @@ export type HrSample = { ts: number; bpm: number };
 export const COMPACT_BATCH = 30;
 
 /** An archived raw page (client.ts:79). The caller hashes and gzips; the repository only stores. */
-export type RawPage = { type: string; rangeStart: number; rangeEnd: number; bodyHash: string; gzBody: Uint8Array; fetchedAt: number };
 
 export interface SamplesRepo {
   /** Samples with lo <= ts < hi, in time order. samples.ts:25 */
@@ -49,12 +49,7 @@ export interface SamplesRepo {
   /** Writes whole buckets without reading the sample table first; stored samples win over `samples` (insert-or-ignore). Diff-only per bucket. samples.ts:148 */
   writeSamples(table: SampleTable, samples: Sample[]): Promise<void>;
 
-  /** Stores a raw page; an unchanged page (same type, range and hash) is a no-op. True when a row was inserted. client.ts:79 `archivePage` */
-  archivePage(page: RawPage): Promise<boolean>;
-  /** Deletes archived pages fetched before `fetchedBefore` (unix seconds); the caller applies the retention. Returns the count. client.ts:131 `pruneRawPayloads` */
-  pruneRawPayloads(fetchedBefore: number): Promise<number>;
-
-  /** Deletes hr_days, steps_days and raw_payloads (a Google account switch). avatar.ts:45 `forgetSyncedData` */
+  /** Deletes hr_days and steps_days (a Google account switch). avatar.ts:45 `forgetSyncedData` */
   clearSynced(): Promise<void>;
 }
 
@@ -68,8 +63,6 @@ export function samplesRepo(_db: Db): SamplesRepo {
     mergeSamples: async () => todo("samplesRepo.mergeSamples"),
     compactHr: async () => todo("samplesRepo.compactHr"),
     writeSamples: async () => todo("samplesRepo.writeSamples"),
-    archivePage: async () => todo("samplesRepo.archivePage"),
-    pruneRawPayloads: async () => todo("samplesRepo.pruneRawPayloads"),
     clearSynced: async () => todo("samplesRepo.clearSynced"),
   };
 }

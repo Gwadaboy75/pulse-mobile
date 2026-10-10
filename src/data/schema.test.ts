@@ -14,7 +14,7 @@ const tables = (Object.values(schema) as unknown[]).filter((x) => is(x, SQLiteTa
 
 describe("schema", () => {
   it("has no table with a user_id column", () => {
-    expect(tables.length).toBe(24);
+    expect(tables.length).toBe(23);
     for (const t of tables) expect(getTableConfig(t).columns.map((c) => c.name), getTableConfig(t).name).not.toContain("user_id");
   });
 

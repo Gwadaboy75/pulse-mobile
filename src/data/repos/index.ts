@@ -1,7 +1,7 @@
 // The repositories: the only code that touches SQLite. Each table belongs to exactly one repository (writes); a repository
 // may read another's table where a pulse query joins them (`logRepo.waterOn` reads daily_values and sync_state).
 //
-//   samples   hr_days, steps_days, raw_payloads     heavy BLOB tables; raw_payloads is a Google page archive pruned on the same schedule as hr compaction
+//   samples   hr_days, steps_days                   heavy BLOB tables (pulse's raw_payloads archive is dropped: nothing read it)
 //   series    intraday_series                        per-minute series the pipeline caches
 //   scores    daily_scores, fold_checkpoints, reports, intraday_dirty   what the pipeline computes, and its "what to recompute" marks
 //   daily     daily_metrics, daily_values, health_records               Google's daily rows
@@ -30,7 +30,6 @@ import { todo } from "./todo";
 export const TABLE_OWNER = {
   hr_days: "samples",
   steps_days: "samples",
-  raw_payloads: "samples",
   intraday_series: "series",
   daily_scores: "scores",
   fold_checkpoints: "scores",

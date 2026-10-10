@@ -25,7 +25,7 @@ describe("migrations", () => {
   it("create every table in the schema", () => {
     const { sqlite } = fresh();
     const names = tables.map((t) => getTableConfig(t).name);
-    expect(names.length).toBe(24);
+    expect(names.length).toBe(23);
     const present = (sqlite.prepare("select name from sqlite_master where type = 'table'").all() as { name: string }[]).map((r) => r.name);
     expect(names.filter((n) => !present.includes(n))).toEqual([]);
   });
