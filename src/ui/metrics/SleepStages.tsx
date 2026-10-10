@@ -112,8 +112,10 @@ function Rows({ night, selected, onSelect, restorative }: { night: SleepStagesNi
       {/* One baseline for the label and "Duration 6:59" (the 17 px value sets it). */}
       <View className="flex-row items-baseline justify-between gap-2">
         {tab === "breakdown" ? (
-          <View className="flex-row items-center gap-2">
-            <View className={cn("h-4 w-3.5", RANGE_BOX)} />
+          // Baseline-aligned like the web's span, the swatch centred: the group's baseline is then the label's, so it
+          // lines up with "Duration 6:59" (a row's baseline is its first baseline-aligned child's).
+          <View className="flex-row items-baseline gap-2">
+            <View className={cn("h-4 w-3.5 self-center", RANGE_BOX)} />
             <Text className={cn(LABEL, "text-foreground-secondary")}>Typical range</Text>
           </View>
         ) : (
