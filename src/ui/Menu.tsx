@@ -3,8 +3,7 @@ import { Modal, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cn } from "./cn";
 import { placeMenu, type Box } from "./menuPlace";
-import { ring, useShadow } from "./shadow";
-import { useTheme } from "./theme";
+import { Panel } from "./Panel";
 
 /** A dropdown's trigger: put `ref` on the trigger view (collapsable={false}); `open` measures it and shows the panel. */
 export function useMenu() {
@@ -29,8 +28,6 @@ export function useMenu() {
  * the same offset in both readings cancels out.
  */
 export function MenuPanel({ anchor, onClose, align, className, children }: { anchor: Box | null; onClose: () => void; align: "start" | "end" | "stretch"; className?: string; children: ReactNode }) {
-  const { c } = useTheme();
-  const shadow = useShadow();
   const insets = useSafeAreaInsets();
   const root = useRef<View>(null);
   const [frame, setFrame] = useState<Box | null>(null);
@@ -52,18 +49,16 @@ export function MenuPanel({ anchor, onClose, align, className, children }: { anc
         className="flex-1"
       >
         {anchor && (
-          <View
+          <Panel
+            ringOutside
             // The panel swallows taps, so only outside it closes the menu.
             onStartShouldSetResponder={() => true}
             onLayout={(e) => setPanel({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
-            className={cn("absolute rounded-2xl bg-popover p-1.5", className)}
-            style={{
-              ...(place ?? { left: 0, top: 0, width: align === "stretch" ? anchor.w : undefined, opacity: 0 }),
-              boxShadow: shadow(ring(c["overlay-ring"], { inset: false }), "overlay"),
-            }}
+            className={cn("absolute rounded-2xl p-1.5", className)}
+            style={place ?? { left: 0, top: 0, width: align === "stretch" ? anchor.w : undefined, opacity: 0 }}
           >
             {children}
-          </View>
+          </Panel>
         )}
       </Pressable>
     </Modal>

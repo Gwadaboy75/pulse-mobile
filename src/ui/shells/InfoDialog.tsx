@@ -5,7 +5,7 @@ import type { ChipTone } from "@/lib/bands";
 import { Button } from "../Button";
 import { StatusChip } from "../metrics/primitives";
 import { Text } from "../Text";
-import { ring, useShadow } from "../shadow";
+import { usePanelStyle } from "../Panel";
 import { useTheme } from "../theme";
 import { push } from "../navigate";
 import { Press } from "../Press";
@@ -28,7 +28,7 @@ export type InfoContent = {
  */
 export function InfoDialog({ open, onClose, title, body, icon, chip, action }: InfoContent & { open: boolean; onClose: () => void }) {
   const { c } = useTheme();
-  const shadow = useShadow();
+  const panel = usePanelStyle({ ring: "popover-ring" });
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
       <Pressable accessibilityLabel="Close" onPress={onClose} className="flex-1 items-center justify-center bg-dim-strong px-4">
@@ -37,7 +37,7 @@ export function InfoDialog({ open, onClose, title, body, icon, chip, action }: I
           accessible={false}
           onPress={() => {}}
           className="max-h-[80%] w-full max-w-[360px] overflow-hidden rounded-3xl bg-popover"
-          style={{ boxShadow: shadow(ring(c["popover-ring"]), "overlay"), backgroundColor: c.popover }}
+          style={panel}
         >
           <ScrollView contentContainerClassName="p-6" showsVerticalScrollIndicator={false}>
             {icon && <View className="mb-4">{icon}</View>}

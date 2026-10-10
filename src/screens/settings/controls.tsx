@@ -12,6 +12,7 @@ import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
+import { usePanelStyle } from "@/ui/Panel";
 import { ring as ringLayer } from "@/ui/shadow";
 import { useTheme } from "@/ui/theme";
 import { Press } from "@/ui/Press";
@@ -205,14 +206,14 @@ export function ConfirmDialog({
   /** "outline" (red text, the web's Disconnect and Delete) or "primary" (Choose account). */
   confirmVariant?: "outline" | "primary";
 }) {
-  const { c } = useTheme();
+  const panel = usePanelStyle({ ring: "border", shadow: null });
   useEffect(() => {
     if (open && confirmVariant === "outline") haptic.warning();
   }, [open, confirmVariant]);
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={() => !pending && onCancel()} statusBarTranslucent navigationBarTranslucent>
       <Pressable accessibilityLabel="Close" accessible={false} onPress={() => !pending && onCancel()} className="flex-1 items-center justify-center bg-dim-strong px-4">
-        <Pressable accessible={false} onPress={() => {}} className="w-full max-w-sm overflow-hidden rounded-xl bg-popover" style={{ boxShadow: ringLayer(c.border), backgroundColor: c.popover }}>
+        <Pressable accessible={false} onPress={() => {}} className="w-full max-w-sm overflow-hidden rounded-xl bg-popover" style={panel}>
           <View className="gap-4 p-4">
             <View className="gap-2">
               <Text accessibilityRole="header" className="text-base font-medium leading-[16px]">

@@ -6,7 +6,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
 import { cn } from "../cn";
 import { alpha } from "../color";
-import { ring, useShadow } from "../shadow";
+import { Panel } from "../Panel";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
 
@@ -219,25 +219,13 @@ export function ScrubTick({ index }: { index: number }) {
 
 /** The scrubbed point's readout: a popover card (rounded-xl, ring) near the cursor, kept inside the chart. */
 export function TooltipCard({ x, width, title, children }: { x: number; width: number; title?: string; children: ReactNode }) {
-  const { c } = useTheme();
-  const shadow = useShadow();
   const [w, setW] = useState(0);
   const left = Math.min(Math.max(x - w / 2, 0), Math.max(0, width - w));
   return (
-    <View
-      pointerEvents="none"
-      onLayout={(e) => setW(e.nativeEvent.layout.width)}
-      className="absolute top-0 gap-1 rounded-xl px-2.5 py-2"
-      style={{
-        left,
-        opacity: w ? 1 : 0,
-        backgroundColor: c.popover,
-        boxShadow: shadow(ring(c["overlay-ring"]), "overlay"),
-      }}
-    >
+    <Panel pointerEvents="none" onLayout={(e) => setW(e.nativeEvent.layout.width)} className="absolute top-0 gap-1 rounded-xl px-2.5 py-2" style={{ left, opacity: w ? 1 : 0 }}>
       {title && <Text className="text-xs font-medium leading-4 text-muted-foreground">{title}</Text>}
       {children}
-    </View>
+    </Panel>
   );
 }
 

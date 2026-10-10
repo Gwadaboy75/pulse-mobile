@@ -4,12 +4,13 @@
 // drop-in for @react-native-community/datetimepicker (in Expo Go). Values are the app's wall strings:
 // `YYYY-MM-DDTHH:mm`, or `YYYY-MM-DD` for mode "date".
 import { useState } from "react";
-import { Modal, Platform, Pressable, View } from "react-native";
+import { Modal, Platform, Pressable } from "react-native";
 import { DateTimePicker } from "@expo/ui/community/datetime-picker";
 import { DAY, formatDay } from "@/lib/format";
 import { Button } from "@/ui/Button";
 import { alpha } from "@/ui/color";
 import { haptic } from "@/ui/haptics";
+import { Panel } from "@/ui/Panel";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { dateToDay, dateToWall, wallToDate } from "./form";
@@ -62,7 +63,7 @@ export function DateTimeField({ value, onChange, mode, max, min, label }: DateTi
         <Modal visible={step !== null} transparent animationType="fade" onRequestClose={() => setStep(null)}>
           <Pressable accessibilityLabel="Close" onPress={() => setStep(null)} className="flex-1 items-center justify-center bg-dim-strong px-4">
             {/* The card swallows taps, so only the dim closes it. */}
-            <View onStartShouldSetResponder={() => true} className="w-full max-w-[360px] items-center gap-4 rounded-3xl bg-popover p-4">
+            <Panel ring={null} shadow={null} onStartShouldSetResponder={() => true} className="w-full max-w-[360px] items-center gap-4 rounded-3xl p-4">
               <DateTimePicker
                 value={current}
                 mode={mode}
@@ -80,7 +81,7 @@ export function DateTimeField({ value, onChange, mode, max, min, label }: DateTi
               <Button size="sheet" onPress={() => setStep(null)}>
                 Done
               </Button>
-            </View>
+            </Panel>
           </Pressable>
         </Modal>
       </>

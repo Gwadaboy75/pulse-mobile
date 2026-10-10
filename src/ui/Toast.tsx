@@ -10,9 +10,8 @@ import { CircleCheck, OctagonX } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { haptic } from "./haptics";
 import { Icon } from "./Icon";
-import { useShadow } from "./shadow";
+import { usePanelStyle } from "./Panel";
 import { Text } from "./Text";
-import { useTheme } from "./theme";
 
 type Kind = "success" | "error";
 type Current = { id: number; kind: Kind; text: string } | null;
@@ -46,8 +45,7 @@ export const toast = {
 
 export function ToastHost() {
   const t = useSyncExternalStore(subscribe, () => current);
-  const { c } = useTheme();
-  const shadow = useShadow();
+  const panel = usePanelStyle({ ring: null, shadow: "toast" });
   const bottom = useSafeAreaInsets().bottom + 16;
   // One message at a time: each replaces the last, and clears itself after 4 s.
   useEffect(() => {
@@ -71,7 +69,7 @@ export function ToastHost() {
         accessibilityRole="alert"
         accessibilityLiveRegion="polite"
         className="w-full flex-row items-center gap-1.5 self-center rounded-lg border border-border bg-popover p-4"
-        style={{ backgroundColor: c.popover, boxShadow: shadow("toast") }}
+        style={panel}
       >
         <Icon icon={t.kind === "success" ? CircleCheck : OctagonX} size={16} tone="popover-foreground" strokeWidth={2} />
         <Text className="shrink text-[13px] font-medium leading-[19.5px] text-popover-foreground">{t.text}</Text>

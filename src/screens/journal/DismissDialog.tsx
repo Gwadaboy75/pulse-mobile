@@ -6,7 +6,7 @@ import { Check } from "lucide-react-native";
 import { Button } from "@/ui/Button";
 import { cn } from "@/ui/cn";
 import { Gradient } from "@/ui/Gradient";
-import { ring, useShadow } from "@/ui/shadow";
+import { usePanelStyle } from "@/ui/Panel";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 
@@ -16,7 +16,8 @@ export const dismissIsQuiet = () => quiet;
 
 export function DismissDialog({ open, onKeep, onDismiss }: { open: boolean; onKeep: () => void; onDismiss: () => void }) {
   const { c } = useTheme();
-  const shadow = useShadow();
+  // Differs from web: the web's dialog has no shadow (ring-border only); mobile keeps the overlay shadow.
+  const panel = usePanelStyle({ ring: "border" });
   const [checked, setChecked] = useState(false);
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onKeep} statusBarTranslucent navigationBarTranslucent onShow={() => setChecked(false)}>
@@ -26,8 +27,7 @@ export function DismissDialog({ open, onKeep, onDismiss }: { open: boolean; onKe
           accessible={false}
           onPress={() => {}}
           className="w-full max-w-[384px] gap-5 overflow-hidden rounded-3xl p-6"
-          // Differs from web: the web's dialog has no shadow (ring-border only); mobile keeps the overlay shadow.
-          style={{ backgroundColor: c.popover, boxShadow: shadow(ring(c.border), "overlay") }}
+          style={panel}
         >
           <Gradient from={c["popover-top"]} to={c.popover} angle="y" />
           <View className="items-center gap-2 pt-4">
