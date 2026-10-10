@@ -56,7 +56,7 @@ const FIELDS = {
   /** Profile fields (web FIELD): h-13 rounded-xl bg-field px-4 text-[17px]. */
   field: { box: "h-13 rounded-xl bg-field", input: "px-4 text-[17px]" },
   /** The behaviour search (web: h-12 rounded-xl bg-foreground/[0.06] pl-11 text-base). */
-  search: { box: "h-12 rounded-xl bg-foreground/[0.06]", input: "px-4 text-base" },
+  search: { box: "h-12 rounded-xl border border-input bg-foreground/[0.06]", input: "px-4 text-base" },
   /** The web's plain Input (shadcn: h-11 rounded-lg border border-input, dark:bg-input/30 px-2.5 text-base). */
   input: { box: "h-11 rounded-lg border border-input dark:bg-input/30", input: "px-2.5 text-base" },
 } as const;
