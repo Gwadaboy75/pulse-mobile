@@ -69,7 +69,7 @@ export function LoadChart({ load }: { load: FitnessVM["load"] }) {
                 {a && a.atl !== null && <GlowDot x={xs[ai]} y={y(a.atl)} fill={c["chart-4"]} />}
               </PlotCanvas>
               {ticks.map((t) => (
-                <ChartLabel key={t} x={x0 - 4} y={y(t)} anchor="end" w={32}>
+                <ChartLabel key={t} x={x0 - 14} y={y(t)} anchor="end" w={32}>
                   {formatValue("int", t)}
                 </ChartLabel>
               ))}
@@ -115,9 +115,8 @@ export function LoadChart({ load }: { load: FitnessVM["load"] }) {
           ).map(([k, mark, v]) => (
             <View key={k} className="flex-row items-center gap-1.5">
               {mark}
-              <Text className="text-xs font-medium leading-4 text-muted-foreground">
-                {LABELS[k]} <Text className="font-numeric font-semibold tabular-nums text-foreground-secondary">{v}</Text>
-              </Text>
+              <Text className="text-xs font-medium leading-4 text-muted-foreground">{LABELS[k]}</Text>
+              <Text className="font-numeric text-xs font-semibold leading-4 tabular-nums text-foreground-secondary">{v}</Text>
             </View>
           ))}
         </View>

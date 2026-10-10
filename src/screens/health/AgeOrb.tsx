@@ -431,6 +431,7 @@ export function AgeOrb({ age, deltaYears, provisional = false, size: sizeProp, r
 
   // The web's `motion-safe:` entry: with reduced motion the text just appears.
   const entering = (delay: number) => (compact || reduced ? undefined : enter(delay));
+  // The web writes `leading-none` before `text-[calc(..)]`; tailwind-merge drops the leading, so the numeral takes the page's 1.5 line height.
   const numeral = small ? size * 0.25 : 18 + size * 0.07;
   const caption = small ? Math.max(9, size * 0.09) : 7 + size * 0.023;
   const deltaSize = 8 + size * 0.024;
@@ -441,7 +442,7 @@ export function AgeOrb({ age, deltaYears, provisional = false, size: sizeProp, r
       <OrbCanvas delta={delta} size={size} compact={compact} />
       <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className="size-full items-center justify-center" style={{ paddingHorizontal: size * 0.14 }}>
         <Animated.View entering={entering(200)}>
-          <Text className="text-center font-numeric font-bold tabular-nums" style={{ fontSize: numeral, lineHeight: numeral, letterSpacing: -0.01 * numeral, color: has ? c["orb-text"] : c["orb-text-muted"] }}>
+          <Text className="text-center font-numeric font-bold tabular-nums" style={{ fontSize: numeral, lineHeight: numeral * 1.5, letterSpacing: -0.01 * numeral, color: has ? c["orb-text"] : c["orb-text-muted"] }}>
             {formatValue("decimal1", has ? age : null)}
           </Text>
         </Animated.View>

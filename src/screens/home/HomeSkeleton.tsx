@@ -85,12 +85,12 @@ export function HomeSkeleton({ stats = DASHBOARD_DEFAULT }: { stats?: DashboardK
           <View className="gap-8">
             <View className="-mt-2 gap-6">
               <View className="flex-row gap-3">
-                <View className="min-w-0 flex-1">
+                <View className="min-w-0 flex-1 flex-row">
                   <SectionShell variant="card" title="Health Monitor" info={false} href="/health/monitor" fill>
                     <MonitorLineSkeleton />
                   </SectionShell>
                 </View>
-                <View className="min-w-0 flex-1">
+                <View className="min-w-0 flex-1 flex-row">
                   <SectionShell variant="card" title="Stress Monitor" info={false} href="/health/stress" fill>
                     <MonitorLineSkeleton />
                   </SectionShell>

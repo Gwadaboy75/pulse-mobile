@@ -88,7 +88,11 @@ function Count({ count }: { count: MonitorVM["count"] }) {
           Metrics within range
         </Text>
       </View>
-      {chip && <StatusChip tone={chip.tone}>{chip.text}</StatusChip>}
+      {chip && (
+        <StatusChip tone={chip.tone} className="self-center">
+          {chip.text}
+        </StatusChip>
+      )}
       {reason && <Text className="max-w-72 text-center text-xs font-medium leading-4 text-muted-foreground">{reason.long}</Text>}
     </View>
   );

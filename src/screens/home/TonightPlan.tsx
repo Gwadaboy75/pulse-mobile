@@ -28,26 +28,32 @@ export function TonightPlan({ plan, timeZone }: { plan: SleepPlanVM; timeZone: s
   return (
     <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} className="flex-1 gap-4">
       {/* The reference app's "(sunset) 11:20 - - - - (alarm) 8:30" [latest-home-top-1]: two time blocks joined by a dashed rule. */}
-      <View className="my-auto gap-1.5">
-        <View className="flex-row items-center gap-3">
+      {/* The web's grid is [auto 1fr auto]: each outer column is as wide as the wider of its time block and its label, so
+          "Recommended bedtime" takes room from the dashed rule (about 30 px on a phone). The middle column holds a hidden
+          time-high spacer so the rule sits at the times' height. */}
+      <View className="my-auto flex-row gap-x-3">
+        <View className="gap-1.5">
           <View className="flex-row items-center gap-2">
             <Icon icon={Sunset} size={24} tone="foreground-secondary" strokeWidth={1.5} />
             <Text accessibilityLiveRegion="polite" className={time}>{bed}</Text>
           </View>
-          <View accessibilityElementsHidden className="min-w-0 flex-1 items-center">
-            <View className="h-0.5 w-full max-w-28">
+          <Text className={LABEL}>Recommended bedtime</Text>
+        </View>
+        <View accessibilityElementsHidden className="min-w-0 flex-1 items-center">
+          <View className="w-full max-w-28 justify-center">
+            <Text className={`${time} opacity-0`}>0</Text>
+            <View className="absolute inset-x-0 top-1/2 -mt-px h-0.5">
               <Svg width="100%" height={2}>
                 <Line x1={0} y1={1} x2="100%" y2={1} stroke={alpha(c.foreground, 0.2)} strokeWidth={2} strokeDasharray="4 3" />
               </Svg>
             </View>
           </View>
+        </View>
+        <View className="items-end gap-1.5">
           <View className="flex-row items-center gap-2">
             <Icon icon={AlarmClock} size={24} tone="foreground-secondary" strokeWidth={1.5} />
             <Text className={time}>{clock(plan.wakeAt, timeZone)}</Text>
           </View>
-        </View>
-        <View className="flex-row justify-between gap-3">
-          <Text className={LABEL}>Recommended bedtime</Text>
           <Text className={`${LABEL} text-right`}>Typical wake</Text>
         </View>
       </View>

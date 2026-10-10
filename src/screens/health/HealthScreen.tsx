@@ -207,7 +207,7 @@ function Fitness({ m }: { m: HealthHubVM["fitness"] }) {
             <View className="shrink-0 items-end gap-1">
               <Text className={LABEL}>Training load</Text>
               <Text className="font-numeric text-xl font-bold leading-6 tabular-nums">{formatValue("decimal2", v.acwr)}</Text>
-              <StatusChip tone={v.acwrTone}>{ACWR_WORD[v.acwrTone]}</StatusChip>
+              <StatusChip tone={v.acwrTone} className="self-end">{ACWR_WORD[v.acwrTone]}</StatusChip>
             </View>
           )}
         </View>
@@ -221,7 +221,10 @@ function HeartRate({ hr, now }: { hr: HealthHubVM["heartRate"]; now: number }) {
   return (
     <View className="gap-1">
       <ValueUnit value={String(hr.bpm)} unit="bpm" className={TILE} />
-      <LastReading t={hr.t} now={now} />
+      {/* The web's <LastReading> is inline-flex in a block: it sits in a 24 px line box (the page's 1.5 line height), measured 6 px above and 3 px below the 16 px caption. */}
+      <View className="pb-[3px] pt-1.5">
+        <LastReading t={hr.t} now={now} />
+      </View>
     </View>
   );
 }

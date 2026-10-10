@@ -102,7 +102,7 @@ export function FitnessScreen() {
             <View className="gap-4">
               <View className="flex-row items-center gap-3">
                 <Text className="font-numeric text-4xl font-bold leading-10 tracking-[-0.01em] tabular-nums">{formatValue("decimal2", tl.acwr)}</Text>
-                <StatusChip tone={tl.tone}>{STATUS[tl.status].word}</StatusChip>
+                <StatusChip tone={tl.tone} className="self-center">{STATUS[tl.status].word}</StatusChip>
               </View>
               <TickScale
                 variant="marker"

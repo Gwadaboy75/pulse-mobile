@@ -146,8 +146,8 @@ function Home({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
               ) : (
                 // Dials, then the monitor cards, as in the reference app (home-01); the coach card and an alert follow them.
                 <View className="flex-row gap-3">
-                  <View className="min-w-0 flex-1"><MonitorCard vm={vm} href={at("/health/monitor")} /></View>
-                  <View className="min-w-0 flex-1"><StressCard vm={vm} href={at("/health/stress")} timeZone={timeZone} /></View>
+                  <View className="min-w-0 flex-1 flex-row"><MonitorCard vm={vm} href={at("/health/monitor")} /></View>
+                  <View className="min-w-0 flex-1 flex-row"><StressCard vm={vm} href={at("/health/stress")} timeZone={timeZone} /></View>
                 </View>
               )}
               {vm.insights.length > 0 && <HomeInsight items={vm.insights} />}
@@ -331,7 +331,7 @@ function PhoneActivity({ stats, link }: { stats: KeyStat[]; link: { d: string; t
         {rows.map((row) => (
           <View key={row[0].key} className="flex-row gap-3">
             {row.map((s) => (
-              <View key={s.key} className="min-w-0 flex-1"><KeyStatRow variant="tile" {...statProps(s, link)} className="flex-1" /></View>
+              <View key={s.key} className="min-w-0 flex-1 flex-row"><KeyStatRow variant="tile" {...statProps(s, link)} className="flex-1" /></View>
             ))}
           </View>
         ))}
