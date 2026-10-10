@@ -35,8 +35,18 @@ const STAT_LABEL = "text-xs leading-4 font-bold tracking-[0.1em] text-foreground
 /** The profile, where max heart rate (and so the zones) is set. */
 const HR_SETTINGS = "/settings?s=account"
 
+// The id is a Google resource name, so activityHref encodes it; the web page decodes it (decodeURIComponent), as the nap route does.
+const decode = (s: string) => {
+  try {
+    return decodeURIComponent(s)
+  } catch {
+    return s
+  }
+}
+
 export function ActivityScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>()
+  const { id: raw } = useLocalSearchParams<{ id: string }>()
+  const id = decode(raw)
   const { data, error, reload } = useScreen(async (ctx) => {
     const [vm, coach] = await Promise.all([getActivity(ctx, id), coachReady(ctx)])
     return { vm, coach, today: todayOf(ctx), timeZone: ctx.timeZone }
