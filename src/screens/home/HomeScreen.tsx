@@ -1,7 +1,3 @@
-// Home `/` (spec §7.1), ported from pulse src/app/(app)/(home)/page.tsx. One difference in structure: `top` holds the
-// wordmark, the dials and their note, and everything the web puts under them in the same column (monitor cards, coach card,
-// alert) opens `main`, pulled up by 8 px so the gaps are the web's 24. The collapse distance ends at the dials' bottom, as on
-// the web, through <HeaderSentinel> (HEADER_SENTINEL there).
 import { useMemo, useState, type ReactNode } from "react";
 import { View } from "react-native";
 import { CalendarRange, Check, ChevronRight, CircleAlert, Info, Lightbulb, Maximize2, Moon, Plus, Sun, TriangleAlert } from "lucide-react-native";
@@ -66,7 +62,6 @@ const NO_BAND_INFO = {
 
 const go = (href: string) => push(href);
 
-/** Home `/`: the day is the route's `d` (the DateSwitcher in the header changes it). */
 export function HomeScreen() {
   const [d] = useSelectedDay();
   const { timeZone } = useShellCalendar();
@@ -96,15 +91,12 @@ function Home({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
       }}
       slots={{
         top: (
-          // Phone: the wordmark sits right under the header's fade, 52 px below the date pill as in the reference app
-          // [latest-home-top-2], [latest-home-top-3] (spec §11 F1); -mt-2 cancels the column's own 8 px.
           <View className="-mt-2">
             <View className="gap-3">
               <View accessibilityElementsHidden className="items-center">
                 <Wordmark height={17} tone="foreground-secondary" />
               </View>
               <FirstSync />
-              {/* The dials shrink into the header's ring row as this row scrolls under it (spec §4.3, HomeHeader). */}
               <View className="flex-row items-start justify-around">
                 <View className="flex-1 items-center"><ScoreDial variant="sleep" size="md" value={dials.sleep.value} reason={dials.sleep.reason} provisional={dials.sleep.provisional} tags={dials.sleep.tags} href={at("/sleep")} /></View>
                 <View className="flex-1 items-center">
@@ -126,7 +118,6 @@ function Home({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
               {dials.reason && (
                 <View className="items-center pt-3">
                   {vm.phone ? (
-                    // Phone data but no band: one short line, the reason in its info card (§11 CD2, MD2).
                     <InfoCardTrigger info={NO_BAND_INFO} className="flex-row items-center gap-1.5 rounded-md py-3">
                       <ReasonPlaceholder reason={dials.reason.reason} size="sm" copy="No band data yet" />
                       <Icon icon={Info} size={14} tone="muted-foreground" strokeWidth={1.75} />
@@ -143,10 +134,8 @@ function Home({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
           <View className="gap-8">
             <View className="-mt-2 gap-6">
               {vm.phone ? (
-                // Leads where the monitor cards sit: with no band they would only say "No readings" (§11 CD2).
                 <PhoneActivity stats={vm.phone} link={{ d, today }} />
               ) : (
-                // Dials, then the monitor cards, as in the reference app (home-01); the coach card and an alert follow them.
                 <View className="flex-row gap-3">
                   <View className="min-w-0 flex-1 flex-row"><MonitorCard vm={vm} href={at("/health/monitor")} /></View>
                   <View className="min-w-0 flex-1 flex-row"><StressCard vm={vm} href={at("/health/stress")} timeZone={timeZone} /></View>
@@ -155,7 +144,6 @@ function Home({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
               {vm.insights.length > 0 && <HomeInsight items={vm.insights} />}
               {vm.monitorAlert && <MonitorAlert alert={vm.monitorAlert} href={at("/health/monitor")} />}
             </View>
-            {/* The action menu for the day on screen: add an activity, complete the journal (the reference app, home-08). */}
             <SectionShell variant="section" title="My Day" action={<PlusKey label={vm.isToday ? "Add to today" : `Add to ${formatDay(d, DAY.short)}`} />}>
               <View className="gap-3">
                 {vm.outlook && <DayBanner outlook={vm.outlook} />}
@@ -173,14 +161,13 @@ function Home({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
                   ) : (
                     <EmptyState body={vm.isToday ? "No activities yet today. Workouts appear after Fitbit syncs them." : "No activities on this day."} />
                   )}
-                  {/* the reference app's "+ Add activity", on past days too (home-01, home-03). Pulse imports workouts, so Add explains where they come from (§11 R2). */}
+                  {/* Workouts come from Google, so Add explains importing rather than creating a local workout. */}
                   <View className="mt-3">
                     <InfoCardTrigger info={ADD_ACTIVITY_INFO} activeScale={0.96} className={CARD_BUTTON}>
                       <CardButtonContent icon={Plus} label="Add activity" />
                     </InfoCardTrigger>
                   </View>
                 </SectionShell>
-                {/* Phone: Tonight's sleep (today only), then My journal, as in the reference app (home-09, home-03); Energy Bank is Pulse's own and follows. */}
                 {vm.isToday && (
                   <SectionShell variant="card" title="Tonight’s sleep" info={TONIGHT_INFO} fill action={<IconLink href={at("/sleep?section=planner")} label="Open Sleep Planner" icon={ChevronRight} />}>
                     <MetricState
@@ -206,16 +193,14 @@ function Home({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
           <SectionShell
             variant="section"
             title="My Dashboard"
-            // the reference app's pencil on the right of the section header opens the metric picker (spec §11 CD1).
             action={<EditDashboardButton keys={dashboardKeysShown} empty={vm.dashboard.empty} />}
           >
-            {/* One card per metric (V9, [latest-home-dashboard-1]). */}
             <View accessibilityRole="list" className="gap-2">
               {vm.keyStats.map((s) =>
                 s.key === "stress" ? <StressTile key={s.key} vm={vm} href={at("/health/stress")} timeZone={timeZone} /> : <KeyStatRow key={s.key} variant="card" {...statProps(s, { d, today })} />,
               )}
             </View>
-            {/* Hidden with fewer than two scored days: one point is not a trend (spec §7.1 row 9). */}
+            {/* One point cannot show a trend. */}
             {vm.strainRecovery.filter((p) => p.strain !== null || p.recovery !== null).length >= 2 && (
               <SectionShell variant="card" title="Strain & recovery" info={STRAIN_RECOVERY_INFO} fill className="mt-3">
                 <StrainRecoveryChart points={vm.strainRecovery} today={d} />
@@ -236,7 +221,6 @@ function Home({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
   );
 }
 
-/** "Your daily outlook" before 17:00, "Your day in review" after it and on past days; opens the day's summary (spec §7.1 7a). */
 function DayBanner({ outlook }: { outlook: NonNullable<HomeVM["outlook"]> }) {
   const { c } = useTheme();
   const [open, setOpen] = useState(false);
@@ -254,7 +238,6 @@ function DayBanner({ outlook }: { outlook: NonNullable<HomeVM["outlook"]> }) {
   );
 }
 
-/** "My journal": the week's check-ins as circles, then Behaviour insights [latest-home-collapsed-1]. */
 function JournalWeek({ vm, at }: { vm: HomeVM; at: (href: string) => string }) {
   return (
     <SectionShell variant="card" title="My journal" action={<IconLink href={at("/journal")} label="Open Journal" icon={ChevronRight} />}>
@@ -316,10 +299,6 @@ function MonitorAlert({ alert, href }: { alert: NonNullable<HomeVM["monitorAlert
   );
 }
 
-/**
- * A day with no band but phone data (spec §11 CD2): the phone's own numbers as Health Monitor tiles, against their
- * 30-day averages, so Home opens on what was recorded instead of three empty dials and "No readings" cards.
- */
 function PhoneActivity({ stats, link }: { stats: KeyStat[]; link: { d: string; today: string } }) {
   // An odd count lets the first tile (steps) span the row as a wide strip that spells out its comparison.
   const wide = stats.length % 2 === 1;
@@ -342,7 +321,6 @@ function PhoneActivity({ stats, link }: { stats: KeyStat[]; link: { d: string; t
   );
 }
 
-/** Chip + two lines, the body of both monitor cards. */
 function MonitorLine({ chip, chipClass, top, topClass, bottom }: { chip: ReactNode; chipClass: string; top: string; topClass: string; bottom: string }) {
   return (
     <View className="min-w-0 flex-row items-center gap-2">
@@ -396,7 +374,6 @@ function StressCard({ vm, href, timeZone }: { vm: HomeVM; href: string; timeZone
   );
 }
 
-/** My Dashboard's Stress Monitor tile: the latest level and the day's line (the reference app, dashboard-02). */
 function StressTile({ vm, href, timeZone }: { vm: HomeVM; href: string; timeZone: string }) {
   const s = vm.stress.value;
   const tone = s && STRESS_TONE[s.level];
@@ -433,7 +410,7 @@ function EnergyCard({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
         metric={e}
         skeleton={null}
         renderReason={(r, meta) => (
-          // Centred when the card is stretched beside Tonight's sleep, never pinned to the top of an empty card (SYM4).
+          // Centred when the card is stretched beside Tonight's sleep, never pinned to the top of an empty card.
           <View className="my-auto">
             <ReasonPlaceholder reason={r} nightsLeft={meta.nightsLeft} size="md" />
           </View>
@@ -446,7 +423,6 @@ function EnergyCard({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
 }
 
 function EnergyBody({ eb, timeZone }: { eb: NonNullable<HomeVM["energyBank"]["value"]>; timeZone: string }) {
-  // The chart's series is shaped once per day's data, not on every render.
   const metric = useMemo(() => ({ value: energySeries(eb), reason: null, provisional: false }), [eb]);
   return (
     <View className="flex-1 gap-4">
@@ -483,17 +459,13 @@ function MiniStat({ label, value, className }: { label: string; value: string; c
   );
 }
 
-/**
- * Baro's "Syncing" over the dials (docs/onboarding.md): while the first import runs, the dials show their honest empty
- * states and this line says why, with the days imported so far.
- */
 function FirstSync() {
   const s = useShellSync();
   if (!s || (s.connection !== "importing" && !(s.sync.state === "syncing" && s.sync.lastSuccessAt == null))) return null;
   const p = s.importProgress;
   return (
     <Text accessibilityLiveRegion="polite" className={cn(LABEL, "text-center text-muted-foreground")}>
-      {p ? `Syncing · ${p.done} of ${p.total} days` : "Syncing…"}
+      {p ? `Syncing · ${Math.floor(p.done / p.total * 100)}%` : "Syncing…"}
     </Text>
   );
 }

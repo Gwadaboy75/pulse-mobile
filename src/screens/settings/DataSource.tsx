@@ -1,7 +1,3 @@
-// Data source (spec §7.14). Ported from pulse (app)/settings/SettingsView.tsx `DataSource` and SettingsClient.tsx
-// (`DisconnectButton`, `SwitchGoogleButton`): the source as one row (logo, name, last sync), its status only when
-// something needs doing, Sync now, and the per-type sync status folded underneath. The app never receives the Google
-// account's email, so none shows under the name, and connect.ts reports its own OAuth outcome.
 import { useEffect, useState } from "react";
 import { Linking, Pressable, View } from "react-native";
 import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
@@ -24,10 +20,8 @@ import { push } from "@/ui/navigate";
 import { toast } from "@/ui/Toast";
 import { DURATION } from "@/ui/motion";
 
-/** Where a Google account without a Google Health profile sets one up (pulse src/lib/google.ts). */
 const HEALTH_SIGNUP_URL = "https://fitbit.google.com/auth/signup";
 
-/** The status line under the source name, and what to do about it. Connected says nothing more: its line has the last sync. */
 const SOURCE: Record<Exclude<SettingsVM["source"]["status"], "demo">, { line?: string; tone?: string; body?: string }> = {
   not_connected: { line: "Not connected", body: "Connect the Google account your Fitbit Air syncs to. Pulse reads your data and writes only what you log in Pulse." },
   not_linked: {
@@ -53,7 +47,6 @@ function SyncIcon({ status }: { status: SettingsVM["sync"][number]["status"] }) 
   return <Icon icon={Minus} size={16} tone="muted-foreground" strokeWidth={2} />;
 }
 
-/** Per data type, folded under one summary line; it opens itself when something failed or fell behind. */
 function DataTypes({ rows, now }: { rows: SettingsVM["sync"]; now: number }) {
   const failing = rows.filter((r) => r.status === "error").length;
   const behind = rows.filter((r) => r.status === "stale").length;
@@ -101,7 +94,6 @@ function DataTypes({ rows, now }: { rows: SettingsVM["sync"]; now: number }) {
 
 const LABEL = "text-[13px] font-bold uppercase tracking-[0.1em]";
 
-/** The icon of Sync now, spinning while it runs (on the UI thread). */
 function Spinner({ spinning }: { spinning: boolean }) {
   const turn = useSharedValue(0);
   useEffect(() => {
@@ -119,7 +111,6 @@ function Spinner({ spinning }: { spinning: boolean }) {
   );
 }
 
-/** "Sync now": a sync past the 5-minute gate, then the screens reload. The outcome is a toast. */
 function SyncNowButton() {
   const [pending, setPending] = useState(false);
   return (
@@ -142,7 +133,6 @@ function SyncNowButton() {
   );
 }
 
-/** "Disconnect" and its confirmation dialog (spec §7.14). */
 function DisconnectButton() {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -176,7 +166,6 @@ function DisconnectButton() {
   );
 }
 
-/** "Switch account": connect a different Google account. Its confirmation says what happens to the data the current account synced. */
 function SwitchGoogleButton() {
   const [open, setOpen] = useState(false);
   return (
@@ -210,13 +199,12 @@ function SwitchGoogleButton() {
   );
 }
 
-/** A "Connect Google" / "Reconnect Google" button: the connect step starts here. */
 function ConnectButton({ label, className }: { label: string; className?: string }) {
   return (
     <Button
       className={className}
       onPress={async () => {
-        // Sample data is cleared on the way in: `/connect` asks Google first, then clears it (docs/onboarding.md).
+        // Keep sample data until Google consent succeeds.
         if (await store.settings.get("sample")) return push("/connect");
         const r = await connectGoogle();
         if (r.ok) void syncNow();
@@ -288,7 +276,7 @@ export function DataSource({ vm, now }: { vm: Pick<SettingsVM, "source" | "sync"
       {vm.import && (
         <View accessibilityLiveRegion="polite" className="mt-4 gap-2">
           <Text className="text-[15px] leading-[22px] tabular-nums">
-            Importing history… {vm.import.done} of {vm.import.total}&nbsp;days
+            Importing history… {Math.floor(vm.import.done / vm.import.total * 100)}%
           </Text>
           <ProgressBar value={(vm.import.done / vm.import.total) * 100} label="Import progress" />
         </View>
