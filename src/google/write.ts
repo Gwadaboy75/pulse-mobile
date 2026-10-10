@@ -1,6 +1,6 @@
 // Logged entries as Google Health data points, in the shapes Google's guides show (docs/research/google-health-coverage.md,
 // "Writing"). Times go out as UTC instants with the zone's offset, so Google's civil times match the owner's clock.
-import type { LogData, LogType } from "./logTypes";
+import type { LogData, LogType } from "@/lib/log";
 import { addDays, fromWall, localMidnight, utcOffsetS } from "../time";
 
 const iso = (s: number) => new Date(s * 1000).toISOString().replace(".000Z", "Z");

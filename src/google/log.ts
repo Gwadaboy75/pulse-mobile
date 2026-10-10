@@ -3,7 +3,7 @@
 // the readable types logged in other apps home here too (`importEntries`). Over the repositories: reads for the Log
 // screen (entriesOnDay, entriesOn, waterOn, totalsBetween, foodOn) and the database parts live in `logRepo`.
 import type { Repos } from "../data/repos";
-import { scopeUrl, LOG_TYPES, type LogType } from "./logTypes";
+import { scopeUrl, LOG_TYPES, type LogType } from "@/lib/log";
 import type { GoogleClient } from "./client";
 import { GoogleError } from "./oauth";
 import type { MappedEntry, ReadableLogType } from "./map";

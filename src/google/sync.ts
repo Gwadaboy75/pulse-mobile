@@ -16,7 +16,7 @@
 // access token comes from an injected TokenSource. The raw page archive is dropped.
 import type { Repos, Store } from "../data/repos";
 import { importEntries, pruneEntries } from "./log";
-import { LOG_DAYS } from "./logTypes";
+import { LOG_DAYS } from "@/lib/log";
 import { DATA_TYPES, type DataTypeId } from "./catalogue";
 import { addDays, localDay, localMidnight } from "../time";
 import { type ClientDeps, createGoogleClient, localWindows, type TimeWindow } from "./client";

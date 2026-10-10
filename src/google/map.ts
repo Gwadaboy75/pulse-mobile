@@ -8,7 +8,7 @@ import type { DailyMetricsRow } from "../data/repos/daily";
 import type { ExerciseWrite, SleepSessionRow } from "../data/repos/sessions";
 import type { DataTypeId } from "./catalogue";
 import type { ExtraKey } from "@/lib/extraMetrics";
-import { type LogData, type Meal, MEALS } from "./logTypes";
+import { type LogData, type Meal, MEALS } from "@/lib/log";
 import { localDay } from "../time";
 
 type Obj = Record<string, unknown>;

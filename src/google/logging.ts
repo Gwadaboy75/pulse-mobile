@@ -6,7 +6,7 @@
 import type { Repos } from "../data/repos";
 import { createGoogleClient, type ClientDeps } from "./client";
 import { logAccess, saveEntries, type LogResult, type LogWriter, type NewEntry } from "./log";
-import { READABLE, RECONNECT } from "./logTypes";
+import { READABLE, RECONNECT } from "@/lib/log";
 import { localDay, localMidnight } from "../time";
 
 export const LOG_MESSAGE: Record<Exclude<LogResult, { ok: true }>["reason"], string> = {

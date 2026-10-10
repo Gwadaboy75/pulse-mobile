@@ -4,7 +4,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Store } from "../data/repos";
 import { deleteEntry, IMPORT_GRACE_S, importEntries, logAccess, PRUNE_CHECKS, pruneEntries, saveEntries, type LogWriter, type PointCheck } from "./log";
-import { LOG_TYPES, scopeUrl } from "./logTypes";
+import { LOG_TYPES, scopeUrl } from "@/lib/log";
 import { LOG_MESSAGE, logEntries } from "./logging";
 import type { MappedEntry } from "./map";
 import { GoogleError, SCOPES } from "./oauth";

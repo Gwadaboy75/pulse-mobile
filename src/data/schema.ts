@@ -7,7 +7,7 @@
 // Dropped from pulse: better-auth tables, invites, server_settings, coach_prompts, push_subscriptions, avatars, and
 // oauth_tokens (the Google tokens live in the secure store; the non-secret grant goes to `settings`; no account identity is stored).
 // Only src/data/repos may query these tables.
-import { check, customType, foreignKey, index, integer, primaryKey, real, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
+import { check, customType, foreignKey, index, integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 /** A BLOB as Uint8Array (Buffer does not exist in React Native; better-sqlite3's Buffer is one). */
