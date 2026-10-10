@@ -14,7 +14,7 @@ const tables = (Object.values(schema) as unknown[]).filter((x) => is(x, SQLiteTa
 
 describe("schema", () => {
   it("has no table with a user_id column", () => {
-    expect(tables.length).toBe(24);
+    expect(tables.length).toBe(23);
     for (const t of tables) expect(getTableConfig(t).columns.map((c) => c.name), getTableConfig(t).name).not.toContain("user_id");
   });
 
@@ -27,10 +27,5 @@ describe("schema", () => {
     expectTypeOf(node).toExtend<Db>();
     expectTypeOf<ReturnType<typeof drizzleExpo<typeof schema>>>().toExtend<Db>();
     expect(Object.keys(createRepos(node))).toEqual(["samples", "series", "scores", "daily", "sessions", "journal", "log", "profile", "settings", "coach"]);
-  });
-
-  it("stubs throw until implemented", async () => {
-    const repos = createRepos(drizzle(new Database(":memory:"), { schema }));
-    await expect(repos.samples.readHr(0, 1)).rejects.toThrow("not implemented: samplesRepo.readHr");
   });
 });

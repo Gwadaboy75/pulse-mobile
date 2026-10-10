@@ -1,6 +1,8 @@
 // Canonical encoding and fingerprints, copied from pulse's src/server/pipeline/golden.test.ts (canon and hash) so a
 // hash here equals the one pulse pins. The parity rule: outputs match when their canonical encodings hash equal.
-import crypto from "node:crypto";
+// @noble/hashes rather than node:crypto: the same SHA-256, and it also runs on Hermes (app/dev/parity.tsx).
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
 
 // Numbers are rounded to 10 significant digits first, so a last-ulp difference in Math between Node
 // versions does not count as a scoring change. Object keys are sorted: jsonb stores them in its own order.
@@ -14,11 +16,7 @@ export const canon = (v: unknown): unknown =>
         : v;
 
 export const hash = (rs: Record<string, unknown>[]) =>
-  crypto
-    .createHash("sha256")
-    .update(rs.map((r) => Object.values(r).map((v) => JSON.stringify(canon(v))).join("\t")).join("\n"))
-    .digest("hex")
-    .slice(0, 16);
+  bytesToHex(sha256(utf8ToBytes(rs.map((r) => Object.values(r).map((v) => JSON.stringify(canon(v))).join("\t")).join("\n")))).slice(0, 16);
 
 export type Row = Record<string, unknown>;
 export type ScoreRows = { daily_scores: Row[]; intraday_series: Row[]; reports: Row[] };

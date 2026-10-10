@@ -1,27 +1,43 @@
 // What the pipeline computes and caches: daily_scores (stage 1 and stage 2 columns), reports, the one fold checkpoint
 // and the dirty-day marks. Replaces the score parts of pulse pipeline/{index,stage1,stage2}.ts, queries/common.ts,
 // queries/{home,reports,journal,health,settings}.ts and push.ts. Every write is diff-only.
+import { and, asc, count, desc, eq, gt, gte, isNotNull, like, lt, lte, max, min, ne, notInArray, or, sql } from "drizzle-orm";
+import { dailyMetrics, dailyScores, foldCheckpoints, intradayDirty, reports } from "../schema";
 import type { Db } from "../types";
-import { todo } from "./todo";
+import { anyDiffers, atomic, chunks, excluded } from "./sql";
 
-// The JSON columns' shapes are pulse's stored types (src/server/pipeline/types.ts). They are `unknown` here because
-// src/pipeline/types.ts (stream B) and src/core do not exist yet; when they land, replace each alias with the import
-// (`Stage1Day`, `Stage1Activity`, `RecoveryRow`, `SleepRow`, `TrainingLoadRow`, `StrainTargetRow`, `SleepPlannerRow`,
-// `EnergyBankRow`, `StressRow`, `HealthMonitorRow`, `HealthspanRow`, `FitnessRow`, `JournalImpactRow`, `Report`).
-export type Stage1DayJson = unknown;
-export type Stage1ActivityJson = unknown;
-export type RecoveryJson = unknown;
-export type SleepJson = unknown;
-export type TrainingLoadJson = unknown;
-export type StrainTargetJson = unknown;
-export type SleepPlannerJson = unknown;
-export type EnergyBankJson = unknown;
-export type StressJson = unknown;
-export type HealthMonitorJson = unknown;
-export type HealthspanJson = unknown;
-export type FitnessJson = unknown;
-export type JournalImpactJson = unknown;
-export type ReportJson = unknown;
+// The JSON columns' shapes are pulse's stored types (src/pipeline/types.ts, ported from pulse src/server/pipeline/types.ts).
+import type { Report } from "../../core/algorithms/reports";
+import type {
+  EnergyBankRow,
+  FitnessRow,
+  HealthMonitorRow,
+  HealthspanRow,
+  JournalImpactRow,
+  RecoveryRow,
+  SleepPlannerRow,
+  SleepRow,
+  Stage1Activity,
+  Stage1Day,
+  StrainTargetRow,
+  StressRow,
+  TrainingLoadRow,
+} from "../../pipeline/types";
+
+export type Stage1DayJson = Stage1Day;
+export type Stage1ActivityJson = Stage1Activity;
+export type RecoveryJson = RecoveryRow;
+export type SleepJson = SleepRow;
+export type TrainingLoadJson = TrainingLoadRow;
+export type StrainTargetJson = StrainTargetRow;
+export type SleepPlannerJson = SleepPlannerRow;
+export type EnergyBankJson = EnergyBankRow;
+export type StressJson = StressRow;
+export type HealthMonitorJson = HealthMonitorRow;
+export type HealthspanJson = HealthspanRow;
+export type FitnessJson = FitnessRow;
+export type JournalImpactJson = JournalImpactRow;
+export type ReportJson = Report;
 
 /** A day's daily_scores row as the queries read it; a column is null until its stage has written it. queries/common.ts:107 `loadDays` */
 export type ScoreRow = {
@@ -160,35 +176,176 @@ export interface ScoresRepo {
   clearSynced(): Promise<void>;
 }
 
-export function scoresRepo(_db: Db): ScoresRepo {
+/** ISO weeks are `2026-W40`, months `2026-10`: the LIKE patterns pulse used. */
+const PERIOD = { week: "____-W__", month: "____-__" } as const;
+
+export function scoresRepo(db: Db): ScoresRepo {
+  const s = dailyScores;
+  const ck = foldCheckpoints;
+  const r = reports;
+  const d = intradayDirty;
+  /** What `writeStage2` owns: the version, stage 2's ten columns and the journal impact (pulse's STAGE2_COLUMNS). */
+  const stage2 = (["scoringVersion", "recovery", "sleep", "trainingLoad", "strainTarget", "sleepPlanner", "energyBank", "stress", "healthMonitor", "healthspan", "fitness", "journalImpact"] as const).map((k) => [k, s[k]] as const);
+
   return {
-    readDays: async () => todo("scoresRepo.readDays"),
-    firstDay: async () => todo("scoresRepo.firstDay"),
-    lastStoredDay: async () => todo("scoresRepo.lastStoredDay"),
-    latestJournalImpact: async () => todo("scoresRepo.latestJournalImpact"),
-    wearDays: async () => todo("scoresRepo.wearDays"),
-    countDays: async () => todo("scoresRepo.countDays"),
-    recoveryValue: async () => todo("scoresRepo.recoveryValue"),
-    stage1Stored: async () => todo("scoresRepo.stage1Stored"),
-    writeStage1: async () => todo("scoresRepo.writeStage1"),
-    readStage2Inputs: async () => todo("scoresRepo.readStage2Inputs"),
-    writeStage2: async () => todo("scoresRepo.writeStage2"),
-    deleteOutside: async () => todo("scoresRepo.deleteOutside"),
-    needsRecompute: async () => todo("scoresRepo.needsRecompute"),
-    readCheckpoint: async () => todo("scoresRepo.readCheckpoint"),
-    writeCheckpoint: async () => todo("scoresRepo.writeCheckpoint"),
-    deleteCheckpoint: async () => todo("scoresRepo.deleteCheckpoint"),
-    dirtyDays: async () => todo("scoresRepo.dirtyDays"),
-    markDirty: async () => todo("scoresRepo.markDirty"),
-    markAllDaysDirty: async () => todo("scoresRepo.markAllDaysDirty"),
-    clearDirty: async () => todo("scoresRepo.clearDirty"),
-    writeReports: async () => todo("scoresRepo.writeReports"),
-    deleteReportsExcept: async () => todo("scoresRepo.deleteReportsExcept"),
-    readReport: async () => todo("scoresRepo.readReport"),
-    reportNeighbour: async () => todo("scoresRepo.reportNeighbour"),
-    latestReports: async () => todo("scoresRepo.latestReports"),
-    listReports: async () => todo("scoresRepo.listReports"),
-    countReportsWithData: async () => todo("scoresRepo.countReportsWithData"),
-    clearSynced: async () => todo("scoresRepo.clearSynced"),
+    async readDays(from, to) {
+      return db
+        .select({
+          day: s.day, strain: s.strain, activities: s.activities, sessionRhr: s.sessionRhrBpm, recovery: s.recovery, sleep: s.sleep,
+          trainingLoad: s.trainingLoad, strainTarget: s.strainTarget, sleepPlanner: s.sleepPlanner, energyBank: s.energyBank,
+          stress: s.stress, healthMonitor: s.healthMonitor, healthspan: s.healthspan, fitness: s.fitness,
+        })
+        .from(s)
+        .where(and(gte(s.day, from), lte(s.day, to)))
+        .all() as ScoreRow[];
+    },
+    async firstDay() {
+      return db.select({ d: min(s.day) }).from(s).all()[0]?.d ?? null;
+    },
+    async lastStoredDay(onOrBefore) {
+      return db.select({ d: max(s.day) }).from(s).where(lte(s.day, onOrBefore)).all()[0]?.d ?? null;
+    },
+    async latestJournalImpact(onOrBefore) {
+      const [row] = db.select({ day: s.day, impact: s.journalImpact }).from(s).where(and(lte(s.day, onOrBefore), isNotNull(s.journalImpact))).orderBy(desc(s.day)).limit(1).all();
+      // JSON columns read back as stored; pulse casts the same way (queries/journal.ts).
+      return row ? { day: row.day, impact: row.impact as JournalImpactJson } : null;
+    },
+    async wearDays(onOrBefore) {
+      return db
+        .select({
+          day: s.day,
+          hrCount: sql<number>`coalesce(json_extract(${s.strain}, '$.hrCount'), 0)`.mapWith(Number),
+          hrMinutes: sql<number>`coalesce(json_extract(${s.strain}, '$.hrMinutesAm'), 0) + coalesce(json_extract(${s.strain}, '$.hrMinutesPm'), 0)`.mapWith(Number),
+        })
+        .from(s)
+        .where(lte(s.day, onOrBefore))
+        .orderBy(desc(s.day))
+        .all();
+    },
+    async countDays(onOrBefore) {
+      return db.select({ n: count() }).from(s).where(lte(s.day, onOrBefore)).all()[0].n;
+    },
+    async recoveryValue(day) {
+      const [row] = db.select({ value: sql<number | null>`json_extract(${s.recovery}, '$.value')` }).from(s).where(eq(s.day, day)).all();
+      return row?.value ?? null;
+    },
+
+    async stage1Stored() {
+      return db.select({ day: s.day, scoringVersion: s.scoringVersion, key: sql<string | null>`json_extract(${s.strain}, '$.key')` }).from(s).all();
+    },
+    async writeStage1(rows) {
+      atomic(db, () => {
+        // Stage 1 never stamps scoring_version (a new row gets 0): stage 2 does when it commits.
+        for (const part of chunks(rows, 100)) {
+          db.insert(s)
+            .values(part.map((x) => ({ day: x.day, scoringVersion: 0, strain: x.strain, activities: x.activities, sessionRhrBpm: x.sessionRhrBpm })))
+            .onConflictDoUpdate({
+              target: s.day,
+              set: { strain: excluded(s.strain), activities: excluded(s.activities), sessionRhrBpm: excluded(s.sessionRhrBpm) },
+              setWhere: anyDiffers([s.strain, s.activities, s.sessionRhrBpm]),
+            })
+            .run();
+        }
+      });
+    },
+
+    async readStage2Inputs() {
+      return db
+        .select({ day: s.day, strain: s.strain, activities: s.activities, sessionRhr: s.sessionRhrBpm, recovery: s.recovery, impact: s.journalImpact })
+        .from(s)
+        .orderBy(asc(s.day))
+        .all() as Stage2Input[];
+    },
+    async writeStage2(rows) {
+      atomic(db, () => {
+        for (const part of chunks(rows, 50)) {
+          db.insert(s)
+            .values(part)
+            .onConflictDoUpdate({ target: s.day, set: Object.fromEntries(stage2.map(([k, c]) => [k, excluded(c)])) as never, setWhere: anyDiffers(stage2.map(([, c]) => c)) })
+            .run();
+        }
+      });
+    },
+    async deleteOutside(first, last) {
+      db.delete(s).where(or(lt(s.day, first), gt(s.day, last))).run();
+    },
+    async needsRecompute(scoringVersion) {
+      if (db.select({ d: d.day }).from(d).limit(1).all().length) return true;
+      if (db.select({ d: s.day }).from(s).where(ne(s.scoringVersion, scoringVersion)).limit(1).all().length) return true;
+      const newest = db.select({ d: max(dailyMetrics.day) }).from(dailyMetrics).all()[0]?.d;
+      return !!newest && db.select({ d: s.day }).from(s).where(eq(s.day, newest)).all().length === 0;
+    },
+
+    async readCheckpoint() {
+      return db.select({ day: ck.day, scoringVersion: ck.scoringVersion, inputsKey: ck.inputsKey, fold: ck.fold }).from(ck).where(eq(ck.id, 1)).all()[0] ?? null;
+    },
+    async writeCheckpoint(c) {
+      const cols = [ck.day, ck.scoringVersion, ck.inputsKey, ck.fold];
+      db.insert(ck)
+        .values({ id: 1, ...c })
+        .onConflictDoUpdate({ target: ck.id, set: { day: excluded(ck.day), scoringVersion: excluded(ck.scoringVersion), inputsKey: excluded(ck.inputsKey), fold: excluded(ck.fold) }, setWhere: anyDiffers(cols) })
+        .run();
+    },
+    async deleteCheckpoint() {
+      db.delete(ck).run();
+    },
+
+    async dirtyDays() {
+      return db.select({ day: d.day }).from(d).orderBy(asc(d.day)).all().map((x) => x.day);
+    },
+    async markDirty(days) {
+      atomic(db, () => {
+        for (const part of chunks(days, 500)) db.insert(d).values(part.map((day) => ({ day }))).onConflictDoNothing().run();
+      });
+    },
+    async markAllDaysDirty() {
+      // `where true` keeps SQLite from reading `on conflict` as part of the select (its parsing ambiguity).
+      db.run(sql`insert into intraday_dirty (day) select distinct day from daily_metrics where true on conflict do nothing`);
+    },
+    async clearDirty() {
+      db.delete(d).run();
+    },
+
+    async writeReports(rows) {
+      atomic(db, () => {
+        for (const part of chunks(rows, 100)) {
+          db.insert(r).values(part).onConflictDoUpdate({ target: r.period, set: { data: excluded(r.data) }, setWhere: anyDiffers([r.data]) }).run();
+        }
+      });
+    },
+    async deleteReportsExcept(keep) {
+      db.delete(r).where(keep.length ? notInArray(r.period, keep) : undefined).run();
+    },
+    async readReport(period) {
+      return (db.select({ data: r.data }).from(r).where(eq(r.period, period)).all()[0]?.data ?? null) as ReportJson | null;
+    },
+    async reportNeighbour(kind, period, dir) {
+      const [row] = db
+        .select({ period: r.period })
+        .from(r)
+        .where(and(like(r.period, PERIOD[kind]), dir < 0 ? lt(r.period, period) : gt(r.period, period)))
+        .orderBy(dir < 0 ? desc(r.period) : asc(r.period))
+        .limit(1)
+        .all();
+      return row?.period ?? null;
+    },
+    async latestReports(kind, limit) {
+      return db.select({ period: r.period, data: r.data }).from(r).where(like(r.period, PERIOD[kind])).orderBy(desc(r.period)).limit(limit).all() as { period: string; data: ReportJson }[];
+    },
+    async listReports() {
+      return db.select({ period: r.period, data: r.data }).from(r).orderBy(desc(r.period)).all() as { period: string; data: ReportJson }[];
+    },
+    async countReportsWithData() {
+      return db.select({ n: count() }).from(r).where(sql`json_extract(${r.data}, '$.days') > 0`).all()[0].n;
+    },
+
+    async clearSynced() {
+      atomic(db, () => {
+        db.delete(s).run();
+        db.delete(r).run();
+        db.delete(ck).run();
+        db.delete(d).run();
+      });
+    },
   };
 }

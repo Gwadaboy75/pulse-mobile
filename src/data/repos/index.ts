@@ -1,7 +1,7 @@
 // The repositories: the only code that touches SQLite. Each table belongs to exactly one repository (writes); a repository
 // may read another's table where a pulse query joins them (`logRepo.waterOn` reads daily_values and sync_state).
 //
-//   samples   hr_days, steps_days, raw_payloads     heavy BLOB tables; raw_payloads is a Google page archive pruned on the same schedule as hr compaction
+//   samples   hr_days, steps_days                   heavy BLOB tables (pulse's raw_payloads archive is dropped: nothing read it)
 //   series    intraday_series                        per-minute series the pipeline caches
 //   scores    daily_scores, fold_checkpoints, reports, intraday_dirty   what the pipeline computes, and its "what to recompute" marks
 //   daily     daily_metrics, daily_values, health_records               Google's daily rows
@@ -13,6 +13,7 @@
 //   coach     coach_settings, coach_chats                               the coach
 //
 // A Google account switch ("forgetSyncedData", pulse avatar.ts:45) is each owner's `clearSynced()` in one `transaction`.
+import { sql } from "drizzle-orm";
 import type { Db } from "../types";
 import { coachRepo, type CoachRepo } from "./coach";
 import { dailyRepo, type DailyRepo } from "./daily";
@@ -24,13 +25,11 @@ import { scoresRepo, type ScoresRepo } from "./scores";
 import { seriesRepo, type SeriesRepo } from "./series";
 import { sessionsRepo, type SessionsRepo } from "./sessions";
 import { settingsRepo, type SettingsRepo } from "./settings";
-import { todo } from "./todo";
 
 /** Which repository owns each table (the list above, checked against the schema by src/data/schema.test.ts). */
 export const TABLE_OWNER = {
   hr_days: "samples",
   steps_days: "samples",
-  raw_payloads: "samples",
   intraday_series: "series",
   daily_scores: "scores",
   fold_checkpoints: "scores",
@@ -93,5 +92,34 @@ export function createRepos(db: Db): Repos {
 }
 
 export function createStore(db: Db): Store {
-  return { ...createRepos(db), transaction: async () => todo("store.transaction") };
+  const repos = createRepos(db);
+  // Transactions run one after another: each starts when the one before has finished (committed or rolled back).
+  let last: Promise<unknown> = Promise.resolve();
+  const run = async <T>(fn: (tx: Repos) => Promise<T>): Promise<T> => {
+    // IMMEDIATE takes the write lock now, so a second connection (a background task) waits here, not at COMMIT.
+    db.run(sql`begin immediate`);
+    let result: T;
+    try {
+      result = await fn(repos);
+      db.run(sql`commit`);
+    } catch (e) {
+      try {
+        db.run(sql`rollback`);
+      } catch {
+        // already rolled back by SQLite (a failed commit can end the transaction): keep the original error
+      }
+      throw e;
+    }
+    return result;
+  };
+  return {
+    ...repos,
+    // ponytail: one connection, so a write made on `store` (not `tx`) while a transaction is open joins it, and calling
+    // `store.transaction` inside a callback waits for itself. The port keeps writes on `tx` inside a callback.
+    transaction<T>(fn: (tx: Repos) => Promise<T>): Promise<T> {
+      const p = last.then(() => run(fn));
+      last = p.catch(() => undefined);
+      return p;
+    },
+  };
 }

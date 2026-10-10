@@ -3,7 +3,12 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
+    "@expo-google-fonts/barlow": "^0.4.1",
+    "@expo-google-fonts/figtree": "^0.4.1",
     "@expo/ui": "~57.0.22",
+    "@gorhom/bottom-sheet": "^5.2.14",
+    "@noble/hashes": "^2.4.0",
+    "@shopify/react-native-skia": "2.6.2",
     "date-fns": "4.4.0",
     "drizzle-orm": "^0.45.4",
     "expo": "~57.0.27",
@@ -23,6 +28,7 @@
     "expo-system-ui": "~57.0.4",
     "expo-web-browser": "~57.0.3",
     "lucide-react": "1.49.0",
+    "lucide-react-native": "^1.53.0",
     "nativewind": "^4.2.7",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -32,9 +38,11 @@
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
+    "react-native-svg": "15.15.4",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.10.1",
-    "tailwindcss": "^3.4.19"
+    "tailwindcss": "^3.4.19",
+    "victory-native": "^42.0.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
