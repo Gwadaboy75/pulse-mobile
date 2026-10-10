@@ -71,8 +71,10 @@ export function ColumnChart({ summary, data, format, unit, tickEvery = 1, refere
                 const bx = centers[i] - bw / 2;
                 return (
                   <Group key={i}>
-                    {/* A dim full-height track behind each column, so the scale reads without a y-axis. */}
-                    <RoundedRect x={bx} y={y0} width={bw} height={y1 - y0} r={4} color={alpha(c.foreground, 0.04)} />
+                    {/* A dim full-height track behind each column, so the scale reads without a y-axis (Recharts' Bar
+                        background). With nothing above zero the web's domain is [0, 0] and Recharts draws no bars and
+                        no backgrounds: an empty week is just the grid. */}
+                    {max > 0 && <RoundedRect x={bx} y={y0} width={bw} height={y1 - y0} r={4} color={alpha(c.foreground, 0.04)} />}
                     {d.value !== null && d.value > 0 && <RoundedRect x={bx} y={y(d.value)} width={bw} height={y1 - y(d.value)} r={4} color={fill} />}
                   </Group>
                 );
