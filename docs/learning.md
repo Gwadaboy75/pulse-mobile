@@ -270,3 +270,12 @@ Expo Router turns every file under `app/` into a route and bundles it, so a dev 
 `false`, Metro folds the condition before it collects dependencies, and the `require` with everything behind it is gone.
 In release the route still exists and sends the person home. A static `import` would not work: without Expo's
 experimental tree shaking, every imported module ships.
+
+## One module per lucide icon
+
+`import { House } from "lucide-react-native"` loads the package's index, which re-exports all of its about 1,900 icons,
+and Metro bundles every one (Expo's tree shaking would drop them, but it is still experimental). A small Babel plugin in
+`babel.config.js` rewrites each named import to that icon's own module (`lucide-react-native/icons/house`), using the
+index's own export lines as the name map, so aliases resolve and an unknown name fails the bundle. The copied
+`src/lib/reasons.ts` imports the web package, `lucide-react`; the same plugin points it at the native icons. The Android
+bundle drops from 8.6 MB to 6.6 MB.
