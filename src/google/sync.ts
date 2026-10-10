@@ -13,7 +13,7 @@
 // cursor commit in one transaction, so an interrupted backfill resumes where it stopped.
 //
 // On the phone: one install is one person, so there is no user id; rows go through the repositories (`Store`) and the
-// access token comes from an injected TokenSource. The raw page archive is dropped.
+// access token comes from an injected TokenSource.
 import type { Repos, Store } from "../data/repos";
 import { importEntries, pruneEntries } from "./log";
 import { LOG_DAYS } from "@/lib/log";
@@ -90,7 +90,7 @@ const JOBS: Job[] = [
   // Score inputs from roll-ups (Pulse Age's zone minutes, Health Monitor's ranges); "rollup" sets `changed`.
   { key: "time-in-heart-rate-zone", kind: "rollup", type: "time-in-heart-rate-zone" },
   // Personal ranges (rhr/hrv) are not fetched: the API answers UNSUPPORTED_DATA_TYPE_ACTION to a roll-up on the
-  // daily types (checked on a real account, 2026-10-03), so Health Monitor keeps Pulse's own ranges.
+  // daily types, so Health Monitor keeps Pulse's own ranges.
   { key: "heart-rate", kind: "hr", type: "heart-rate" },
   // Last, so the scored data lands first; each fails on its own (a scope granted later, a 400 on a new type).
   ...EXTRA_JOBS,

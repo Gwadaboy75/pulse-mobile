@@ -1,5 +1,5 @@
 // Ported from pulse src/server/queries/settings.test.ts onto the F2 database (`seededCtx`): the sync rows and the grant
-// are `settings` repository rows instead of oauth_tokens, and there is no demo mode.
+// are `settings` repository rows and there is no demo mode.
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { SCOPES } from "../google/oauth";
 import type { SyncStateRow } from "../data/repos/settings";

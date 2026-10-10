@@ -32,8 +32,7 @@ export type ProfileInput = z.infer<typeof ProfileInput>;
 
 /**
  * The stored profile with max HR resolved, or null before onboarding. Max HR: the user's own wins; else Tanaka,
- * 208 - 0.7 * age. Not the top of Google's PEAK zone: Google sends a flat 220 there for everyone (seen 2026-10-05),
- * which put every zone and Strain's heart-rate reserve too high.
+ * 208 - 0.7 * age. Not the top of Google's PEAK zone: Google sends a flat 220 there for everyone, which would put every zone and Strain's heart-rate reserve too high.
  */
 export async function getProfile(store: Store, today = new Date().toISOString().slice(0, 10)): Promise<Profile | null> {
   const row = await store.profile.getProfileRow();

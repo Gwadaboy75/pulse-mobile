@@ -1,5 +1,5 @@
 // From pulse's (app)/journal/CheckIn.test.tsx: `changedEntries`, and the heading the sheet asks. The sheet itself
-// (opening, saving, Dismiss journal?, moving between days) is the owner's check on the phone.
+// (opening, saving, Dismiss journal?, moving between days) is checked by hand on the phone.
 import { describe, expect, it } from "vitest";
 import { changedEntries, heading } from "./checkin";
 

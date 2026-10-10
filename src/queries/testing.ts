@@ -19,7 +19,7 @@ export function seededCtx(): Promise<QueryCtx> {
     const { ctx } = loadF6();
     const { store } = testDb();
     await loadSeed(store, f2);
-    // loadSeed fills what the pipeline reads; the screens also read these (F6 was recorded with them in place).
+    // loadSeed fills what the pipeline reads; the screens also read these (the F6 fixture assumes them in place).
     const t = f2.tables;
     await store.daily.upsertDailyValues(t.daily_values.map((r) => ({ day: r.day as string, key: r.key as string, value: r.value as number })));
     await store.daily.upsertHealthRecords(t.health_records.map((r) => ({ id: r.id as string, kind: r.kind as "ecg" | "irn", ts: r.ts as number, day: r.day as string, data: r.data })));

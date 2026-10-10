@@ -64,7 +64,7 @@ function StreakFlame({ height }: { height: number }) {
  * Home's collapsing header (spec §4.3). The top row always stays: the avatar and the streak, the date pill, the sync
  * status. Once the dials have scrolled under it (`progress` 1, from PageShell) a ring row of mini Sleep / Recovery / Strain rings
  * eases in below. This is the web's discrete swap (what it does on a laptop or under reduced motion); the scroll-linked morph
- * that shrinks each dial into its ring is not ported: it measures and animates DOM boxes with a ScrollTimeline.
+ * that shrinks each dial into its ring is not built here: it measures and animates DOM boxes with a ScrollTimeline.
  */
 export function HomeHeader({ rings, progress, right, streak }: { rings?: HeaderRings; progress: DerivedValue<number>; right?: React.ReactNode; streak?: number }) {
   const { today } = useShellCalendar();

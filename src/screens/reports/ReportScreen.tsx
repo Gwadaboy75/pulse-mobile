@@ -57,7 +57,7 @@ async function load(period: string, ctx: Parameters<typeof getReport>[1]) {
   return { period, vm, latest, today: todayOf(ctx) };
 }
 
-/** Previous / next period; the next arrow is disabled at the latest period (spec §7.13). Replaces the route's period in place (the web's links replace). */
+/** Previous / next period; the next arrow is disabled at the latest period (spec §7.13). Replaces the route's period in place. */
 function PeriodSwitcher({ vm }: { vm: ReportVM }) {
   const step = (to: string | null, dir: "prev" | "next") => {
     const label = `${dir === "prev" ? "Previous" : "Next"} ${vm.kind}`;

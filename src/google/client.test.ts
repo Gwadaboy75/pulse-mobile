@@ -1,5 +1,4 @@
-// Ported from pulse client.test.ts. Dropped with the raw page archive: the archive and its pruning tests, and the
-// archived-page asserts. The token tests (expiry, refresh against Google's token endpoint) belong to the connect step;
+// Ported from pulse client.test.ts. The token tests (expiry, refresh against Google's token endpoint) belong to the connect step;
 // here the TokenSource is scripted (testing/tokens.ts) and the client's use of it is checked.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DATA_TYPE_IDS, DATA_TYPES } from "./catalogue";

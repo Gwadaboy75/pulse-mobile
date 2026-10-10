@@ -1,5 +1,5 @@
 // Info-card copy for the screens (spec §7.2, §7.3, §7.5, §7.15). Final copy: do not reword. The three score cards
-// end with SOURCE_NOTE (user, 2026-10-04). Ported from pulse src/app/(app)/_lib/info.tsx: the words are the web's; <P>
+// end with SOURCE_NOTE. Ported from pulse src/app/(app)/_lib/info.tsx: the words are the web's; <P>
 // is a paragraph <Text> styled as the info card's body, the swatch rows are Views.
 import type { ReactNode } from "react"
 import { View } from "react-native"

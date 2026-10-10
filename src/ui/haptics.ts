@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import * as Haptics from "expo-haptics";
 
 // Haptics follow each platform's own vocabulary (Apple's HIG feedback generators on iOS; Android's system haptic
-// constants, which expo-haptics recommends over raw vibration). Where they fire (the owner wants them felt, subtly):
+// constants, which expo-haptics recommends over raw vibration). Where they fire (felt, subtly):
 //   tap      an action: a primary or sheet button, the check-in button, pull to refresh
 //   select   a choice or a step: a tab, a segmented control, a day, each data point while scrubbing a chart
 //   toggle   something opened or closed: a section, a switch

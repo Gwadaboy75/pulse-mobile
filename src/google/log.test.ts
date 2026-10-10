@@ -1,6 +1,6 @@
 // Ported from pulse log.test.ts: the Google parts (logAccess, saveEntries, deleteEntry, importEntries, pruneEntries) and
-// logging.ts's write path. Dropped, because they are repository reads (logRepo) or per-user: entriesOnDay, entriesOn,
-// waterOn, totalsBetween, "per user". rewindSync is `settings.rewindSyncCursor`, checked through logEntries.
+// logging.ts's write path. The repository reads (logRepo) entriesOnDay, entriesOn,
+// waterOn and totalsBetween are not tested here. rewindSync is `settings.rewindSyncCursor`, checked through logEntries.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Store } from "../data/repos";
 import { deleteEntry, IMPORT_GRACE_S, importEntries, logAccess, PRUNE_CHECKS, pruneEntries, saveEntries, type LogWriter, type PointCheck } from "./log";

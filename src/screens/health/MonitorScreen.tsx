@@ -150,7 +150,7 @@ export function MonitorScreen() {
 
 /**
  * Health Monitor loading (spec §7.8, §5.19): the date row, the count hero, the five vital tiles with the note, then
- * Heart rhythm at its one-row size and the two measurements every owner has.
+ * Heart rhythm at its one-row size and the two measurements every user has.
  */
 function MonitorLoading() {
   return (

@@ -176,7 +176,7 @@ export interface ScoresRepo {
   clearSynced(): Promise<void>;
 }
 
-/** ISO weeks are `2026-W40`, months `2026-10`: the LIKE patterns pulse used. */
+/** ISO weeks are `2026-W40`, months `2026-10`: the LIKE patterns that match them. */
 const PERIOD = { week: "____-W__", month: "____-__" } as const;
 
 export function scoresRepo(db: Db): ScoresRepo {

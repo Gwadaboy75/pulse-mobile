@@ -26,7 +26,7 @@ const READS: { icon: LucideIcon; title: string; body: string }[] = [
 ];
 
 /**
- * `onConnected` runs once Google has said yes; it may fail (clearing the sample data), and its error shows here.
+ * `onConnected` runs once Google grants access; it may fail (clearing the sample data), and its error shows here.
  * `sample`: the person is leaving sample data, so the explainer says it goes.
  */
 export function ConnectFlow({ sample, onConnected, onCancel }: { sample?: boolean; onConnected: () => Promise<string | null>; onCancel: () => void }) {

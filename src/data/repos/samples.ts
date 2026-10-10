@@ -1,6 +1,5 @@
 // Band heart rate and per-minute steps (hr_days, steps_days).
-// Replaces pulse src/server/samples.ts and the sample parts of sync.ts. Pulse's raw page archive (raw_payloads) is
-// dropped on the phone: nothing read it.
+// Replaces pulse src/server/samples.ts and the sample parts of sync.ts.
 // Rows are decoded: `offsets` and `values` are plain number arrays (delta-varint / uint8 BLOBs are this repository's
 // concern: src/data/encoding.ts). Every write method writes nothing when the stored row is unchanged.
 import { and, asc, between, desc, eq, lt } from "drizzle-orm";

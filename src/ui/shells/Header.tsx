@@ -26,15 +26,13 @@ export function useHeaderHeight(rows = HEADER_ROW) {
 
 /**
  * The header frame: ground fill, safe area, a 24 px fade at the bottom (no blur: the reference app fades, it does not
- * frost). It is laid over the top of a screen (absolute); the web's is sticky and its 24 px fade is part of its height in
- * layout, so the screen's scroll content starts below `useHeaderHeight(rows) + HEADER_FADE` (<ScreenScroll> adds the fade). The web masks the fill with a CSS mask; here the fill is the ground painted at
+ * frost). It is laid over the top of a screen (absolute), so the screen's scroll content starts below `useHeaderHeight(rows) + HEADER_FADE` (<ScreenScroll> adds the fade). The fill is the ground painted at
  * the same screen position, and the fade a strip going from the ground's colour to transparent. `expanded` (a shared
  * value, px, 0 to `extra`) reveals the collapsing header's second row: a band of the ground `extra` px tall under the
  * row, faded in, with the 24 px fade moved down below it.
  *
  * Nothing here animates a layout property: the fill and the band have fixed heights, and only the band's opacity and
- * the fade's translateY change, on the UI thread. (Animating the fill's height left the grown part unpainted on the
- * phone: the content showed through the collapsed row, 2026-10-11.) The band and fade are native gradients.
+ * the fade's translateY change, on the UI thread. The band and fade are native gradients.
  */
 export function HeaderFrame({ children, rows = HEADER_ROW, expanded, extra = 0, onHeight }: { children: ReactNode; rows?: number; expanded?: DerivedValue<number>; /** The second row's height: how far `expanded` goes. */ extra?: number; /** Told the header's resting height (safe area plus its rows), so a screen can pad its content below it. */ onHeight?: (height: number) => void }) {
   const { c, scheme } = useTheme();

@@ -1,5 +1,5 @@
 // Activity `/activity/[id]` (spec §7.4). No date switcher; back falls back to that day's Strain. Ported from pulse
-// src/app/(app)/activity/[id]/{page,loading}.tsx. Not ported, because the web gates them behind flags that are off
+// src/app/(app)/activity/[id]/{page,loading}.tsx. Left out while their flags are off
 // (src/lib/features.ts): WorkoutBanner (FEATURES.strengthTrainer) and the cardio / muscular split (FEATURES.muscularLoad).
 import { ScrollView, useWindowDimensions, View } from "react-native"
 import { useLocalSearchParams } from "expo-router"
@@ -149,7 +149,7 @@ function Hero({ vm }: { vm: ActivityVM }) {
         <HeroStat label="Activity strain" value={formatValue("decimal1", s)} average={vm.strainAverage} format="decimal1" valueClass={s === null ? "text-muted-foreground" : "text-strain-text"} raw={s} />
         {vm.steps && <HeroStat label="Activity steps" value={formatValue("grouped", vm.steps.value)} average={vm.steps.average} format="grouped" raw={vm.steps.value} />}
       </View>
-      {/* The band-off notice under the hero already says why; repeating it here was the first of three copies. */}
+      {/* The band-off notice under the hero already says why; so it is not repeated here. */}
       {s === null && vm.hr.value !== null && <ReasonPlaceholder reason={vm.strain.reason} size="sm" />}
     </View>
   )

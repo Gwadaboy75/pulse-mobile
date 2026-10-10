@@ -1,7 +1,7 @@
 // Health Monitor's Heart rhythm section: the latest ECG (result, average heart rate, date), older readings as rows, and
 // the irregular rhythm notification count. Ported from pulse src/app/(app)/health/monitor/HeartRhythm.tsx. Each reading
 // opens its sheet (`/ecg?id=`, app/(sheets)/ecg.tsx) where the web sets `?ecg=<id>`. With nothing recorded it is one
-// quiet row, so a screen most owners see empty never looks broken.
+// quiet row, so a screen most people see empty never looks broken.
 import { View } from "react-native";
 import { Activity, ChevronRight, HeartPulse } from "lucide-react-native";
 import { DAY, formatDay, formatValue } from "@/lib/format";

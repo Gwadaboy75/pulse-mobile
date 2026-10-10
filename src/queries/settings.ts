@@ -100,7 +100,7 @@ export async function getSettings(ctx: QueryCtx): Promise<SettingsVM> {
   const statusOf = (last: number | null, error: string | null) => (error ? "error" : last == null ? "never" : nowMs - last * 1000 > STALE_MS ? "stale" : "ok");
   const auth = await authState(ctx, rows);
   const needsPermissions = (auth === "connected" || auth === "no_device") && (await missingScopes(ctx.store)).length > 0;
-  // Not linked is one account-level problem, said once in Data source, not on every row.
+  // Not linked is one account-level problem, shown once in Data source, not on every row.
   const rowError = (e: string | null) => (e && auth !== "not_linked" ? syncErrorText(e) : null);
   const sync: SettingsVM["sync"] = GROUPS.map((g) => {
     const members = rows.filter((r) => g.types.includes(r.type));

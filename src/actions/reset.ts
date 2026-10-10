@@ -1,7 +1,6 @@
 // Disconnect Google and delete everything (Settings). Disconnect is pulse's settings/actions.ts `disconnectGoogle` with
 // the phone's meaning: there is no server and nothing to revoke from here, so it forgets the grant and what Google
-// synced (the web kept the data and only stopped syncing; the owner chose to clear it, as an account switch does:
-// pulse avatar.ts `forgetSyncedData`). The journal, profile, dashboard, log and coach stay.
+// synced, as pulse avatar.ts `forgetSyncedData` does. The journal, profile, dashboard, log and coach stay.
 import type { Store } from "../data/repos";
 import { dataChanged } from "../screens/useScreen";
 import type { ActionResult } from "./journal";

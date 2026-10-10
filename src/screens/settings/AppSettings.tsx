@@ -1,7 +1,7 @@
 // Settings › App (appearance, notifications). Ported from pulse (app)/settings/SettingsView.tsx (Appearance), SettingsClient
 // `ThemePicker` and AppSettings.tsx. The theme is system, light or dark, kept on the device (the `theme` setting, applied
 // at launch by src/screens/onboarding/gate.ts). Notifications are two stored toggles (the web had one push subscription:
-// "Recovery ready, and when Pulse can’t sync"); scheduling them is the background stream's. Dropped: Install Pulse (a PWA thing).
+// "Recovery ready, and when Pulse can’t sync"); scheduling them is the background stream's.
 import { useState } from "react";
 import { View } from "react-native";
 import { colorScheme } from "nativewind";

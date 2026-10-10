@@ -1,5 +1,5 @@
 // Google Health API v4 client: local-day windows, pagination, a 4 req/s limiter and retries. Pattern from
-// Hælan's api/client.ts and sync/windows.ts (AGPL-3.0). Pulse's raw page archive is dropped on the phone.
+// Hælan's api/client.ts and sync/windows.ts (AGPL-3.0).
 //
 // Times are unix seconds and days are local `YYYY-MM-DD`, as in the schema. Errors carry status and
 // code only (see oauth.ts), never a token or a body.

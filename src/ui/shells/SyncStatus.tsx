@@ -31,8 +31,8 @@ function useMinute() {
 
 /**
  * Sync freshness in the reference app's battery slot (the web's SyncStatus): "12m", the band icon and a status dot, at
- * the right of Home's top row and of the Health, Journal and More headers. The web opens a popover whose one link is
- * Settings › Data source (with Sync now); here the tap goes straight there. `hideText`: Home's top row drops the "12m" on
+ * the right of Home's top row and of the Health, Journal and More headers. The tap goes straight to
+ * Settings › Data source (with Sync now). `hideText`: Home's top row drops the "12m" on
  * narrow phones (the band, its dot and the accessible name still carry it).
  */
 export function SyncStatus({ hideText = false }: { hideText?: boolean }) {

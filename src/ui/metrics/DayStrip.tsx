@@ -27,7 +27,7 @@ export type DayStripProps = {
   days: DayStripDay[];
   /** "pill": the Journal's tall rounded days with a short weekday, the selected one ringed (journal-01). */
   variant?: "tile" | "pill";
-  /** With `onSelect`, the strip picks a day for its owner instead of changing the route's `d`. */
+  /** With `onSelect`, the strip picks a day for its caller instead of changing the route's `d`. */
   value?: string;
   onSelect?: (day: string) => void;
 };
@@ -68,7 +68,7 @@ function Strip({ indicator, days, variant = "tile", value: controlled, onSelect 
             accessibilityState={{ selected: on }}
             onLayout={(e) => boxes.current.set(day.date, e.nativeEvent.layout)}
             onPress={() => {
-              // The route's day changes through useSelectedDay, which ticks; an owner's onSelect ticks here.
+              // The route's day changes through useSelectedDay, which ticks; a caller's onSelect ticks here.
               if (onSelect) {
                 haptic.select();
                 onSelect(day.date);

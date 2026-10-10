@@ -1,4 +1,4 @@
-// About (moved from Settings, U21): the user's own wording, version, scoring version, the repo and its issues. Ported from
+// About (U21): the user's own wording, version, scoring version, the repo and its issues. Ported from
 // pulse (app)/more/About.tsx. Licence and full credits stay in LICENSE, NOTICE and the README.
 import { Linking, View } from "react-native";
 import { ArrowUpRight } from "lucide-react-native";

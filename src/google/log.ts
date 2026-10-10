@@ -10,7 +10,7 @@ import type { MappedEntry, ReadableLogType } from "./map";
 import { toDataPoint } from "./write";
 import { localDay } from "../time";
 
-/** `reconnect`: the grant lacks this type's write scope (or was revoked). Pulse's `demo` is dropped: there is no demo mode. */
+/** `reconnect`: the grant lacks this type's write scope (or was revoked). */
 export type LogAccess = "ok" | "reconnect" | "not_connected";
 
 export async function logAccess({ settings }: Pick<Repos, "settings">): Promise<Record<LogType, LogAccess>> {
@@ -27,7 +27,7 @@ export type NewEntry = { type: LogType; ts: number; data: unknown };
 export type LogResult = { ok: true } | { ok: false; reason: "reconnect" | "failed" | "foreign" };
 
 /**
- * A fresh row id. pulse used node's randomUUID; Hermes has `crypto.randomUUID` only when a polyfill provides it, so the
+ * A fresh row id. Node's randomUUID is not on Hermes unless a polyfill provides `crypto.randomUUID`, so the
  * fallback builds a v4-shaped id from Math.random. These ids are local keys, not secrets.
  * ponytail: Math.random collisions are negligible at a few entries a day; inject `newId` (expo-crypto) if that changes.
  */
@@ -38,7 +38,7 @@ export const newId = (): string =>
     return (c === "x" ? r : (r & 3) | 8).toString(16);
   });
 
-/** 403 is a grant without the write scope (made before Pulse asked for it); revoked means the same fix. */
+/** 403 is a grant without the write scope (from before the write scope was added); revoked means the same fix. */
 const failure = (e: unknown): LogResult => {
   if (e instanceof GoogleError && (e.status === 403 || e.code === "auth_revoked" || e.code === "not_connected")) return { ok: false, reason: "reconnect" };
   if (e instanceof GoogleError) {

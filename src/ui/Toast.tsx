@@ -2,7 +2,7 @@
 // whole app. `toast.success(text)` works from anywhere (a sheet that has just closed); <ToastHost /> is mounted once in
 // AppProviders. As Sonner with the web's config: popover fill and text, a 1 px border, a 16 px icon in the text colour
 // (success and error alike: no rich colours), 13 px / 500 text, 16 px padding, the full width of a phone less its 16 px
-// offset, at the foot, for 4 s. Sonner stacks several; one is shown at a time here and a new one replaces it.
+// offset, at the foot, for 4 s. One is shown at a time, and a new one replaces it.
 import { useEffect, useSyncExternalStore } from "react";
 import { View } from "react-native";
 import Animated, { FadeInUp, FadeOutDown } from "react-native-reanimated";

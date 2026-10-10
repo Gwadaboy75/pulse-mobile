@@ -31,7 +31,7 @@ import { Press } from "@/ui/Press";
 const RANGE_TEXT: Record<TrendViewRange, string> = { w: "W", m: "M", "6m": "6M" };
 const RANGE_ARIA: Record<TrendViewRange, string> = { w: "1 week", m: "1 month", "6m": "6 months" };
 
-/** The route's `?r=` and `?p=`, replaced in place (the web's links replace, so Back leaves the screen). */
+/** The route's `?r=` and `?p=`, replaced in place, so Back leaves the screen. */
 const go = (o: { r?: TrendViewRange; p?: number }) => router.setParams({ ...(o.r !== undefined && { r: o.r }), ...(o.p !== undefined && { p: o.p ? String(o.p) : "" }) });
 
 export default function TrendViewScreen() {

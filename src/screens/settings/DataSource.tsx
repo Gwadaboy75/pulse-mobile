@@ -1,7 +1,7 @@
 // Data source (spec §7.14). Ported from pulse (app)/settings/SettingsView.tsx `DataSource` and SettingsClient.tsx
 // (`DisconnectButton`, `SwitchGoogleButton`): the source as one row (logo, name, last sync), its status only when
-// something needs doing, Sync now, and the per-type sync status folded underneath. Dropped: the demo source, the Google
-// account's email under the name (the app never receives it), and the OAuth toast (connect.ts reports its own).
+// something needs doing, Sync now, and the per-type sync status folded underneath. The app never receives the Google
+// account's email, so none shows under the name, and connect.ts reports its own OAuth outcome.
 import { useEffect, useState } from "react";
 import { Linking, Pressable, View } from "react-native";
 import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";

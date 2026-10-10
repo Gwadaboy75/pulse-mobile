@@ -49,7 +49,7 @@ export interface CoachRepo {
   saveChat(id: string, title: string, messages: ChatMessages, now: number): Promise<void>;
   /**
    * Replaces the chat's messages only if they still equal `before` (compared as the JSON text the caller stored), so
-   * one answer to a confirmation applies once. False when it no longer matches. store.ts:191 `claimChat`
+   * one answer to a confirmation applies once. False when it does not match. store.ts:191 `claimChat`
    */
   claimChat(id: string, before: ChatMessages, after: ChatMessages, now: number): Promise<boolean>;
   /** store.ts:200 */

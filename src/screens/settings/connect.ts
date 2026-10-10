@@ -1,4 +1,4 @@
-// The Google connect step is not built yet (the owner is choosing how the Android sign-in works). Settings already draws
+// The Google connect step is not built yet. Settings already draws
 // every state from the stored grant (`google.grant`: not connected, connected, revoked); the buttons call these three
 // functions, which are the places the connect step plugs in. Each stays a stub that says so until then.
 //
@@ -6,7 +6,7 @@
 //  - connectGoogle(): run the native OAuth flow for the health scopes in src/google/oauth.ts SCOPES (never openid, email
 //    or profile), keep the refresh token in expo-secure-store, then write the non-secret part with
 //    `store.settings.set("google.grant", { scope, revokedAt: null, updatedAt })` and call `dataChanged()`. With
-//    `{ switchAccount: true }` it first forgets what the current account synced (the screen has asked the person).
+//    `{ switchAccount: true }` it first forgets what the current account synced (the screen prompts the person).
 //  - forgetGoogleTokens(): delete the refresh token and any cached access token from expo-secure-store.
 //  - syncNow(): ask the background stream for a sync run past its 5-minute gate.
 

@@ -1,7 +1,7 @@
 // Pure parts of the Pulse Age orb (pulse docs/design/orb.md): colour mapping, shape noise, seeded RNG. Ported from pulse
 // src/lib/orb.ts. Differences: tokens are the palette's names (`orb-green`, no `--`), and the functions the orb's frame
 // loop calls carry the "worklet" directive because the loop runs on the UI thread (Reanimated). The CSS-only helpers
-// (`cssMix`, `hexRGB`: the server-render fallback blob) are not ported: there is no server render.
+// (`cssMix`, `hexRGB`: the server-render fallback blob) are left out: there is no server render.
 
 export type RGB = readonly [number, number, number];
 
