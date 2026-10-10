@@ -63,17 +63,25 @@ async function runSync(): Promise<ActionResult> {
   const timeZone = (await store.profile.userTimeZone()) ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const started = Math.floor(Date.now() / 1000);
   const tick = setInterval(syncChanged, PROGRESS_MS);
+  let phase = "pull";
   try {
     if (__DEV__) await traceInputs();
+    const pulledAt = performance.now();
+    if (__DEV__) console.info("[sync] pull-start");
     const { changed } = await createGoogleSource({
       store, tokens: googleAuth, timeZone,
       trace: __DEV__ ? (event) => console.info(`[sync] ${JSON.stringify(event)}`) : undefined,
     }).pull();
+    if (__DEV__) console.info(`[sync] pull-end ms=${Math.round(performance.now() - pulledAt)} changed=${changed}`);
+    phase = "recompute";
+    const scoredAt = performance.now();
+    if (__DEV__) console.info("[sync] recompute-start");
     // Before the profile is saved there is nothing to score yet; onboarding's save runs this again.
     await recomputeIfNeeded(store, changed, () => getProfile(store));
+    if (__DEV__) console.info(`[sync] recompute-end ms=${Math.round(performance.now() - scoredAt)}`);
     if (__DEV__) await traceInputs();
   } catch (error) {
-    if (__DEV__) console.warn(`[sync] failed: ${error instanceof Error ? error.name : typeof error}`);
+    if (__DEV__) console.warn(`[sync] ${phase} failed: ${error instanceof Error ? error.name : typeof error}`);
     if (__DEV__ && error instanceof Error) console.warn(error.stack?.split("\n").filter((line) => /^\s+at /.test(line)).slice(0, 4).join("\n"));
     return { ok: false, error: "Sync failed. Try again." };
   } finally {
