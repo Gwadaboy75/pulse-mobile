@@ -3,6 +3,8 @@ import { View } from "react-native";
 import { Text } from "../Text";
 import type { DateSwitcherProps } from "./DateSwitcher";
 import { HomeHeader, type HeaderRings } from "./HomeHeader";
+import { useShellSync } from "./ShellStatus";
+import { SyncStatus } from "./SyncStatus";
 import { HEADER_ROW, TitleHeader, useHeaderHeight } from "./Header";
 import { ScreenScroll, type ScreenScrollProps, useCollapse } from "./ScreenScroll";
 
@@ -57,7 +59,10 @@ export function PageShell({ title, dateSwitcher, actions, layout = "stack", slot
     [threshold, scrollY, base],
   );
 
-  const header = home ? <HomeHeader rings={rings} progress={progress} right={headerRight} /> : <TitleHeader title={title} dateSwitcher={dateSwitcher} right={headerRight} />;
+  // The sync status sits at the right of every tab root's header, the streak beside Home's avatar (the web's TopBar and HomeHeader).
+  const streak = useShellSync()?.streak?.days;
+  const right = headerRight ?? <SyncStatus />;
+  const header = home ? <HomeHeader rings={rings} progress={progress} right={right} streak={streak} /> : <TitleHeader title={title} dateSwitcher={dateSwitcher} right={right} />;
   return (
     <ScreenScroll header={header} top={top} onScroll={onScroll} onRefresh={onRefresh}>
       <View className="w-full px-4 pt-2" accessibilityState={{ busy: !!loading }}>

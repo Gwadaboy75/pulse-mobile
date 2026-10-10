@@ -6,12 +6,13 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { loadCalendarMonth } from "@/actions/calendar";
 import { store } from "@/data/store";
 import { ctxOf, firstDay, todayOf } from "@/queries/common";
-import { ShellCalendarProvider, useShellCalendar, type ShellCalendar } from "@/ui/shells/ShellStatus";
+import { getShellStatus } from "@/queries/settings";
+import { ShellCalendarProvider, ShellSyncProvider, useShellCalendar, type ShellCalendar, type ShellSync } from "@/ui/shells/ShellStatus";
 import { useDataVersion } from "./useScreen";
 
 const loadMonth = (month: string) => loadCalendarMonth(store, month);
 
-type Read = { today: string; firstDay: string | null; timeZone: string };
+type Read = { today: string; firstDay: string | null; timeZone: string; sync: ShellSync };
 
 export function ShellData({ children }: { children: ReactNode }) {
   const root = useShellCalendar();
@@ -21,7 +22,11 @@ export function ShellData({ children }: { children: ReactNode }) {
   useEffect(() => {
     let live = true;
     ctxOf(store)
-      .then(async (ctx) => ({ today: todayOf(ctx), firstDay: await firstDay(ctx), timeZone: ctx.timeZone }))
+      .then(async (ctx) => {
+        // The header's sync status and streak (getShellStatus), read with the calendar.
+        const status = await getShellStatus(ctx);
+        return { today: todayOf(ctx), firstDay: await firstDay(ctx), timeZone: ctx.timeZone, sync: { sync: status.sync, connection: status.connection, streak: status.streak, timeZone: ctx.timeZone } };
+      })
       .then(
         (d) => live && setData(d),
         () => live && setData(undefined),
@@ -31,5 +36,9 @@ export function ShellData({ children }: { children: ReactNode }) {
     };
   }, [version]);
   const value = useMemo<ShellCalendar>(() => ({ today: data?.today ?? root.today, firstDay: data?.firstDay, timeZone: data?.timeZone, loadMonth }), [data, root.today]);
-  return <ShellCalendarProvider value={value}>{children}</ShellCalendarProvider>;
+  return (
+    <ShellCalendarProvider value={value}>
+      <ShellSyncProvider value={data?.sync ?? null}>{children}</ShellSyncProvider>
+    </ShellCalendarProvider>
+  );
 }

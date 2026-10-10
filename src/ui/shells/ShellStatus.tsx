@@ -30,3 +30,18 @@ export function useShellCalendar(): ShellCalendar {
 
 /** For charts and rows that format clock times: the zone when there is a provider, the device's otherwise. */
 export const useOptionalShellCalendar = () => useContext(Context);
+
+/**
+ * Sync freshness and the wear streak (the rest of the web's ShellStatus): what the header's SyncStatus and streak pill
+ * show. Optional: without a provider (the kit, onboarding) they show nothing.
+ */
+export type ShellSync = {
+  sync: { state: "ok" | "syncing" | "stale" | "error"; lastSuccessAt: number | null };
+  connection: string;
+  streak: { days: number; asOf: string } | null;
+  timeZone?: string;
+};
+
+const SyncContext = createContext<ShellSync | null>(null);
+export const ShellSyncProvider = SyncContext.Provider;
+export const useShellSync = () => useContext(SyncContext);
