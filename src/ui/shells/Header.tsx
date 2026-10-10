@@ -1,11 +1,11 @@
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { LinearGradient as NativeGradient } from "expo-linear-gradient";
 import Animated, { useAnimatedStyle, type DerivedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cn } from "../cn";
 import { alpha } from "../color";
-import { Ground, groundColorAt } from "../Ground";
+import { Ground, groundColorAt, HealthspanGround } from "../Ground";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
 import { DateSwitcher, type DateSwitcherProps } from "./DateSwitcher";
@@ -37,11 +37,13 @@ export function useHeaderHeight(rows = HEADER_ROW) {
  * phone: the content showed through the collapsed row, 2026-10-11.) The band and fade are native gradients.
  */
 export function HeaderFrame({ children, rows = HEADER_ROW, expanded, extra = 0, onHeight }: { children: ReactNode; rows?: number; expanded?: DerivedValue<number>; /** The second row's height: how far `expanded` goes. */ extra?: number; /** Told the header's resting height (safe area plus its rows), so a screen can pad its content below it. */ onHeight?: (height: number) => void }) {
-  const { c } = useTheme();
+  const { c, scheme } = useTheme();
   const top = useSafeAreaInsets().top;
   const solid = top + rows;
-  const edge = groundColorAt(c, solid);
-  const low = groundColorAt(c, solid + extra);
+  // The fill and fade match the ground under them: on the flat Healthspan ground the gradient would leave a lighter slab.
+  const flat = useContext(HealthspanGround) ? scheme : undefined;
+  const edge = groundColorAt(c, solid, flat);
+  const low = groundColorAt(c, solid + extra, flat);
   const band = useAnimatedStyle(() => ({ opacity: extra ? Math.min(1, (expanded?.value ?? 0) / extra) : 0 }));
   const fade = useAnimatedStyle(() => ({ transform: [{ translateY: expanded?.value ?? 0 }] }));
   return (

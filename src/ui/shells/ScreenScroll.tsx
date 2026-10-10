@@ -3,7 +3,7 @@ import { Platform, RefreshControl, StyleSheet, View } from "react-native";
 import { BlurTargetView } from "expo-blur";
 import { useFocusEffect, useLocalSearchParams, usePathname } from "expo-router";
 import Animated, { useAnimatedScrollHandler, useDerivedValue, useSharedValue, withTiming } from "react-native-reanimated";
-import { Ground } from "../Ground";
+import { Ground, HealthspanGround } from "../Ground";
 import { BlurTargetContext } from "../Glass";
 import { haptic } from "../haptics";
 import { useTheme } from "../theme";
@@ -103,7 +103,7 @@ export function ScreenScroll({ header, top, onScroll, bottomPad, healthspan, onR
     <View className="flex-1 bg-background">
       {/* What the check-in button's glass blurs on Android (iOS blurs what is behind it by itself). */}
       <BlurTargetView ref={blurTarget} style={StyleSheet.absoluteFill}>
-        <Ground healthspan={healthspan} />
+        <Ground healthspan={!!healthspan} />
         <Animated.ScrollView
           ref={scroll}
           onScroll={onScroll}
@@ -125,7 +125,7 @@ export function ScreenScroll({ header, top, onScroll, bottomPad, healthspan, onR
           </AnchorContext.Provider>
         </Animated.ScrollView>
       </BlurTargetView>
-      {header}
+      <HealthspanGround.Provider value={!!healthspan}>{header}</HealthspanGround.Provider>
       {checkIn && (
         <BlurTargetContext.Provider value={blurTarget}>
           <FloatingCheckIn />
