@@ -1,4 +1,4 @@
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { useGlobalSearchParams } from "expo-router";
 import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 import { dayLabel } from "@/lib/format";
@@ -10,6 +10,7 @@ import { useTheme } from "../theme";
 import { FAB_SIZE, TAB_ROOTS, useTabBarBottom } from "./layout";
 import { useShellCalendar } from "./ShellStatus";
 import { openSheet } from "./sheets";
+import { Press } from "../Press";
 
 /** The reference app's ringed monogram: "P" in a 30 px circle with the indigo-to-blue rim. */
 function Monogram() {
@@ -43,19 +44,19 @@ export function CheckInAction({ onPress }: { onPress?: () => void }) {
   const { d } = parseDay(raw, today);
   const label = `Check in for ${dayLabel(d, today)}`;
   return (
-    <Pressable
+    <Press
+      activeScale={0.96}
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={() => {
         haptic.tap();
         (onPress ?? (() => openSheet(`/checkin?d=${d}`)))();
       }}
-      className="active:scale-[0.96]"
     >
       <Glass radius={22} action style={{ width: FAB_SIZE, height: FAB_SIZE, alignItems: "center", justifyContent: "center" }}>
         <Monogram />
       </Glass>
-    </Pressable>
+    </Press>
   );
 }
 

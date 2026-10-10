@@ -3,7 +3,7 @@
 // alert) opens `main`, pulled up by 8 px so the gaps are the web's 24. The collapse distance ends at the dials' bottom, as on
 // the web, through <HeaderSentinel> (HEADER_SENTINEL there).
 import { useMemo, useState, type ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { CalendarRange, Check, ChevronRight, CircleAlert, Info, Lightbulb, Maximize2, Moon, Plus, Sun, TriangleAlert } from "lucide-react-native";
 import { isDashboardKey } from "@/lib/dashboard";
 import { clock, DAY, formatDay, formatValue, MISSING, rangeLabel } from "@/lib/format";
@@ -46,6 +46,7 @@ import { CARD_BUTTON, CardButtonContent, CardButtonLink, GradientBanner, IconLin
 import { PlusKey } from "./PlusMenu";
 import { TonightPlan } from "./TonightPlan";
 import { push } from "@/ui/navigate";
+import { Press } from "@/ui/Press";
 
 const STRESS_TONE: Record<StressLevel, { chip: string; text: string; word: string }> = {
   low: { chip: "bg-stress-low/15", text: "text-stress-low-text", word: "Low" },
@@ -173,7 +174,7 @@ function Home({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
                   )}
                   {/* the reference app's "+ Add activity", on past days too (home-01, home-03). Pulse imports workouts, so Add explains where they come from (§11 R2). */}
                   <View className="mt-3">
-                    <InfoCardTrigger info={ADD_ACTIVITY_INFO} className={CARD_BUTTON}>
+                    <InfoCardTrigger info={ADD_ACTIVITY_INFO} activeScale={0.96} className={CARD_BUTTON}>
                       <CardButtonContent icon={Plus} label="Add activity" />
                     </InfoCardTrigger>
                   </View>
@@ -260,13 +261,14 @@ function JournalWeek({ vm, at }: { vm: HomeVM; at: (href: string) => string }) {
         {vm.journalWeek.map((w) => {
           const current = w.day === vm.day;
           return (
-            <Pressable
+            <Press
+              activeBg="bg-accent"
               key={w.day}
               accessibilityRole="link"
               accessibilityLabel={`${formatDay(w.day, DAY.long)}: ${w.done ? "checked in" : "no check-in"}`}
               accessibilityState={{ selected: current }}
               onPress={() => go(dayHref("/journal", w.day, vm.today))}
-              className="min-h-16 flex-1 items-center justify-center gap-2 rounded-lg active:bg-accent"
+              className="min-h-16 flex-1 items-center justify-center gap-2 rounded-lg"
             >
               <Text accessible={false} className={cn("text-xs font-bold uppercase leading-4 tracking-[0.1em]", current ? "text-foreground" : "text-muted-foreground")}>
                 {formatDay(w.day, { weekday: "short" })}
@@ -274,7 +276,7 @@ function JournalWeek({ vm, at }: { vm: HomeVM; at: (href: string) => string }) {
               <View accessibilityElementsHidden className={cn("size-7 items-center justify-center rounded-full", w.done ? "bg-optimal" : "border border-foreground/25")}>
                 {w.done && <Icon icon={Check} size={16} tone="background" strokeWidth={3} />}
               </View>
-            </Pressable>
+            </Press>
           );
         })}
       </View>
@@ -304,10 +306,10 @@ function MonitorAlert({ alert, href }: { alert: NonNullable<HomeVM["monitorAlert
               ? "Several vitals moved away from your normal range together, a pattern that often comes before feeling unwell. Consider an easier day."
               : `${names} ${alert.names.length === 1 ? "is" : "are"} outside your usual range. This can be an early sign of illness or heavy strain.`}
           </Text>
-          <Pressable accessibilityRole="link" onPress={() => go(href)} hitSlop={{ left: 8, right: 8, top: 14, bottom: 14 }} className="flex-row items-center gap-0.5 self-start active:opacity-70">
+          <Press activeOpacity={0.7} accessibilityRole="link" onPress={() => go(href)} hitSlop={{ left: 8, right: 8, top: 14, bottom: 14 }} className="flex-row items-center gap-0.5 self-start">
             <Text className="text-xs font-bold uppercase leading-4 tracking-[0.1em]">View Health Monitor</Text>
             <Icon icon={ChevronRight} size={14} tone="foreground" strokeWidth={2} />
-          </Pressable>
+          </Press>
         </View>
       </View>
     </View>

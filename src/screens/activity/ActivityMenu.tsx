@@ -8,6 +8,7 @@ import { Icon } from "@/ui/Icon"
 import { Text } from "@/ui/Text"
 import { useTheme } from "@/ui/theme"
 import { push } from "@/ui/navigate"
+import { Press } from "@/ui/Press";
 
 type Anchor = { top: number; right: number }
 
@@ -23,16 +24,16 @@ export function ActivityMenu({ strainHref, settingsHref }: { strainHref: string;
     push(href)
   }
   const item = (icon: LucideIcon, label: string, href: string) => (
-    <Pressable accessibilityRole="link" onPress={() => go(href)} className="h-12 flex-row items-center gap-3 rounded-xl px-3 active:bg-foreground/10">
+    <Press activeBg="bg-foreground/10" accessibilityRole="link" onPress={() => go(href)} className="h-12 flex-row items-center gap-3 rounded-xl px-3">
       <Icon icon={icon} size={20} tone="foreground-secondary" strokeWidth={1.75} />
       <Text className="text-[13px] font-bold uppercase leading-4 tracking-[0.1em]">{label}</Text>
-    </Pressable>
+    </Press>
   )
   return (
     <>
-      <Pressable ref={trigger} collapsable={false} accessibilityRole="button" accessibilityLabel="More for this activity" onPress={open} className="size-11 items-center justify-center rounded-full active:bg-foreground/8">
+      <Press activeBg="bg-foreground/8" ref={trigger} collapsable={false} accessibilityRole="button" accessibilityLabel="More for this activity" onPress={open} className="size-11 items-center justify-center rounded-full">
         <Icon icon={Ellipsis} size={24} tone="foreground" strokeWidth={2} />
-      </Pressable>
+      </Press>
       <Modal visible={anchor !== null} transparent animationType="fade" onRequestClose={close} statusBarTranslucent navigationBarTranslucent>
         {/* No dim, as the web's dropdown has none: a tap anywhere outside closes it. */}
         <Pressable accessibilityLabel="Close menu" onPress={close} className="flex-1">

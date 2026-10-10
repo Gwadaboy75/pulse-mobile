@@ -2,7 +2,7 @@
 // Monthly), newest first. Weeks are grouped by month and only the last few months show until "Show earlier weeks"; months
 // are grouped by year. `?view=` and `?all=` live in the route's params, so Back and a link keep them.
 import { useMemo } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { DAY, formatDay, formatValue, rangeLabel } from "@/lib/format";
 import { getReportArchive, type ReportArchiveVM, type ReportListItem } from "@/queries/reports";
@@ -15,6 +15,7 @@ import { EmptyState } from "@/ui/shells/EmptyState";
 import { LinkList, LinkListSkeleton, MORE_COLUMN, type LinkListRow } from "@/ui/shells/LinkList";
 import { haptic } from "@/ui/haptics";
 import { Text } from "@/ui/Text";
+import { Press } from "@/ui/Press";
 
 /** The period's average Recovery as the reference app's 22 px ring and its value. */
 function Aside({ r }: { r: ReportListItem }) {
@@ -88,9 +89,9 @@ export default function ReportsScreen() {
               <LinkList key={g.title} title={g.title} rows={g.rows} />
             ))}
             {shown.length < groups.length && (
-              <Pressable accessibilityRole="button" onPress={() => (haptic.tap(), router.setParams({ all: "1" }))} className="mx-auto h-11 items-center justify-center rounded-full px-5 active:bg-foreground/[0.06]">
+              <Press activeBg="bg-foreground/[0.06]" accessibilityRole="button" onPress={() => (haptic.tap(), router.setParams({ all: "1" }))} className="mx-auto h-11 items-center justify-center rounded-full px-5">
                 <Text className="text-xs font-bold uppercase tracking-[0.1em] text-foreground/85">Show earlier weeks</Text>
-              </Pressable>
+              </Press>
             )}
           </View>
         )

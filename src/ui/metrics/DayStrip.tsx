@@ -1,6 +1,6 @@
 import { haptic } from "../haptics";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, View, type LayoutRectangle } from "react-native";
+import { ScrollView, View, type LayoutRectangle } from "react-native";
 import { Check } from "lucide-react-native";
 import { BAND_WORD, DATA_COLORS, recoveryBand, recoveryColor } from "@/lib/bands";
 import { DAY, formatDay } from "@/lib/format";
@@ -10,6 +10,7 @@ import { Text } from "../Text";
 import { useTheme } from "../theme";
 import { useSelectedDay } from "../shells/DateSwitcher";
 import { Icon } from "../Icon";
+import { Press } from "../Press";
 
 export type DayStripDay = {
   /** YYYY-MM-DD. */
@@ -59,7 +60,8 @@ function Strip({ indicator, days, variant = "tile", value: controlled, onSelect 
         const on = day.date === selected;
         const pill = variant === "pill";
         return (
-          <Pressable
+          <Press
+            activeScale={0.96}
             key={day.date}
             accessibilityRole="button"
             accessibilityLabel={label}
@@ -73,7 +75,7 @@ function Strip({ indicator, days, variant = "tile", value: controlled, onSelect 
               } else setUrlDay(day.date);
             }}
             // Sized by its contents with 8 px above and below, so the badge sits fully inside the lit tile (SYM1).
-            className={cn("items-center justify-center active:scale-[0.96]", pill ? "w-12 gap-1.5 rounded-full py-3" : "w-11 gap-1 rounded-xl py-2", pill ? "bg-foreground/[0.07]" : on && "bg-foreground/10")}
+            className={cn("items-center justify-center", pill ? "w-12 gap-1.5 rounded-full py-3" : "w-11 gap-1 rounded-xl py-2", pill ? "bg-foreground/[0.07]" : on && "bg-foreground/10")}
             style={pill && on ? { boxShadow: `inset 0 0 0 2px ${c.foreground}` } : undefined}
           >
             <Text accessible={false} className={cn("font-semibold leading-3 text-muted-foreground", pill ? "text-xs" : "text-[11px]")}>
@@ -92,7 +94,7 @@ function Strip({ indicator, days, variant = "tile", value: controlled, onSelect 
                 {day.done && <Icon icon={Check} size={pill ? 12 : 10} tone={pill ? "on-color" : "optimal-text"} strokeWidth={3} />}
               </View>
             )}
-          </Pressable>
+          </Press>
         );
       })}
     </ScrollView>

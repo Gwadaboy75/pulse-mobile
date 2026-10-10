@@ -4,13 +4,14 @@
 // stacks every card in one grid cell so the box keeps the tallest card's height; here the active card is in the flow, the
 // others sit on top of it, and the box takes the tallest measured height.
 import { useEffect, useState, type ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Check } from "lucide-react-native";
 import { CARD_CLASS, CardFill, useCardStyle } from "@/ui/Card";
 import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
 import { Text } from "@/ui/Text";
+import { Press } from "@/ui/Press";
 
 export type HomeInsightItem = { key: string; title: string; body: string };
 
@@ -66,7 +67,8 @@ export function HomeInsight({ items }: { items: HomeInsightItem[] }) {
           ))}
         </View>
         {several ? (
-          <Pressable
+          <Press
+            activeScale={0.96}
             accessibilityRole="button"
             accessibilityLabel={`Next insight (${at + 1} of ${n})`}
             onPress={() => {
@@ -74,11 +76,11 @@ export function HomeInsight({ items }: { items: HomeInsightItem[] }) {
               setI((k) => (k + 1) % n);
             }}
             hitSlop={{ left: 10, right: 10, top: 2, bottom: 2 }}
-            className="absolute right-2 top-2 h-12 w-6 items-center justify-center gap-1 rounded-lg bg-foreground/[0.08] active:scale-[0.96]"
+            className="absolute right-2 top-2 h-12 w-6 items-center justify-center gap-1 rounded-lg bg-foreground/[0.08]"
           >
             <Icon icon={Check} size={16} tone="foreground" strokeWidth={2.25} />
             <Text className="font-numeric text-[13px] font-semibold leading-4 tabular-nums text-foreground-secondary">{n - at}</Text>
-          </Pressable>
+          </Press>
         ) : (
           <View accessibilityElementsHidden className="absolute right-2 top-2 h-12 w-6 items-center justify-center gap-1 rounded-lg bg-foreground/[0.08]">
             <Icon icon={Check} size={16} tone="foreground" strokeWidth={2.25} />

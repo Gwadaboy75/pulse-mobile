@@ -22,6 +22,7 @@ import { SectionShell } from "@/ui/shells/SectionShell";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { push } from "@/ui/navigate";
+import { Press } from "@/ui/Press";
 
 const go = (href: string) => push(href);
 const INFO = { title: "What shaped it", body: "Each bar is one input's effect on today's Recovery, in points." };
@@ -102,13 +103,13 @@ export default function Kit() {
     <KitScreen title="Component kit" blurb="The UI every screen is built from, ported from pulse's web kit (src/app/dev/kit) with the same sample props. Compare each frame with the web page at /dev/kit, in light and in dark.">
       <View className="gap-2">
         {SCREENS.map((s) => (
-          <Pressable key={s.href} accessibilityRole="link" onPress={() => go(s.href)} className="flex-row items-center gap-3 rounded-xl bg-card px-4 py-3 active:scale-[0.98]">
+          <Press activeScale={0.98} key={s.href} accessibilityRole="link" onPress={() => go(s.href)} className="flex-row items-center gap-3 rounded-xl bg-card px-4 py-3">
             <View className="min-w-0 flex-1">
               <Text className="text-xs font-bold uppercase leading-4 tracking-[0.1em]">{s.label}</Text>
               <Text className="mt-0.5 text-[13px] leading-[18px] text-muted-foreground">{s.note}</Text>
             </View>
             <Icon icon={ChevronRight} size={20} tone="muted-foreground" />
-          </Pressable>
+          </Press>
         ))}
       </View>
 

@@ -2,7 +2,7 @@
 // factor stands ("Outperforming"), the target for your age, the evidence and VIEW TREND. `?contributor=` opens a row on
 // arrival. Ported from pulse src/app/(app)/health/healthspan/ContributorCard.tsx (Radix Accordion, type "multiple").
 import { useState, type ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import Animated, { FadeIn, FadeOut, LinearTransition, useAnimatedStyle, useReducedMotion, withTiming } from "react-native-reanimated";
 import { ChevronDown, CircleGauge, Dumbbell, Footprints, Heart, Moon, Timer } from "lucide-react-native";
@@ -16,6 +16,7 @@ import { CAPTION } from "@/ui/metrics/primitives";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { Text } from "@/ui/Text";
 import { TextLink } from "./CardButton";
+import { Press } from "@/ui/Press";
 
 const glyph = (g: Parameters<typeof Icon>[0]["icon"]): ReactNode => <Icon icon={g} size={20} tone="muted-foreground" strokeWidth={1.75} />;
 const ICON: Record<string, ReactNode> = {
@@ -75,7 +76,7 @@ export function ContributorCard({ title, items }: { title: string; items: Health
           const isOpen = open.includes(c.key);
           return (
             <Animated.View key={c.key} layout={LinearTransition.duration(200)} className={cn(i > 0 && "border-t border-border")}>
-              <Pressable accessibilityRole="button" accessibilityState={{ expanded: isOpen }} onPress={() => toggle(c.key)} className="-mx-2 flex-row items-start gap-1 rounded-lg px-2 active:bg-accent">
+              <Press activeBg="bg-accent" accessibilityRole="button" accessibilityState={{ expanded: isOpen }} onPress={() => toggle(c.key)} className="-mx-2 flex-row items-start gap-1 rounded-lg px-2">
                 <ContributorRow
                   variant="healthspan"
                   icon={ICON[c.key]}
@@ -91,7 +92,7 @@ export function ContributorCard({ title, items }: { title: string; items: Health
                   className="min-w-0 flex-1"
                 />
                 <Chevron open={isOpen} />
-              </Pressable>
+              </Press>
               {isOpen && (
                 <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} className="gap-3 pb-5">
                   {c.state && (

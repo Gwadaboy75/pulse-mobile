@@ -1,4 +1,4 @@
-import { Pressable, useWindowDimensions, View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { useAnimatedStyle, useDerivedValue, type DerivedValue } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
@@ -14,6 +14,7 @@ import { DateSwitcher, useSelectedDay } from "./DateSwitcher";
 import { HEADER_ROW, HeaderFrame } from "./Header";
 import { useShellCalendar } from "./ShellStatus";
 import { push } from "../navigate";
+import { Press } from "../Press";
 
 export type HeaderRing = { value: number | null; href: string };
 /** The day's three scores for the ring row (the dials' own view model), with their detail links. */
@@ -82,15 +83,16 @@ export function HomeHeader({ rings, progress, right, streak }: { rings?: HeaderR
           <View className="flex-1 flex-row items-center">
             {/* The avatar: the outline person glyph on a disc of the page ground (its 3 px ring cuts the streak pill where the
                 reference app's does), over the pill's left end (the web's Avatar and Streak). */}
-            <Pressable
+            <Press
+              activeScale={0.96}
               accessibilityRole="link"
               accessibilityLabel="Settings"
               onPress={() => push("/settings")}
-              className="items-center justify-center rounded-full active:scale-[0.96]"
+              className="items-center justify-center rounded-full"
               style={{ zIndex: 1, width: 46 * u, height: 46 * u, padding: 3 * u, marginLeft: -3 * u, backgroundColor: groundColorAt(c, top + HEADER_ROW / 2) }}
             >
               <Icon icon={CircleUserRound} size={40 * u} tone="foreground" strokeWidth={1.5} />
-            </Pressable>
+            </Press>
             {/* Past days show no streak. */}
             {!!streak && d === today && (
               <View
@@ -115,11 +117,11 @@ export function HomeHeader({ rings, progress, right, streak }: { rings?: HeaderR
             const value = ring?.value ?? null;
             return (
               <View key={key} className="flex-1 items-center">
-                <Pressable accessibilityRole="link" accessibilityLabel={ringLabel(key, label, value)} onPress={() => push(ring?.href ?? `/${key}`)} className="h-10 flex-row items-center justify-center gap-2 rounded-full px-2 active:scale-[0.96]">
+                <Press activeScale={0.96} accessibilityRole="link" accessibilityLabel={ringLabel(key, label, value)} onPress={() => push(ring?.href ?? `/${key}`)} className="h-10 flex-row items-center justify-center gap-2 rounded-full px-2">
                   <MiniRing variant={key} value={value} />
                   {/* 11 px, the reference app's ring-row label (spec §11 F5). */}
                   <Text className="text-[11px] font-bold uppercase leading-4 tracking-[0.1em]">{label}</Text>
-                </Pressable>
+                </Press>
               </View>
             );
           })}

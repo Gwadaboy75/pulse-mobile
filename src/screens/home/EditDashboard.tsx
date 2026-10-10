@@ -4,7 +4,7 @@
 // one at the end. SAVE stores the list and shows Success. The sheet is a route (app/(sheets)/dashboard.tsx) that takes
 // the metrics on Home now (`keys`) and the ones with no data (`empty`) as comma-separated params.
 import { useEffect, useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
 import { GestureHandlerRootView, Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from "react-native-reanimated";
 import { ChartNoAxesColumn, Equal, Minus, Pencil, Plus, Search } from "lucide-react-native";
@@ -21,6 +21,7 @@ import { closeSheet, openSheet } from "@/ui/shells/sheets";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { statIcon } from "../_lib/view";
+import { Press } from "@/ui/Press";
 
 const CARD = "min-h-14 flex-row items-center gap-3 rounded-xl bg-foreground/[0.07] pl-4";
 const NAME = "min-w-0 flex-1 text-[13px] font-bold uppercase leading-4 tracking-[0.1em]";
@@ -37,16 +38,17 @@ const moveTo = <T,>(items: T[], from: number, to: number) => {
 /** "CUSTOMIZE" with a pencil at My Dashboard's header (home-12): opens the editor sheet. */
 export function EditDashboardButton({ keys, empty }: { keys: DashboardKey[]; empty: DashboardKey[] }) {
   return (
-    <Pressable
+    <Press
+      activeBg="bg-foreground/[0.06]"
       accessibilityRole="button"
       accessibilityLabel="Customize My Dashboard"
       onPress={() => openSheet(`/dashboard?keys=${keys.join(",")}&empty=${empty.join(",")}`)}
       hitSlop={{ top: 6, bottom: 6 }}
-      className="-mr-2 h-8 flex-row items-center gap-1.5 rounded-full px-2 active:bg-foreground/[0.06]"
+      className="-mr-2 h-8 flex-row items-center gap-1.5 rounded-full px-2"
     >
       <Text className="text-xs font-bold uppercase leading-4 tracking-[0.1em]">Customize</Text>
       <Icon icon={Pencil} size={16} tone="foreground" strokeWidth={1.75} />
-    </Pressable>
+    </Press>
   );
 }
 
@@ -150,12 +152,13 @@ export function EditDashboardSheet({ keys: rawKeys, empty: rawEmpty }: { keys?: 
           <Text accessibilityRole="header" className="text-[13px] font-semibold leading-4 text-foreground-secondary">{g.label}</Text>
           <View className="mt-2 gap-3">
             {g.items.map((m) => (
-              <Pressable
+              <Press
+                activeScale={0.98}
                 key={m.key}
                 accessibilityRole="button"
                 accessibilityLabel={`Add ${m.label}${noData.has(m.key) ? ", no data yet" : ""}`}
                 onPress={() => add(m.key)}
-                className={cn(CARD, "w-full pr-3 active:scale-[0.98]")}
+                className={cn(CARD, "w-full pr-3")}
               >
                 <View accessibilityElementsHidden className="size-5 shrink-0 items-center justify-center">{statIcon(m.key)}</View>
                 <View className="min-w-0 flex-1">
@@ -164,7 +167,7 @@ export function EditDashboardSheet({ keys: rawKeys, empty: rawEmpty }: { keys?: 
                   {noData.has(m.key) && <Text className="mt-0.5 text-xs font-medium leading-4 text-muted-foreground">No data yet</Text>}
                 </View>
                 <Icon icon={Plus} size={24} tone="foreground" strokeWidth={2} />
-              </Pressable>
+              </Press>
             ))}
           </View>
         </View>
@@ -240,11 +243,11 @@ function SortableRow({ id, index, count, onMove, onRemove }: { id: DashboardKey;
         {/* dashboard-03: the chart tile carries a small bar-chart glyph. */}
         {id === "stress" && <Icon icon={ChartNoAxesColumn} size={20} tone="muted-foreground" strokeWidth={1.5} />}
         {/* the reference app hides removal behind a swipe that members could not find; Pulse shows it (spec §11 CD2). */}
-        <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${label}`} onPress={onRemove} className="size-11 items-center justify-center rounded-full active:scale-[0.96]">
+        <Press activeScale={0.96} accessibilityRole="button" accessibilityLabel={`Remove ${label}`} onPress={onRemove} className="size-11 items-center justify-center rounded-full">
           <View className="size-6 items-center justify-center rounded-full border border-foreground-secondary">
             <Icon icon={Minus} size={14} tone="foreground-secondary" strokeWidth={2.25} />
           </View>
-        </Pressable>
+        </Press>
         <GestureDetector gesture={pan}>
           <View
             accessible

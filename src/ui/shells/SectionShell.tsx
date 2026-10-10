@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
 import { Card, CARD_CLASS, CardFill, useCardStyle } from "../Card";
 import { cn } from "../cn";
@@ -9,6 +9,7 @@ import { cardInfo } from "./cardInfo";
 import { InfoButton, type InfoContent } from "./InfoButton";
 import { ScrollAnchor } from "./ScreenScroll";
 import { push } from "../navigate";
+import { Press } from "../Press";
 
 export type SectionShellProps = {
   variant: "section" | "card";
@@ -34,10 +35,10 @@ const go = (href: string) => push(href);
 
 export function ActionLink({ label, href }: { label: string; href: string }) {
   return (
-    <Pressable accessibilityRole="link" onPress={() => go(href)} hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }} className="flex-row items-center gap-0.5 active:opacity-70">
+    <Press activeOpacity={0.7} accessibilityRole="link" onPress={() => go(href)} hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }} className="flex-row items-center gap-0.5">
       <Text className="text-xs font-bold uppercase leading-4 tracking-[0.1em] text-foreground-secondary">{label}</Text>
       <Icon icon={ChevronRight} size={14} tone="foreground-secondary" strokeWidth={2} />
-    </Pressable>
+    </Press>
   );
 }
 
@@ -45,10 +46,10 @@ export function ActionLink({ label, href }: { label: string; href: string }) {
 export function CardLink({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
   const shadow = useCardStyle();
   return (
-    <Pressable accessibilityRole="link" onPress={() => go(href)} className={cn(CARD_CLASS, "active:scale-[0.96]", className)} style={shadow}>
+    <Press activeScale={0.96} accessibilityRole="link" onPress={() => go(href)} className={cn(CARD_CLASS, className)} style={shadow}>
       <CardFill />
       {children}
-    </Pressable>
+    </Press>
   );
 }
 

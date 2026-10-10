@@ -13,6 +13,7 @@ import { Icon } from "@/ui/Icon";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
+import { Press } from "@/ui/Press";
 
 /** Body copy under a heading (web: max-w-[65ch] text-[15px] leading-[22px] text-foreground-secondary). */
 export const BODY = "text-[15px] leading-[22px] text-foreground-secondary";
@@ -101,7 +102,8 @@ export function RadioSegments<T extends string>({ value, options, onChange, labe
       {options.map(({ value: v, label: text, icon }) => {
         const on = v === value;
         return (
-          <Pressable
+          <Press
+            activeScale={0.96}
             key={v}
             accessibilityRole="radio"
             accessibilityState={{ checked: on }}
@@ -111,11 +113,11 @@ export function RadioSegments<T extends string>({ value, options, onChange, labe
               else haptic.select();
               onChange(v);
             }}
-            className={cn("h-11 flex-1 flex-row items-center justify-center gap-2 rounded-[10px] active:scale-[0.96]", on && "bg-foreground")}
+            className={cn("h-11 flex-1 flex-row items-center justify-center gap-2 rounded-[10px]", on && "bg-foreground")}
           >
             {icon && <Icon icon={icon} size={16} tone={on ? "background" : "foreground-secondary"} strokeWidth={2} />}
             <Text className={cn("text-[15px] font-semibold", on ? "text-background" : "text-foreground-secondary")}>{text}</Text>
-          </Pressable>
+          </Press>
         );
       })}
     </View>
@@ -125,7 +127,9 @@ export function RadioSegments<T extends string>({ value, options, onChange, labe
 /** A small text button on the ground ("Edit", "Change", "Done"): the web's ghost / sm sizes, which the kit's Button lacks. */
 export function SmallButton({ label, accessibilityLabel, onPress, icon, solid, className }: { label: string; accessibilityLabel?: string; onPress: () => void; icon?: LucideIcon; solid?: boolean; className?: string }) {
   return (
-    <Pressable
+    <Press
+      activeScale={0.96}
+      activeBg={solid ? undefined : "bg-foreground/[0.06]"}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       onPress={() => {
@@ -133,11 +137,11 @@ export function SmallButton({ label, accessibilityLabel, onPress, icon, solid, c
         onPress();
       }}
       hitSlop={{ top: 4, bottom: 4 }}
-      className={cn("h-9 flex-row items-center justify-center gap-1.5 rounded-full px-3 active:scale-[0.96]", solid ? "bg-primary px-5" : "active:bg-foreground/[0.06]", className)}
+      className={cn("h-9 flex-row items-center justify-center gap-1.5 rounded-full px-3", solid && "bg-primary px-5", className)}
     >
       {icon && <Icon icon={icon} size={14} tone={solid ? "primary-foreground" : "foreground-secondary"} strokeWidth={2} />}
       <Text className={cn("text-[13px] font-semibold", solid ? "text-primary-foreground" : "text-foreground-secondary")}>{label}</Text>
-    </Pressable>
+    </Press>
   );
 }
 

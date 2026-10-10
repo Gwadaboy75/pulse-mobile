@@ -1,6 +1,6 @@
 // Shared by the Trends, Metric detail and Reports screens (web: trends/parts.tsx and the loading shapes).
 import { type ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import Animated, { useAnimatedStyle, withTiming } from "react-native-reanimated";
 import { router } from "expo-router";
 import { CircleAlert } from "lucide-react-native";
@@ -12,6 +12,7 @@ import { Segmented } from "@/ui/Segmented";
 import { DetailShell } from "@/ui/shells/DetailShell";
 import { EmptyState } from "@/ui/shells/EmptyState";
 import { Divided } from "@/ui/Divided";
+import { Press } from "@/ui/Press";
 
 export const PERIOD: Record<TrendRange, { label: string; prior: string }> = {
   w: { label: "Last 7 days", prior: "the 7 days before" },
@@ -53,13 +54,13 @@ export function Turn({ on, children }: { on: boolean; children: ReactNode }) {
 }
 
 /** A whole-card button: the card material, pressing in (the web's CARD_LINK on a button). */
-export function CardButton({ onPress, className, accessibilityLabel, children }: { onPress: () => void; className?: string; accessibilityLabel?: string; children: ReactNode }) {
+export function CardButton({ onPress, className, accessibilityLabel, activeScale = 0.96, children }: { onPress: () => void; className?: string; accessibilityLabel?: string; activeScale?: number; children: ReactNode }) {
   const shadow = useCardStyle();
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} className={cn(CARD_CLASS, "active:scale-[0.96]", className)} style={shadow}>
+    <Press activeScale={activeScale} accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} className={cn(CARD_CLASS, className)} style={shadow}>
       <CardFill />
       {children}
-    </Pressable>
+    </Press>
   );
 }
 

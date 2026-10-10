@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { cn } from "./cn";
 import { alpha } from "./color";
 import { haptic } from "./haptics";
 import { Text } from "./Text";
 import { useTheme } from "./theme";
+import { Press } from "./Press";
 
 // shadcn's Button in Pulse's touch sizes (web: components/ui/button.tsx). Only the variants the kit uses.
 type Variant = "default" | "outline" | "secondary" | "ghost" | "outline-pill";
@@ -48,7 +49,8 @@ export function Button({ variant = "default", size = "touch", onPress, disabled,
   const v = VARIANT[variant];
   const s = SIZE[size];
   return (
-    <Pressable
+    <Press
+      activeScale={0.96}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled: !!disabled }}
@@ -57,11 +59,11 @@ export function Button({ variant = "default", size = "touch", onPress, disabled,
         if (feel) haptic.tap();
         onPress?.();
       }}
-      className={cn("flex-row items-center justify-center border border-transparent active:scale-[0.96]", s.box, v.box, disabled && "opacity-50", className)}
+      className={cn("flex-row items-center justify-center border border-transparent", s.box, v.box, disabled && "opacity-50", className)}
       style={variant === "outline-pill" ? { boxShadow: `0 0 0 1px ${alpha(c.foreground, 0.7)}` } : undefined}
     >
       {v.fill && <View pointerEvents="none" className={cn("absolute inset-0", s.fill, v.fill)} />}
       {typeof children === "string" ? <Text className={cn(s.text, v.text, textClassName)}>{children}</Text> : children}
-    </Pressable>
+    </Press>
   );
 }

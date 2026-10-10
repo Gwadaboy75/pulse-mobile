@@ -2,12 +2,13 @@
 // dialog that asks for the password) without an account: the confirmation is asked twice instead of the password, then the
 // database file is deleted and the app restarts into onboarding (src/actions/reset.ts).
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { deleteEverything } from "@/actions/reset";
 import { haptic } from "@/ui/haptics";
 import { Text } from "@/ui/Text";
 import { forgetCoachKey, forgetGoogleTokens } from "./connect";
 import { ConfirmDialog } from "./controls";
+import { Press } from "@/ui/Press";
 
 export function DeleteEverything() {
   const [step, setStep] = useState<0 | 1 | 2>(0);
@@ -32,17 +33,18 @@ export function DeleteEverything() {
   return (
     <>
       <View className="items-center pb-2 pt-6">
-        <Pressable
+        <Press
+          activeBg="bg-recovery-red/10"
           accessibilityRole="button"
           onPress={() => {
             haptic.tap();
             setStep(1);
           }}
           // Outlined in red: easy to find, clearly destructive, still quieter than the everyday buttons above.
-          className="h-11 items-center justify-center rounded-full border border-recovery-red/45 px-5 active:bg-recovery-red/10"
+          className="h-11 items-center justify-center rounded-full border border-recovery-red/45 px-5"
         >
           <Text className="text-[13px] font-bold uppercase tracking-[0.06em] text-recovery-red-text">Delete everything</Text>
-        </Pressable>
+        </Press>
       </View>
       <ConfirmDialog
         open={step === 1}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Dimensions, Keyboard, LayoutAnimation, Platform, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Dimensions, Keyboard, LayoutAnimation, Platform, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,6 +9,7 @@ import { Text } from "../Text";
 import { useTheme } from "../theme";
 import { DoneScreen } from "./DoneScreen";
 import { closeSheet, type SheetSize } from "./sheets";
+import { Press } from "../Press";
 
 export type SheetScreenProps = {
   title: string;
@@ -110,9 +111,9 @@ export function SheetScreen({ title, description, children, footer, size = "defa
   const pad = keyboard ? 16 : fit && Platform.OS === "ios" ? Math.max(16 - insets.bottom, 0) : Math.max(insets.bottom, 16);
 
   const close = (
-    <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose ?? closeSheet} className="size-11 items-center justify-center rounded-full active:bg-foreground/8">
+    <Press activeBg="bg-foreground/8" accessibilityRole="button" accessibilityLabel="Close" onPress={onClose ?? closeSheet} className="size-11 items-center justify-center rounded-full">
       <X size={22} color={c.foreground} strokeWidth={1.75} />
-    </Pressable>
+    </Press>
   );
   // The web's header is a grid of 44 / 1fr / 44 (ResponsiveSheet.tsx): a drawer keeps the X at the right; the full-screen task
   // keeps it at the left and puts its `action` (the Journal's pencil) at the right, with the same 8 px above and below.

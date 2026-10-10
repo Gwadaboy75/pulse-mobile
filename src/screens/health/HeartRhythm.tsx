@@ -2,7 +2,7 @@
 // the irregular rhythm notification count. Ported from pulse src/app/(app)/health/monitor/HeartRhythm.tsx. Each reading
 // opens its sheet (`/ecg?id=`, app/(sheets)/ecg.tsx) where the web sets `?ecg=<id>`. With nothing recorded it is one
 // quiet row, so a screen most owners see empty never looks broken.
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { Activity, ChevronRight, HeartPulse } from "lucide-react-native";
 import { DAY, formatDay, formatValue } from "@/lib/format";
 import type { EcgReading, HeartRhythm as HeartRhythmVM } from "@/queries/types";
@@ -12,6 +12,7 @@ import { Icon } from "@/ui/Icon";
 import { CAPTION, LABEL, StatusChip, ValueUnit } from "@/ui/metrics/primitives";
 import { openSheet } from "@/ui/shells/sheets";
 import { Text } from "@/ui/Text";
+import { Press } from "@/ui/Press";
 
 /** Fitbit's and the reference app's notes both say "not a diagnosis" and name what ECG can't detect (pulse docs/research/heart-rhythm-ui.md). */
 export const RHYTHM_DISCLAIMER = "Not a diagnosis. ECG and irregular rhythm notifications can’t detect a heart attack, blood clots or stroke. Talk to your doctor about any result.";
@@ -41,7 +42,7 @@ export function HeartRhythm({ rhythm }: { rhythm: HeartRhythmVM }) {
     <View className="gap-3">
       <Card className="py-0">
         {latest ? (
-          <Pressable accessibilityRole="button" accessibilityLabel={`Latest ECG, ${when(latest)}: ${latest.label}, average ${bpm(latest)} bpm`} onPress={() => open(latest)} className="w-full gap-3 p-4 active:bg-accent">
+          <Press activeBg="bg-accent" accessibilityRole="button" accessibilityLabel={`Latest ECG, ${when(latest)}: ${latest.label}, average ${bpm(latest)} bpm`} onPress={() => open(latest)} className="w-full gap-3 p-4">
             <View accessibilityElementsHidden className="w-full flex-row items-center gap-2.5">
               <Icon icon={Activity} size={20} tone="muted-foreground" strokeWidth={1.5} />
               <Text className={cn(LABEL, "flex-1 text-foreground-secondary")}>Latest ECG</Text>
@@ -54,7 +55,7 @@ export function HeartRhythm({ rhythm }: { rhythm: HeartRhythmVM }) {
               <ValueUnit value={bpm(latest)} unit="bpm avg" className="font-numeric text-[30px] leading-9 font-bold tracking-[-0.01em]" unitClassName="text-sm leading-5 font-medium text-foreground" />
               <StatusChip tone={latest.tone}>{latest.label}</StatusChip>
             </View>
-          </Pressable>
+          </Press>
         ) : (
           <View className={ROW}>
             <Icon icon={Activity} size={20} tone="muted-foreground" strokeWidth={1.5} />
@@ -65,7 +66,7 @@ export function HeartRhythm({ rhythm }: { rhythm: HeartRhythmVM }) {
           // ponytail: every reading listed; page it if someone ever has hundreds.
           <View accessibilityLabel="Earlier ECG readings" className="border-t border-border">
             {older.map((e, i) => (
-              <Pressable key={e.id} accessibilityRole="button" onPress={() => open(e)} className={cn(ROW, "w-full active:bg-accent", i > 0 && "border-t border-border")}>
+              <Press activeBg="bg-accent" key={e.id} accessibilityRole="button" onPress={() => open(e)} className={cn(ROW, "w-full", i > 0 && "border-t border-border")}>
                 <View className="min-w-0 flex-1">
                   <Text numberOfLines={1} className="text-[15px] font-medium leading-5">
                     {e.label}
@@ -76,7 +77,7 @@ export function HeartRhythm({ rhythm }: { rhythm: HeartRhythmVM }) {
                 <View className="-mr-1">
                   <Icon icon={ChevronRight} size={16} tone="muted-foreground" strokeWidth={1.75} />
                 </View>
-              </Pressable>
+              </Press>
             ))}
           </View>
         )}

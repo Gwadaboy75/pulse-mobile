@@ -29,6 +29,7 @@ import { SectionShell } from "@/ui/shells/SectionShell";
 import { Skeleton, SkeletonText } from "@/ui/Skeleton";
 import { Text } from "@/ui/Text";
 import { push } from "@/ui/navigate";
+import { Press } from "@/ui/Press";
 
 const WEEK = /^\d{4}-W\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -61,9 +62,9 @@ function PeriodSwitcher({ vm }: { vm: ReportVM }) {
   const step = (to: string | null, dir: "prev" | "next") => {
     const label = `${dir === "prev" ? "Previous" : "Next"} ${vm.kind}`;
     return (
-      <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !to }} disabled={!to} onPress={() => to && (haptic.tap(), router.setParams({ period: to }))} hitSlop={4} className={cn("size-9 items-center justify-center rounded-full active:scale-[0.96] active:bg-accent", !to && "opacity-40")}>
+      <Press activeScale={0.96} activeBg="bg-accent" accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !to }} disabled={!to} onPress={() => to && (haptic.tap(), router.setParams({ period: to }))} hitSlop={4} className={cn("size-9 items-center justify-center rounded-full", !to && "opacity-40")}>
         <Icon icon={dir === "prev" ? ChevronLeft : ChevronRight} size={18} tone="foreground" strokeWidth={2} />
-      </Pressable>
+      </Press>
     );
   };
   return (
@@ -220,12 +221,13 @@ export default function ReportScreen() {
               <SectionShell key="best" variant="card" title="Best and worst day">
                 <Divided>
                   {vm.bestWorst.map((b) => (
-                    <Pressable
+                    <Press
+                      activeBg="bg-accent"
                       key={b.label}
                       accessibilityRole="link"
                       accessibilityLabel={`${b.label}: ${formatDay(b.day, DAY.long)}, Recovery ${Math.round(b.recovery)} percent${b.strain === null ? "" : `, strain ${formatValue("decimal1", b.strain)}`}`}
                       onPress={() => push(dayHref("/", b.day, today))}
-                      className="-mx-2 min-h-16 flex-row items-center gap-3 rounded-lg px-2 py-2 active:bg-accent"
+                      className="-mx-2 min-h-16 flex-row items-center gap-3 rounded-lg px-2 py-2"
                     >
                       <View accessibilityElementsHidden className="min-w-0 flex-1">
                         <Text className={cn(LABEL, "text-foreground")}>{b.label}</Text>
@@ -239,7 +241,7 @@ export default function ReportScreen() {
                         </View>
                       </View>
                       <Icon icon={ChevronRight} size={16} tone="muted-foreground" strokeWidth={1.75} />
-                    </Pressable>
+                    </Press>
                   ))}
                 </Divided>
               </SectionShell>,

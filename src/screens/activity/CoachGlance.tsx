@@ -3,7 +3,7 @@
 // workout per app session (kept in memory, as the web keeps it in sessionStorage); a failure hides the pill. Ported
 // from pulse src/app/(app)/activity/[id]/CoachGlance.tsx.
 import { useEffect, useState } from "react"
-import { Pressable, View } from "react-native"
+import { View } from "react-native"
 import { ChevronUp } from "lucide-react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Mark } from "@/ui/brand"
@@ -15,6 +15,7 @@ import { Text } from "@/ui/Text"
 import { useTheme } from "@/ui/theme"
 import { coachWorkoutGlance } from "./coachStub"
 import { push } from "@/ui/navigate"
+import { Press } from "@/ui/Press";
 
 const session = new Map<string, string>()
 
@@ -54,11 +55,11 @@ export function CoachGlance({ id, question }: { id: string; question: string }) 
   return (
     // The web's `sticky bottom-[max(safe-area + 12, 24)] mr-[68px]`: over the foot of the screen, left of the round action.
     <View pointerEvents="box-none" className="absolute left-4" style={{ right: 16 + 68, bottom: Math.max(inset + 12, 24) }}>
-      <Pressable
+      <Press
+        activeScale={0.98}
         accessibilityRole="link"
         accessibilityLabel={s.text ? `Coach: ${s.text} Ask the coach about this workout.` : "Coach is analyzing this workout. Ask the coach about it."}
         onPress={() => push(`/coach?q=${encodeURIComponent(question)}`)}
-        className="active:scale-[0.98]"
       >
         <Glass radius={28} className="min-h-14 flex-row items-center gap-3 py-2 pl-2 pr-3">
           <CoachGlyph />
@@ -67,7 +68,7 @@ export function CoachGlance({ id, question }: { id: string; question: string }) 
           </Text>
           <Icon icon={ChevronUp} size={20} tone="foreground-secondary" strokeWidth={2} />
         </Glass>
-      </Pressable>
+      </Press>
     </View>
   )
 }

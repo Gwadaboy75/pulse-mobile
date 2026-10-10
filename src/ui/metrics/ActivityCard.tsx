@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { clock, formatValue, spoken } from "@/lib/format";
 import type { Metric } from "@/lib/reasons";
 import { cn } from "../cn";
@@ -9,6 +9,7 @@ import { Skeleton, SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
 import { capTrim } from "./primitives";
 import { push } from "../navigate";
+import { Press } from "../Press";
 
 /** The chip's 20 px value, cap-trimmed as the web's CAP_TRIM. */
 const VALUE_TRIM = capTrim(20, "numeric");
@@ -69,7 +70,7 @@ export function TimelineRow({
   label: string;
 }) {
   return (
-    <Pressable accessibilityRole="link" accessibilityLabel={label} onPress={() => push(href)} className={cn(ROW, "active:scale-[0.96] active:bg-accent")}>
+    <Press activeScale={0.96} activeBg="bg-accent" accessibilityRole="link" accessibilityLabel={label} onPress={() => push(href)} className={ROW}>
       <View className={cn(CHIP, chipClass)}>{chip}</View>
       <View className="min-w-0 flex-1">
         <Text className="text-[15px] font-bold uppercase leading-5 tracking-[0.1em]">{name}</Text>
@@ -84,7 +85,7 @@ export function TimelineRow({
         <Text className="font-numeric text-xs font-medium leading-4 tabular-nums text-foreground-secondary">{end}</Text>
       </View>
       <View accessibilityElementsHidden className={cn("-ml-1 h-7 w-0.5 shrink-0 rounded-full", barClass)} />
-    </Pressable>
+    </Press>
   );
 }
 

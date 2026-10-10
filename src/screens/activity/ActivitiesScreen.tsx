@@ -18,6 +18,7 @@ import { GROUP_LABEL, MORE_COLUMN } from "@/ui/shells/LinkList"
 import { CAPTION } from "@/screens/_lib/view"
 import { ScreenError } from "@/screens/recovery/shared"
 import { useScreen } from "@/screens/useScreen"
+import { Press } from "@/ui/Press";
 
 const KIND_LABEL: Record<ActivityKind, string> = { run: "Runs", ride: "Rides", walk: "Walks", strength: "Strength", workout: "Workouts" }
 const STAT_LABEL = "text-xs leading-4 font-bold tracking-[0.1em] text-foreground-secondary uppercase"
@@ -73,9 +74,9 @@ export function ActivitiesScreen() {
           ))}
           {!items.length && groups.length <= 1 && !vm.older && <EmptyState body="No workouts in the last month. Workouts you record on your Fitbit or phone appear here after they sync." />}
           {vm.older ? (
-            <Pressable accessibilityRole="link" onPress={() => setQuery({ days: days + ACTIVITY_PAGE_DAYS, kind })} className="h-11 items-center justify-center self-center rounded-full px-5 active:bg-foreground/[0.06]">
+            <Press activeBg="bg-foreground/[0.06]" accessibilityRole="link" onPress={() => setQuery({ days: days + ACTIVITY_PAGE_DAYS, kind })} className="h-11 items-center justify-center self-center rounded-full px-5">
               <Text className="text-xs font-bold uppercase tracking-[0.1em] text-foreground/85">Show older</Text>
-            </Pressable>
+            </Press>
           ) : (
             items.length > 0 && <Text className={cn(CAPTION, "text-center")}>No older activities</Text>
           )}

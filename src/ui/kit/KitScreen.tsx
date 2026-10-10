@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { router } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,6 +13,7 @@ import { type CalendarDay, ShellCalendarProvider } from "../shells/ShellStatus";
 import { Text } from "../Text";
 import * as fx from "../fixtures/kit";
 import { Divided } from "../Divided";
+import { Press } from "../Press";
 
 // The frame of the kit screens (app/dev/kit*): the web kit page's Entry and Frame, as React Native. Not part of the
 // app: only the dev kit uses it.
@@ -71,9 +72,9 @@ export function KitScreen({ title, blurb, children }: { title: string; blurb?: s
         <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 48 }} showsVerticalScrollIndicator={false}>
           <View className="gap-4 px-4 pb-6">
             <View className="flex-row items-center justify-between gap-2">
-              <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace("/dev/kit"))} className="-ml-2 size-11 items-center justify-center rounded-full active:bg-foreground/8">
+              <Press activeBg="bg-foreground/8" accessibilityRole="button" accessibilityLabel="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace("/dev/kit"))} className="-ml-2 size-11 items-center justify-center rounded-full">
                 <Icon icon={ChevronLeft} size={26} tone="foreground" strokeWidth={1.75} />
-              </Pressable>
+              </Press>
               <ThemeToggle />
             </View>
             <Text accessibilityRole="header" className="text-[28px] font-semibold leading-9 tracking-[-0.01em]">

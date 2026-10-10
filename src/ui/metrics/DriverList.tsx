@@ -1,4 +1,4 @@
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { ChevronDown, ChevronRight, ChevronUp } from "lucide-react-native";
 import { formatValue } from "@/lib/format";
 import type { Metric } from "@/lib/reasons";
@@ -11,6 +11,7 @@ import { MetricState } from "../shells/MetricState";
 import { SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
 import { MetricTags } from "./primitives";
+import { Press } from "../Press";
 
 export type DriverItem = {
   key: string;
@@ -125,10 +126,10 @@ function Item({ i, max, p }: { i: DriverItem; max: number; p: DriverListProps })
   const ring = selected ? { boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.6)" } : null;
   const fill = !inCard && <CardFill ring={selected ? "rgba(255, 255, 255, 0.6)" : undefined} />;
   return p.onSelect ? (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={() => p.onSelect?.(i.key)} className={cn(cls, "active:scale-[0.96]")} style={[style, ring]}>
+    <Press activeScale={0.96} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => p.onSelect?.(i.key)} className={cls} style={[style, ring]}>
       {fill}
       {content}
-    </Pressable>
+    </Press>
   ) : (
     <View className={cls} style={style}>
       {fill}

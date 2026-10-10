@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
 import { dayLabel } from "@/lib/format";
 import type { JournalVM } from "@/queries/types";
@@ -9,6 +9,7 @@ import { Icon } from "@/ui/Icon";
 import { EmptyState } from "@/ui/shells/EmptyState";
 import { Text } from "@/ui/Text";
 import { TagBadge } from "./CheckInCard";
+import { Press } from "@/ui/Press";
 
 /** History rows before "Show 30 days": a week. The day strip above already reaches every day of the last three weeks. */
 const RECENT = 7;
@@ -26,12 +27,13 @@ export function History({ history, day, today, onSelect }: { history: JournalVM[
           const selected = h.day === day;
           return (
             <View key={h.day} className={cn("border-border", i > 0 && "border-t")}>
-              <Pressable
+              <Press
+                activeBg="bg-accent"
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
                 accessibilityLabel={`${dayLabel(h.day, today)}: ${h.yes.length ? h.yes.join(", ") : "no behaviours"}`}
                 onPress={() => onSelect(h.day)}
-                className="-mx-2 min-h-13 flex-row items-center gap-3 rounded-lg px-2 py-2 active:bg-accent"
+                className="-mx-2 min-h-13 flex-row items-center gap-3 rounded-lg px-2 py-2"
               >
                 {/* The selected day's 3 px marker at the row's left edge. */}
                 {selected && <View accessibilityElementsHidden className="absolute inset-y-3.5 left-0 w-[3px] rounded-full bg-foreground" />}
@@ -44,15 +46,15 @@ export function History({ history, day, today, onSelect }: { history: JournalVM[
                   {!h.yes.length && <Text className="self-center text-xs font-medium leading-4 text-muted-foreground">No behaviours</Text>}
                 </View>
                 <Icon icon={ChevronRight} size={16} tone="muted-foreground" strokeWidth={1.75} />
-              </Pressable>
+              </Press>
             </View>
           );
         })}
       </View>
       {history.length > RECENT && (
-        <Pressable accessibilityRole="button" onPress={() => setAll(!all)} className="-mx-2 mb-1 h-11 items-center justify-center rounded-lg border-t border-border active:bg-accent">
+        <Press activeBg="bg-accent" accessibilityRole="button" onPress={() => setAll(!all)} className="-mx-2 mb-1 h-11 items-center justify-center rounded-lg border-t border-border">
           <Text className="text-xs font-bold uppercase tracking-[0.1em] text-foreground/85">{all ? "Show last week" : "Show 30 days"}</Text>
-        </Pressable>
+        </Press>
       )}
     </Card>
   );

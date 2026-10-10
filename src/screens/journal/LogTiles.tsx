@@ -1,7 +1,7 @@
 // Journal's Log tiles (spec §11 LG1), pulse's (app)/journal/Log.tsx without its sheet (that is app/(sheets)/log.tsx):
 // one tile per thing to log, with the day's figure, each opening its sheet. A row that scrolls edge to edge, as the
 // day strip above it.
-import { Pressable, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { CalendarHeart, Droplet, FlaskConical, Plus, Scale, Smile, Thermometer, Utensils, type LucideIcon } from "lucide-react-native";
 import { DAY, formatDay } from "@/lib/format";
 import { KIND_LABEL, MOODS, VALENCES, type LogData, type LogKind } from "@/lib/log";
@@ -10,6 +10,7 @@ import { CARD_CLASS, CardFill, useCardStyle } from "@/ui/Card";
 import { Icon } from "@/ui/Icon";
 import { openSheet } from "@/ui/shells/sheets";
 import { Text } from "@/ui/Text";
+import { Press } from "@/ui/Press";
 
 export const ICON: Record<LogKind, LucideIcon> = {
   water: Droplet,
@@ -54,11 +55,12 @@ function Tile({ k, vm }: { k: LogKind; vm: LogVM }) {
   const t = tileValue(k, vm);
   const label = KIND_LABEL[k] === "Ovulation test" ? "Ovulation" : KIND_LABEL[k];
   return (
-    <Pressable
+    <Press
+      activeScale={0.96}
       accessibilityRole="button"
       accessibilityLabel={t ? `${label}, ${t.value}${t.sub ? ` on ${t.sub}` : ""}. Log ${label.toLowerCase()}` : `Log ${label.toLowerCase()}`}
       onPress={() => openSheet(logHref(k, vm))}
-      className={`${CARD_CLASS} h-24 w-24 justify-between p-3 active:scale-[0.96]`}
+      className={`${CARD_CLASS} h-24 w-24 justify-between p-3`}
       style={shadow}
     >
       <CardFill />
@@ -78,7 +80,7 @@ function Tile({ k, vm }: { k: LogKind; vm: LogVM }) {
         )}
         <Text className="text-[13px] font-semibold leading-[18px]">{label}</Text>
       </View>
-    </Pressable>
+    </Press>
   );
 }
 

@@ -14,6 +14,7 @@ import { openSheet } from "@/ui/shells/sheets";
 import { Text } from "@/ui/Text";
 import { TREND_GROUPS, TREND_METRICS, type TrendMetricKey } from "@/queries/trends";
 import { CardButton, Turn } from "./parts";
+import { Press } from "@/ui/Press";
 
 const GROUPS = TREND_GROUPS.map((g) => ({ group: g, metrics: TREND_METRICS.filter((m) => m.group === g).map(({ key, label }) => ({ key, label })) }));
 const SHOWN = GROUPS.flatMap((g) => g.metrics.map((m) => ({ ...m, group: g.group })));
@@ -64,9 +65,9 @@ export function MetricSheetBody({ current, r }: { current?: string; r?: string }
                   {metrics.map((m) => {
                     const current = m.key === metric.key;
                     return (
-                      <Pressable key={m.key} accessibilityRole="button" accessibilityState={{ selected: current }} onPress={() => (haptic.tap(), choose(m.key))} className={cn("h-10 flex-row items-center rounded-full px-4 active:scale-[0.96]", current ? "bg-foreground" : "bg-muted")}>
+                      <Press activeScale={0.96} key={m.key} accessibilityRole="button" accessibilityState={{ selected: current }} onPress={() => (haptic.tap(), choose(m.key))} className={cn("h-10 flex-row items-center rounded-full px-4", current ? "bg-foreground" : "bg-muted")}>
                         <Text className={cn("text-[14px] font-medium leading-5", current ? "text-background" : "text-foreground")}>{m.label}</Text>
-                      </Pressable>
+                      </Press>
                     );
                   })}
                 </View>

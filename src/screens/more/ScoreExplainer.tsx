@@ -1,6 +1,6 @@
 // One score's explainer `/more/how-it-works/[score]` (U21), written from src/core and docs/algorithms. Ported from pulse
 // (app)/more/how-it-works/[score]/page.tsx and loading.tsx (the copy is static, so there is nothing to load).
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { cn } from "@/ui/cn";
@@ -12,6 +12,7 @@ import { Text } from "@/ui/Text";
 import { BODY, Divider } from "../settings/controls";
 import { SCORE_DOCS, type HowSection } from "./howItWorksContent";
 import { push } from "@/ui/navigate";
+import { Press } from "@/ui/Press";
 
 /** A detail this short sits beside its term ("HRV  55%"); a sentence goes under it. */
 const SHORT = 24;
@@ -43,7 +44,7 @@ function Section({ s }: { s: HowSection }) {
   );
 }
 
-const STEP = "min-h-14 min-w-0 flex-1 flex-row items-center gap-2 rounded-xl px-3 active:scale-[0.96]";
+const STEP = "min-h-14 min-w-0 flex-1 flex-row items-center gap-2 rounded-xl px-3";
 
 export function ScoreExplainerScreen() {
   const { score } = useLocalSearchParams<{ score: string }>();
@@ -76,24 +77,24 @@ export function ScoreExplainerScreen() {
           <Text className="text-xs font-medium leading-4 text-muted-foreground">Not a medical device. Pulse’s scores are estimates from a wrist sensor, for personal use, not a diagnosis.</Text>
           <View accessibilityLabel="Other scores" className="flex-row gap-2">
             {prev ? (
-              <Pressable accessibilityRole="link" onPress={() => router.replace(`/more/how-it-works/${prev.slug}` as never)} className={STEP}>
+              <Press activeScale={0.96} accessibilityRole="link" onPress={() => router.replace(`/more/how-it-works/${prev.slug}` as never)} className={STEP}>
                 <Icon icon={ChevronLeft} size={20} tone="muted-foreground" strokeWidth={1.75} />
                 <View className="min-w-0">
                   <Text className="text-xs font-medium leading-4 text-muted-foreground">Previous</Text>
                   <Text className="text-[15px] font-semibold leading-[22px]">{prev.name}</Text>
                 </View>
-              </Pressable>
+              </Press>
             ) : (
               <View className="flex-1" />
             )}
             {next && (
-              <Pressable accessibilityRole="link" onPress={() => router.replace(`/more/how-it-works/${next.slug}` as never)} className={cn(STEP, "justify-end")}>
+              <Press activeScale={0.96} accessibilityRole="link" onPress={() => router.replace(`/more/how-it-works/${next.slug}` as never)} className={cn(STEP, "justify-end")}>
                 <View className="min-w-0 items-end">
                   <Text className="text-xs font-medium leading-4 text-muted-foreground">Next</Text>
                   <Text className="text-right text-[15px] font-semibold leading-[22px]">{next.name}</Text>
                 </View>
                 <Icon icon={ChevronRight} size={20} tone="muted-foreground" strokeWidth={1.75} />
-              </Pressable>
+              </Press>
             )}
           </View>
         </View>

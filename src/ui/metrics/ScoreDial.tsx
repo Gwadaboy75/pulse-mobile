@@ -1,4 +1,4 @@
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 import Svg, { Defs, LinearGradient, Path, Polygon, RadialGradient, Stop } from "react-native-svg";
 import { ChevronRight } from "lucide-react-native";
@@ -17,6 +17,7 @@ import { useTheme } from "../theme";
 import { ARC_FROM, ARC_SWEEP } from "./MiniRing";
 import { capTrim, MetricTags, type TagKind } from "./primitives";
 import { push } from "../navigate";
+import { Press } from "../Press";
 
 export type DialSize = "sm" | "md" | "lg";
 export type DialVariant = "recovery" | "strain" | "sleep" | "stat" | "gauge";
@@ -277,14 +278,15 @@ export function ScoreDial(props: ScoreDialProps) {
 
   if (href)
     return (
-      <Pressable
+      <Press
+        activeScale={0.96}
         accessibilityRole="link"
         accessibilityLabel={`${aria}. Open ${r.label} details`}
         onPress={() => push(href)}
-        className="min-w-24 items-center gap-1 rounded-xl p-1 active:scale-[0.96]"
+        className="min-w-24 items-center gap-1 rounded-xl p-1"
       >
         {content}
-      </Pressable>
+      </Press>
     );
   // A loading md dial keeps the Home link's 4 px padding, so the swap to the linked dial moves nothing.
   return <View className={cn("items-center", lg ? "gap-3" : size === "md" ? "gap-1" : "gap-2", loading && size === "md" && "min-w-24 p-1")}>{content}</View>;

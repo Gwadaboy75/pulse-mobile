@@ -7,6 +7,7 @@ import { StatusChip } from "../metrics/primitives";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
 import { push } from "../navigate";
+import { Press } from "../Press";
 
 export type InfoContent = {
   title: string;
@@ -58,9 +59,9 @@ export function InfoDialog({ open, onClose, title, body, icon, chip, action }: I
               </Button>
             )}
           </ScrollView>
-          <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} className="absolute right-3 top-3 size-11 items-center justify-center rounded-full active:bg-foreground/8">
+          <Press activeBg="bg-foreground/8" accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} className="absolute right-3 top-3 size-11 items-center justify-center rounded-full">
             <X size={22} color={c.foreground} strokeWidth={1.75} />
-          </Pressable>
+          </Press>
         </Pressable>
       </Pressable>
     </Modal>

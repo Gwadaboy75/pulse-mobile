@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import Animated from "react-native-reanimated";
 import { router, type Href } from "expo-router";
 import { ChevronLeft, X } from "lucide-react-native";
@@ -9,6 +9,7 @@ import { Text } from "../Text";
 import { DateSwitcher, type DateSwitcherProps } from "./DateSwitcher";
 import { HEADER_ROW, HEADER_TITLE, HeaderFrame, HeaderRow } from "./Header";
 import { InfoButton, type InfoContent } from "./InfoButton";
+import { Press } from "../Press";
 
 export type DetailHeaderProps = {
   title: string;
@@ -38,9 +39,9 @@ export const detailRowHeight = ({ subtitle, dateTitle }: Pick<DetailHeaderProps,
 export function DetailHeaderRow({ title, subtitle, info, backHref, dateTitle, dismiss = "back", align = "center", titleIcon, action, className, centerStyle }: DetailHeaderProps & { className?: string; centerStyle?: ComponentProps<typeof Animated.View>["style"] }) {
   const close = dismiss === "close";
   const back = (
-    <Pressable accessibilityRole="button" accessibilityLabel={close ? "Close" : "Back"} onPress={() => goBack(backHref)} className="size-11 items-center justify-center rounded-full active:bg-foreground/8">
+    <Press activeBg="bg-foreground/8" accessibilityRole="button" accessibilityLabel={close ? "Close" : "Back"} onPress={() => goBack(backHref)} className="size-11 items-center justify-center rounded-full">
       <Icon icon={close ? X : ChevronLeft} size={close ? 24 : 26} tone="foreground" strokeWidth={1.75} />
-    </Pressable>
+    </Press>
   );
   const right = action ?? (info && <InfoButton info={info} label={title} variant="header" />);
 

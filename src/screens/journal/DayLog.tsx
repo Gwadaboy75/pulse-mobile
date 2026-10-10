@@ -1,7 +1,7 @@
 // Journal's day log (spec §11 LG1), pulse's (app)/journal/DayLog.tsx: the selected day's entries, grouped, each opening a
 // sheet with its details (app/(sheets)/log-entry.tsx, which also holds Delete).
 import type { ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { ChevronRight, Plus, type LucideIcon } from "lucide-react-native";
 import { clock, dayLabel } from "@/lib/format";
 import { LOG_DAYS, type LogData, type LogKind } from "@/lib/log";
@@ -13,6 +13,7 @@ import { openSheet } from "@/ui/shells/sheets";
 import { Card } from "@/ui/Card";
 import { Text } from "@/ui/Text";
 import { ICON, logHref } from "./LogTiles";
+import { Press } from "@/ui/Press";
 
 const n = (v: number) => v.toLocaleString("en-US");
 const TIME = "shrink-0 font-numeric text-[13px] font-medium leading-4 tabular-nums text-muted-foreground";
@@ -30,9 +31,9 @@ function Group({ icon, title, total, kind, vm, first, children }: { icon: Lucide
         </Text>
         {total && <Text className="font-numeric text-[15px] font-bold tabular-nums">{total}</Text>}
         {vm.kinds.includes(kind) && (
-          <Pressable accessibilityRole="button" accessibilityLabel={`Log ${title.toLowerCase()}`} onPress={() => openSheet(logHref(kind, vm))} className="-mr-2 size-11 items-center justify-center rounded-full active:bg-muted">
+          <Press activeBg="bg-muted" accessibilityRole="button" accessibilityLabel={`Log ${title.toLowerCase()}`} onPress={() => openSheet(logHref(kind, vm))} className="-mr-2 size-11 items-center justify-center rounded-full">
             <Icon icon={Plus} size={20} tone="foreground-secondary" strokeWidth={2} />
-          </Pressable>
+          </Press>
         )}
       </View>
       <View className="pl-8">{children}</View>
@@ -43,7 +44,7 @@ function Group({ icon, title, total, kind, vm, first, children }: { icon: Lucide
 /** One tappable entry row: title and detail, where it came from, the time. */
 function Row({ e, title, detail, time, href }: { e: LoggedEntry; title: string; detail?: string; time: string; href: string }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${title}${detail ? `, ${detail}` : ""}, ${time}, ${e.app}`} onPress={() => openSheet(href)} className="-mx-2 min-h-13 flex-row items-center gap-3 rounded-lg px-2 py-2 active:bg-accent">
+    <Press activeBg="bg-accent" accessibilityRole="button" accessibilityLabel={`${title}${detail ? `, ${detail}` : ""}, ${time}, ${e.app}`} onPress={() => openSheet(href)} className="-mx-2 min-h-13 flex-row items-center gap-3 rounded-lg px-2 py-2">
       <View className="min-w-0 flex-1">
         <Text numberOfLines={1} className="text-[15px] leading-[22px]">
           {title}
@@ -54,7 +55,7 @@ function Row({ e, title, detail, time, href }: { e: LoggedEntry; title: string; 
       </View>
       <Text className={TIME}>{time}</Text>
       <Icon icon={ChevronRight} size={16} tone="muted-foreground" strokeWidth={1.75} />
-    </Pressable>
+    </Press>
   );
 }
 
@@ -80,16 +81,17 @@ export function DayLog({ vm }: { vm: LogVM }) {
         {vm.water.entries.length ? (
           <View accessibilityLabel="Drinks" className="flex-row flex-wrap gap-2 pb-2">
             {vm.water.entries.map((e) => (
-              <Pressable
+              <Press
+                activeBg="bg-accent"
                 key={e.id}
                 accessibilityRole="button"
                 accessibilityLabel={`${e.detail}, ${time(e.ts)}, ${e.app}`}
                 onPress={() => openSheet(entryHref([e], vm))}
-                className="h-11 flex-row items-center gap-2 rounded-full border border-border px-3.5 active:bg-accent"
+                className="h-11 flex-row items-center gap-2 rounded-full border border-border px-3.5"
               >
                 <Text className="font-numeric text-[15px] font-bold tabular-nums">{e.detail}</Text>
                 <Text className={TIME}>{time(e.ts)}</Text>
-              </Pressable>
+              </Press>
             ))}
           </View>
         ) : (

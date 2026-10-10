@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { agoShort, ago } from "@/lib/format";
 import { BandIcon } from "../brand";
 import { cn } from "../cn";
@@ -7,6 +7,7 @@ import { push } from "../navigate";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
 import { useShellSync, type ShellSync } from "./ShellStatus";
+import { Press } from "../Press";
 
 /** The web's syncView (TopBar.tsx): the dot's colour and the spoken label for a sync state. */
 function syncView(s: ShellSync, now: number): { dot: string; label: string } {
@@ -41,13 +42,13 @@ export function SyncStatus() {
   const v = syncView(s, now);
   const short = s.sync.lastSuccessAt ? agoShort(s.sync.lastSuccessAt, now) : "";
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={v.label} onPress={() => push("/settings?s=source")} className="h-11 min-w-11 flex-row items-center justify-end gap-1.5 rounded-full pl-2 pr-0.5 active:scale-[0.96]">
+    <Press activeScale={0.96} accessibilityRole="button" accessibilityLabel={v.label} onPress={() => push("/settings?s=source")} className="h-11 min-w-11 flex-row items-center justify-end gap-1.5 rounded-full pl-2 pr-0.5">
       <Text className="min-w-[3ch] text-right font-numeric text-[15px] font-semibold leading-5 tabular-nums text-muted-foreground">{short}</Text>
       {/* The band with its dot at the top right, ringed in the header's colour (the web's Band). */}
       <View className="ml-1 size-6 items-center justify-center">
         <BandIcon size={22} color={c.foreground} />
         <View className={cn("absolute -right-1.5 -top-1 size-2 rounded-full", v.dot)} style={{ boxShadow: `0 0 0 2px ${c["background-top"]}` }} />
       </View>
-    </Pressable>
+    </Press>
   );
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { ArrowUpRight, ChevronRight, type LucideIcon } from "lucide-react-native";
 import * as Linking from "expo-linking";
 import { CARD_CLASS, CardFill, useCardStyle } from "../Card";
@@ -8,6 +8,7 @@ import { Icon } from "../Icon";
 import { SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
 import { push } from "../navigate";
+import { Press } from "../Press";
 
 export type LinkListRow = {
   label: string;
@@ -42,12 +43,13 @@ export function LinkList({ title, rows, className }: { title: string; rows: Link
       </Text>
       <View className="gap-2">
         {rows.map((r) => (
-          <Pressable
+          <Press
+            activeScale={0.96}
             key={r.href}
             accessibilityRole="link"
             accessibilityHint={r.external ? "Opens outside the app" : undefined}
             onPress={() => (r.external ? Linking.openURL(r.href) : push(r.href))}
-            className={cn(CARD_CLASS, ROW, "active:scale-[0.96]")}
+            className={cn(CARD_CLASS, ROW)}
             style={shadow}
           >
             <CardFill />
@@ -58,7 +60,7 @@ export function LinkList({ title, rows, className }: { title: string; rows: Link
             </View>
             {typeof r.aside === "string" ? <Text className="shrink-0 font-numeric text-xs font-medium leading-4 tabular-nums text-muted-foreground">{r.aside}</Text> : r.aside}
             <Icon icon={r.external ? ArrowUpRight : ChevronRight} size={20} tone="muted-foreground" />
-          </Pressable>
+          </Press>
         ))}
       </View>
     </View>

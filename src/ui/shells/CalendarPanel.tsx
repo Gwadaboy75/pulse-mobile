@@ -25,6 +25,7 @@ import {
 import { Text } from "../Text";
 import { useTheme } from "../theme";
 import { type CalendarDay, useShellCalendar } from "./ShellStatus";
+import { Press } from "../Press";
 
 export type CalendarPanelProps = {
   open: boolean;
@@ -118,9 +119,9 @@ function MonthPanel({ selected, context, onSelect, weekStartsOn = WEEK_STARTS_ON
       <View className="mt-2 min-h-11 flex-row items-center gap-3 px-3">
         {/* Back to today from a past day or another month (spec §11 UX1). */}
         {(selected !== today || month !== monthOf(today)) && (
-          <Pressable accessibilityRole="button" accessibilityLabel="Back to today" onPress={() => onSelect(today)} hitSlop={6} className="h-8 justify-center rounded-full bg-foreground/[0.08] px-3.5 active:scale-[0.96]">
+          <Press activeScale={0.96} accessibilityRole="button" accessibilityLabel="Back to today" onPress={() => onSelect(today)} hitSlop={6} className="h-8 justify-center rounded-full bg-foreground/[0.08] px-3.5">
             <Text className="text-[11px] font-bold uppercase leading-4 tracking-[0.1em]">Today</Text>
-          </Pressable>
+          </Press>
         )}
         <Legend context={context} />
       </View>
@@ -131,16 +132,17 @@ function MonthPanel({ selected, context, onSelect, weekStartsOn = WEEK_STARTS_ON
 
 function ChevronButton({ dir, disabled, onPress }: { dir: "prev" | "next"; disabled: boolean; onPress: () => void }) {
   return (
-    <Pressable
+    <Press
+      activeScale={0.96}
       accessibilityRole="button"
       accessibilityLabel={dir === "prev" ? "Previous month" : "Next month"}
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      className={cn("size-11 items-center justify-center rounded-full active:scale-[0.96]", disabled && "opacity-50")}
+      className={cn("size-11 items-center justify-center rounded-full", disabled && "opacity-50")}
     >
       <Icon icon={dir === "prev" ? ChevronLeft : ChevronRight} size={32} tone="foreground" strokeWidth={1.5} />
-    </Pressable>
+    </Press>
   );
 }
 

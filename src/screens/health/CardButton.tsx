@@ -5,12 +5,13 @@ import { ArrowRight } from "lucide-react-native";
 import { Icon } from "@/ui/Icon";
 import { Text } from "@/ui/Text";
 import { push } from "@/ui/navigate";
+import { Press } from "@/ui/Press";
 
 export function CardButton({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Pressable accessibilityRole="link" onPress={() => push(href)} className="h-12 w-full flex-row items-center justify-center gap-2 rounded-xl bg-secondary active:scale-[0.96]">
+    <Press activeScale={0.96} accessibilityRole="link" onPress={() => push(href)} className="h-12 w-full flex-row items-center justify-center gap-2 rounded-xl bg-secondary">
       <Text className="text-[13px] font-bold uppercase leading-4 tracking-[0.1em]">{children}</Text>
-    </Pressable>
+    </Press>
   );
 }
 

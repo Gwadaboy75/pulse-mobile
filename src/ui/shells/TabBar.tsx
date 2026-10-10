@@ -1,5 +1,5 @@
 import { useEffect, useState, type ComponentProps } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import type { Tabs } from "expo-router";
 import { HeartPulse, Menu, NotebookPen, type LucideIcon } from "lucide-react-native";
@@ -14,6 +14,7 @@ import { useTheme } from "../theme";
 import { useFocusedBlurTarget } from "./blurTarget";
 import { CheckInAction } from "./CheckInAction";
 import { TAB_BAR_HEIGHT, useTabBarBottom } from "./layout";
+import { Press } from "../Press";
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>>[0];
 
@@ -56,7 +57,8 @@ function Bar({ state, navigation, current }: TabBarProps & { current: number }) 
           const route_ = state.routes.find((r) => r.name === route);
           const on = i === current;
           return (
-            <Pressable
+            <Press
+              activeScale={0.96}
               key={route}
               accessibilityRole="tab"
               accessibilityLabel={label}
@@ -69,11 +71,11 @@ function Bar({ state, navigation, current }: TabBarProps & { current: number }) 
                   navigation.navigate(route_.name);
                 }
               }}
-              className="h-full min-w-0 flex-1 items-center justify-center gap-0.5 rounded-[18px] active:scale-[0.96]"
+              className="h-full min-w-0 flex-1 items-center justify-center gap-0.5 rounded-[18px]"
             >
               <Icon icon={icon} size={26} tone={on ? "foreground" : "muted-foreground"} strokeWidth={1.6} />
               <Text className={on ? "text-[11px] font-semibold leading-[13px] text-foreground" : "text-[11px] font-semibold leading-[13px] text-muted-foreground"}>{label}</Text>
-            </Pressable>
+            </Press>
           );
         })}
       </View>

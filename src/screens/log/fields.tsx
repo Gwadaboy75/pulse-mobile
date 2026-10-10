@@ -2,13 +2,14 @@
 // toggle-group,alert}.tsx and the Chips / Field / Alert pieces of (app)/journal/Log.tsx): React Native has no
 // <input>, and the kit has none yet, so they are built here from its tokens.
 import type { ComponentProps, ReactNode, Ref } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
 import { alpha } from "@/ui/color";
 import { cn } from "@/ui/cn";
 import { FACES } from "@/ui/fontClasses";
 import { haptic } from "@/ui/haptics";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
+import { Press } from "@/ui/Press";
 
 /** A text field: 44 px, 10 px corners, a 1 px input border, transparent (a faint fill in dark), 16 px text. */
 export function Input({ className, style, ...props }: ComponentProps<typeof TextInput> & { ref?: Ref<TextInput> }) {
@@ -61,15 +62,16 @@ export function Chips({
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel={label} className="w-full flex-row flex-wrap gap-2">
       {options.map(([v, l]) => (
-        <Pressable
+        <Press
+          activeScale={0.96}
           key={v}
           accessibilityRole={multi ? "checkbox" : "radio"}
           accessibilityState={multi ? { checked: on(v) } : { selected: on(v) }}
           onPress={() => press(v)}
-          className={cn("h-11 items-center justify-center rounded-full border px-4 active:scale-[0.96]", on(v) ? "border-foreground bg-foreground" : "border-border")}
+          className={cn("h-11 items-center justify-center rounded-full border px-4", on(v) ? "border-foreground bg-foreground" : "border-border")}
         >
           <Text className={cn("text-[15px] font-medium leading-[22px]", on(v) ? "text-background" : "text-foreground")}>{l}</Text>
-        </Pressable>
+        </Press>
       ))}
     </View>
   );

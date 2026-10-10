@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { Triangle } from "lucide-react-native";
 import { deltaTone, type GoodDirection, type Tone } from "@/lib/bands";
 import { formatValue, isSymbolUnit, MISSING, spoken, type FormatKey } from "@/lib/format";
@@ -12,6 +12,7 @@ import { Text } from "../Text";
 import { useTheme } from "../theme";
 import { CAPTION, LABEL, MetricTags, ValueUnit } from "./primitives";
 import { push } from "../navigate";
+import { Press } from "../Press";
 
 type Common = {
   icon?: ReactNode;
@@ -102,9 +103,9 @@ function RecoveryRow({ p, value, meta }: { p: Extract<ContributorRowProps, { var
   );
   if (p.href)
     return (
-      <Pressable accessibilityRole="link" accessibilityLabel={sentence} onPress={() => p.href && push(p.href)} className={cn("rounded-lg py-3 active:bg-accent", p.className)}>
+      <Press activeBg="bg-accent" accessibilityRole="link" accessibilityLabel={sentence} onPress={() => p.href && push(p.href)} className={cn("rounded-lg py-3", p.className)}>
         {body}
-      </Pressable>
+      </Press>
     );
   return <View className={cn("py-3", p.className)}>{body}</View>;
 }
@@ -186,9 +187,9 @@ function HealthspanRow({ p, value, meta }: { p: Extract<ContributorRowProps, { v
   );
   if (p.onSelect)
     return (
-      <Pressable accessibilityRole="button" accessibilityLabel={sentence} onPress={p.onSelect} className={cn("py-3 active:opacity-80", p.className)}>
+      <Press activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={sentence} onPress={p.onSelect} className={cn("py-3", p.className)}>
         {body}
-      </Pressable>
+      </Press>
     );
   return <View className={cn("py-3", p.className)}>{body}</View>;
 }

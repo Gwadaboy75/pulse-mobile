@@ -1,6 +1,6 @@
 // Trend View `/trend/[key]?d=&r=&p=` (web: (app)/trend/[key]/page.tsx, spec §11 R29): one metric over a W / M / 6M window,
 // stepped back `p` periods, against the window before it, with a verdict, a breakdown and an explainer.
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft, ChevronRight, Info, Plus } from "lucide-react-native";
 import { formatValue } from "@/lib/format";
@@ -26,6 +26,7 @@ import { parseOffset, parseTrendRange, TREND_VIEW_RANGES, type TrendViewRange } 
 import { LoadError } from "./parts";
 import { TrendMetricMenu } from "./TrendMetricMenu";
 import { TrendViewChart } from "./TrendViewChart";
+import { Press } from "@/ui/Press";
 
 const RANGE_TEXT: Record<TrendViewRange, string> = { w: "W", m: "M", "6m": "6M" };
 const RANGE_ARIA: Record<TrendViewRange, string> = { w: "1 week", m: "1 month", "6m": "6 months" };
@@ -88,7 +89,7 @@ export default function TrendViewScreen() {
           {/* Pulse imports workouts, so Add activity explains where they come from (§11 R2). The goal button waits for a
               plan source (FEATURES.goals is off). */}
           {vm.actions.addActivity && (
-            <InfoCardTrigger info={ADD_ACTIVITY_INFO} className="h-12 w-full flex-row items-center justify-center gap-2 rounded-xl bg-secondary active:scale-[0.96]">
+            <InfoCardTrigger info={ADD_ACTIVITY_INFO} activeScale={0.96} className="h-12 w-full flex-row items-center justify-center gap-2 rounded-xl bg-secondary">
               <Icon icon={Plus} size={20} tone="foreground" strokeWidth={2} />
               <Text className="text-[13px] font-bold uppercase leading-4 tracking-[0.1em]">Add activity</Text>
             </InfoCardTrigger>
@@ -111,7 +112,7 @@ export default function TrendViewScreen() {
 
 function Headline({ vm }: { vm: TrendViewVM }) {
   const { c } = useTheme();
-  const arrow = "size-10 items-center justify-center rounded-full active:scale-[0.96] active:bg-foreground/10";
+  const arrow = "size-10 items-center justify-center rounded-full";
   return (
     <View className="flex-row items-start gap-x-3">
       <View className="min-w-0 flex-1">
@@ -143,9 +144,9 @@ function PeriodStep({ dir, enabled, onPress, className, color, dim }: { dir: "pr
   const Glyph = dir === "prev" ? ChevronLeft : ChevronRight;
   const label = `${dir === "prev" ? "Previous" : "Next"} period`;
   return enabled ? (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={() => (haptic.tap(), onPress())} className={className}>
+    <Press accessibilityRole="button" accessibilityLabel={label} onPress={() => (haptic.tap(), onPress())} activeScale={0.96} activeBg="bg-foreground/10" className={className}>
       <Glyph size={20} color={color} strokeWidth={2.5} />
-    </Pressable>
+    </Press>
   ) : (
     <View accessibilityElementsHidden className={className}>
       <Glyph size={20} color={dim} strokeWidth={2.5} style={{ opacity: 0.4 }} />

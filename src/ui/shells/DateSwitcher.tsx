@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, View, useWindowDimensions } from "react-native";
+import { View, useWindowDimensions } from "react-native";
 import { router, useLocalSearchParams, usePathname } from "expo-router";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { pillLabel, rangeLabel } from "@/lib/format";
@@ -11,6 +11,7 @@ import { calendarContext, type CalendarContext } from "@/lib/calendar";
 import { Text } from "../Text";
 import { CalendarPanel } from "./CalendarPanel";
 import { useShellCalendar } from "./ShellStatus";
+import { Press } from "../Press";
 
 export type DateSwitcherProps = {
   mode: "day" | "week";
@@ -66,31 +67,33 @@ export function DateSwitcher({ mode, calendar, placement = "body", narrow: narro
   const stepClass = bare ? "size-9" : narrow ? "size-6" : "size-7";
 
   const stepper = (dir: -1 | 1, disabled: boolean) => (
-    <Pressable
+    <Press
+      activeScale={0.96}
       accessibilityRole="button"
       accessibilityLabel={`${dir < 0 ? "Previous" : "Next"} ${unit}`}
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={() => by(dir * step)}
       hitSlop={bare ? { top: 4, bottom: 4, left: 2, right: 2 } : 8}
-      className={cn("items-center justify-center rounded-full active:scale-[0.96]", stepClass, disabled ? (bare ? "opacity-25" : "opacity-35") : bare ? "opacity-70" : "opacity-75")}
+      className={cn("items-center justify-center rounded-full", stepClass, disabled ? (bare ? "opacity-25" : "opacity-35") : bare ? "opacity-70" : "opacity-75")}
     >
       <Icon icon={dir < 0 ? ChevronLeft : ChevronRight} size={bare ? 16 : 18} tone="foreground" strokeWidth={2.25} />
-    </Pressable>
+    </Press>
   );
 
   return (
     <View className={cn("flex-row items-center self-center", bare ? "gap-1" : "h-[30px] rounded-full bg-foreground/[0.04] p-px")}>
       {steppers && stepper(-1, atStart)}
-      <Pressable
+      <Press
+        activeScale={0.96}
         accessibilityRole="button"
         accessibilityLabel={`${label}. Open calendar`}
         onPress={() => setOpen(true)}
         hitSlop={{ top: bare ? 4 : 8, bottom: bare ? 4 : 8 }}
-        className={cn("items-center justify-center rounded-full active:scale-[0.96]", bare ? "h-9 min-w-28 px-2" : cn("h-7 bg-foreground/[0.08] px-4", narrow ? "min-w-0 px-2.5" : "min-w-24"))}
+        className={cn("items-center justify-center rounded-full", bare ? "h-9 min-w-28 px-2" : cn("h-7 bg-foreground/[0.08] px-4", narrow ? "min-w-0 px-2.5" : "min-w-24"))}
       >
         <Text className={cn(bare ? "text-xs font-bold uppercase leading-4 tracking-[0.1em]" : LABEL, "tabular-nums")}>{label}</Text>
-      </Pressable>
+      </Press>
       {steppers && stepper(1, atEnd)}
       <CalendarPanel open={open} onClose={() => setOpen(false)} selected={d} context={calendar ?? calendarContext(pathname)} onSelect={(day) => (setDay(day), setOpen(false))} />
     </View>

@@ -4,7 +4,7 @@
 // writes to its own database, so a save cannot be "offline") and Select Behaviors as a dialog (the pencil opens
 // Settings' behaviours screen).
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { useFocusEffect, useLocalSearchParams, useNavigation } from "expo-router";
 import { Check, ChevronLeft, ChevronRight, LoaderCircle, Pencil, X } from "lucide-react-native";
@@ -28,6 +28,7 @@ import { changedEntries, heading, type Values } from "./checkin";
 import { DismissDialog, dismissIsQuiet } from "./DismissDialog";
 import { Slider } from "./Slider";
 import { push } from "@/ui/navigate";
+import { Press } from "@/ui/Press";
 
 type Loaded = { day: string } & Pick<JournalVM, "tags" | "checkIn" | "strip">;
 type Confirm = { to: string | null };
@@ -53,9 +54,9 @@ function Answer({ kind, on, label, onPress }: { kind: "no" | "yes"; on: boolean;
   const fg = on ? (kind === "yes" ? c["on-color"] : c.background) : alpha(c.foreground, 0.8);
   const Glyph = kind === "yes" ? Check : X;
   return (
-    <Pressable accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ selected: on }} onPress={onPress} className="size-11 items-center justify-center rounded-[10px] active:scale-[0.96]" style={{ backgroundColor: bg }}>
+    <Press activeScale={0.96} accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ selected: on }} onPress={onPress} className="size-11 items-center justify-center rounded-[10px]" style={{ backgroundColor: bg }}>
       <Glyph size={18} color={fg} strokeWidth={3} />
-    </Pressable>
+    </Press>
   );
 }
 
@@ -222,7 +223,8 @@ export function CheckInSheet() {
         glow
         onClose={close}
         action={
-          <Pressable
+          <Press
+            activeBg="bg-foreground/8"
             accessibilityRole="button"
             accessibilityLabel="Select behaviours"
             onPress={() => {
@@ -230,10 +232,10 @@ export function CheckInSheet() {
               picked.current = true;
               push("/more/behaviours");
             }}
-            className="size-11 items-center justify-center rounded-full active:bg-foreground/8"
+            className="size-11 items-center justify-center rounded-full"
           >
             <Pencil size={22} color={c.foreground} strokeWidth={1.75} />
-          </Pressable>
+          </Press>
         }
         done={done ? { title: "Saved", body: "Have a great day!", onDone: finish } : null}
         footer={

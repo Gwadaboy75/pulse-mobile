@@ -11,6 +11,7 @@ import { Icon } from "@/ui/Icon";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { CardButton, Turn } from "./parts";
+import { Press } from "@/ui/Press";
 
 export type TrendMetricOption = { key: string; label: string; icon?: LucideIcon };
 
@@ -26,7 +27,7 @@ export function TrendMetricMenu({ current, options, onSelect }: { current: strin
   return (
     <>
       <View ref={trigger} collapsable={false}>
-        <CardButton accessibilityLabel={`${on.label}. Change metric`} onPress={open} className="min-h-14 w-full flex-row items-center gap-3 rounded-xl px-4 active:scale-[0.99]">
+        <CardButton accessibilityLabel={`${on.label}. Change metric`} onPress={open} activeScale={0.99} className="min-h-14 w-full flex-row items-center gap-3 rounded-xl px-4">
           <View accessibilityElementsHidden className="size-6 items-center justify-center">{on.icon && <Icon icon={on.icon} size={20} tone="muted-foreground" strokeWidth={1.75} />}</View>
           <Text numberOfLines={1} className="min-w-0 flex-1 text-[15px] font-bold uppercase leading-5 tracking-[0.08em]">{on.label}</Text>
           <Turn on={!!box}>
@@ -42,11 +43,11 @@ export function TrendMetricMenu({ current, options, onSelect }: { current: strin
               style={{ left: box.x, top: box.y + box.h + 8, width: box.w, backgroundColor: c.popover, boxShadow: `0 0 0 1px ${alpha(c.foreground, 0.1)}, 0 8px 24px ${scheme === "dark" ? "rgba(0, 0, 0, 0.45)" : "rgba(16, 21, 24, 0.14)"}` }}
             >
               {options.map((o) => (
-                <Pressable key={o.key} accessibilityRole="menuitem" accessibilityState={{ selected: o.key === on.key }} onPress={() => (close(), o.key !== on.key && (haptic.select(), onSelect(o.key)))} className="h-12 flex-row items-center gap-3 rounded-xl px-3 active:bg-foreground/10">
+                <Press activeBg="bg-foreground/10" key={o.key} accessibilityRole="menuitem" accessibilityState={{ selected: o.key === on.key }} onPress={() => (close(), o.key !== on.key && (haptic.select(), onSelect(o.key)))} className="h-12 flex-row items-center gap-3 rounded-xl px-3">
                   <View accessibilityElementsHidden className="size-6 items-center justify-center">{o.icon && <Icon icon={o.icon} size={20} tone="muted-foreground" strokeWidth={1.75} />}</View>
                   <Text numberOfLines={1} className={cn(ITEM, "min-w-0 flex-1")}>{o.label}</Text>
                   {o.key === on.key && <Icon icon={Check} size={16} tone="foreground" strokeWidth={2.25} />}
-                </Pressable>
+                </Press>
               ))}
             </View>
           )}

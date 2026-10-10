@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
 import { deltaTone, type ChipTone, type DeltaDir, type GoodDirection, type Tone } from "@/lib/bands";
 import { formatValue, MISSING, statSentence, type FormatKey } from "@/lib/format";
@@ -15,6 +15,7 @@ import { useTheme } from "../theme";
 import { CAPTION, DeltaMark, LABEL, MetricTags, StatusChip, ValueUnit } from "./primitives";
 import { Sparkline } from "./Sparkline";
 import { push } from "../navigate";
+import { Press } from "../Press";
 
 export type SleepStatus = "poor" | "sufficient" | "optimal";
 
@@ -67,9 +68,9 @@ function Frame({ p, className, children, sentence, style }: { p: KeyStatRowProps
   const press = href ? () => push(href) : p.onSelect;
   if (press)
     return (
-      <Pressable accessibilityRole={p.href ? "link" : "button"} accessibilityLabel={sentence} onPress={press} className={cn(className, "active:scale-[0.96]")} style={style}>
+      <Press activeScale={0.96} accessibilityRole={p.href ? "link" : "button"} accessibilityLabel={sentence} onPress={press} className={className} style={style}>
         {children}
-      </Pressable>
+      </Press>
     );
   return (
     <View accessible accessibilityLabel={sentence || undefined} className={className} style={style}>
