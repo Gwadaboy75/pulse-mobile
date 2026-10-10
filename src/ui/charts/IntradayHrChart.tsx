@@ -96,7 +96,7 @@ function Chart({ hr, variant }: { hr: HrSeries; variant: "day" | "activity" }) {
                     <Circle cx={tx(t)} cy={y1} r={2.5} color={c.foreground} />
                   </Group>
                 ))}
-              {hr.now && <DashedLine x1={tx(hr.now)} x2={tx(hr.now)} y1={y0} y2={y1} color={c["chart-cursor"]} dash={[4, 4]} />}
+              {hr.now != null && <DashedLine x1={tx(hr.now)} x2={tx(hr.now)} y1={y0} y2={y1} color={c["chart-cursor"]} dash={[4, 4]} />}
               {a && <DashedLine x1={tx(a.t)} x2={tx(a.t)} y1={y0} y2={y1} color={c["chart-cursor"]} />}
               <FadeFill path={areaPath(mk("cool"), y1, "monotone")} color={c.foreground} y0={y0} y1={y1} from={0.1} to={0} />
               <StrokePath path={linePath(mk("cool"), "monotone")} width={1.25} paint={{ color: c["muted-foreground"] }} />

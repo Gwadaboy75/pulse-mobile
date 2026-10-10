@@ -70,7 +70,7 @@ function Shell({ variant, title, info, action, aside, icon, href, fill, classNam
           </Text>
           {(aside || actionNode) && (
             <View className="shrink-0 flex-row items-center gap-3">
-              {typeof aside === "string" ? <Text className="text-xs font-medium leading-4 text-muted-foreground">{aside}</Text> : aside}
+              {typeof aside === "string" || typeof aside === "number" ? <Text className="text-xs font-medium leading-4 text-muted-foreground">{aside}</Text> : aside}
               {actionNode}
             </View>
           )}
@@ -90,7 +90,8 @@ function Shell({ variant, title, info, action, aside, icon, href, fill, classNam
         </Text>
       </View>
       <View className="shrink-0 flex-row items-center gap-2">
-        {aside}
+        {/* A plain-text aside takes the card's own text (the web card's `text-sm text-card-foreground`); bare text in a View is an error in React Native. */}
+        {typeof aside === "string" || typeof aside === "number" ? <Text className="text-sm leading-5 text-card-foreground">{aside}</Text> : aside}
         {/* Pulled into the padding by the glyph's own inset, so the visible arrow sits on the 16 px edge and "Health Monitor" fits one line at 390 px. */}
         {href ? (
           <View className="-mr-2.5">
