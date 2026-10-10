@@ -1,9 +1,5 @@
-// Settings `/settings` (spec §7.14, journeys 9 and 10). Ported from pulse (app)/settings/page.tsx, SettingsView.tsx and
-// SettingsLayout.tsx: configuration only, one section at a time, named by the route's `s` param (More's "Account &
-// settings" rows open `/settings?s=profile`, `source` and `app`). The web's Account section is Profile here: there is no
-// account to show, so it holds the profile and, at its foot, Delete everything. No Coach section (the coach stream's).
 import { View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useIsFocused, useLocalSearchParams } from "expo-router";
 import { getAppPrefs, getSettings } from "@/queries/settings";
 import { useScreen } from "../useScreen";
 import { Skeleton, SkeletonText } from "@/ui/Skeleton";
@@ -15,6 +11,7 @@ import { ROW, ROW_RULE } from "./controls";
 import { DataSource } from "./DataSource";
 import { DeleteEverything } from "./DeleteEverything";
 import { ProfileCard } from "./ProfileCard";
+import { useSyncVersion } from "./syncSignal";
 
 type SectionId = "profile" | "source" | "app";
 const SECTIONS: SectionId[] = ["profile", "source", "app"];
@@ -28,7 +25,6 @@ const resolve = (raw: string | undefined): SectionId => {
 
 const PROFILE_ROWS = ["Birth date", "Age", "Sex", "Height", "Max heart rate", "Time zone"];
 
-/** The web's loading.tsx for the section on show: static labels, only values are bars (spec §5.19). */
 function SectionSkeleton({ section }: { section: SectionId }) {
   const buttons = (
     <View className="mt-4 flex-row gap-2">
@@ -77,7 +73,9 @@ function SectionSkeleton({ section }: { section: SectionId }) {
 export function SettingsScreen() {
   const { s } = useLocalSearchParams<{ s?: string }>();
   const section = resolve(s);
-  const { data } = useScreen(async (ctx) => ({ vm: await getSettings(ctx), prefs: await getAppPrefs(ctx), now: ctx.now * 1000 }), []);
+  const focused = useIsFocused();
+  const syncVersion = useSyncVersion(focused && section === "source");
+  const { data } = useScreen(async (ctx) => ({ vm: await getSettings(ctx), prefs: await getAppPrefs(ctx), now: ctx.now * 1000 }), [section === "source" ? syncVersion : 0]);
 
   return (
     <View className="flex-1">
@@ -95,7 +93,6 @@ export function SettingsScreen() {
             ) : (
               <>
                 <ProfileCard profile={data.vm.profile} />
-                {/* Last and quiet: the one irreversible action sits below everything, away from the everyday controls. */}
                 <DeleteEverything />
               </>
             )}

@@ -1,4 +1,4 @@
-// Google source (U4): per type, a 180-day first backfill walked oldest first with "N of 180 days"
+// Per type, a 180-day first backfill is walked oldest first with "N of 180 days"
 // progress in sync_state, then a trailing re-fetch every run. Writes are upserts that only touch a
 // row whose values differ, so an unchanged re-fetch is a no-op, `changed` is honest, and only days
 // whose intraday inputs actually changed land in intraday_dirty.
@@ -40,8 +40,9 @@ import {
   type SegmentRow,
 } from "./map";
 import { GoogleError } from "./oauth";
+import { BACKFILL_DAYS } from "./progress";
 
-export const BACKFILL_DAYS = 180;
+export { BACKFILL_DAYS } from "./progress";
 /** The sync_state row for the paired-device check; its lastError holds NO_PAIRED_DEVICE while the account has none. */
 export const DEVICES_KEY = "paired-devices";
 export const NO_DEVICE_ERROR = `[google] ${DEVICES_KEY}: NO_PAIRED_DEVICE`;
@@ -96,7 +97,8 @@ const JOBS: Job[] = [
   ...EXTRA_JOBS,
 ];
 
-export type SyncDeps = ClientDeps & { store: Store; log?: Pick<Console, "error"> };
+export type SyncTrace = { type: string; from: number; to: number; returned: number; mapped: number; ms: number };
+export type SyncDeps = ClientDeps & { store: Store; log?: Pick<Console, "error">; trace?: (event: SyncTrace) => void };
 
 /** What the sync exposes (pulse's `Source`, without the user id). `changed` is true when any row was inserted or updated. */
 export type GoogleSource = {
@@ -116,6 +118,12 @@ export function createGoogleSource(deps: SyncDeps): GoogleSource {
       const w = writer(tz);
       const run = { changed: false };
       const setState = (d: Pick<Repos, "settings">, key: string, patch: Parameters<Repos["settings"]["setSyncState"]>[1]) => d.settings.setSyncState(key, patch);
+      await store.transaction(async (tx) => {
+        for (const job of JOBS) {
+          const state = await tx.settings.getSyncState(job.key);
+          if (state?.syncedThrough == null) await setState(tx, job.key, { backfillDaysDone: 0, backfillDaysTotal: BACKFILL_DAYS });
+        }
+      });
 
       // A Google Health profile with no paired device imports 180 empty days; say so instead (Settings,
       // ConnectionBanner). Only a clear "none" sets it and a clear "some" clears it; an error or an unknown
@@ -172,6 +180,9 @@ export function createGoogleSource(deps: SyncDeps): GoogleSource {
       }
 
       async function syncJob(job: Job) {
+        const began = performance.now();
+        let returned = 0;
+        let mapped = 0;
         const st = await store.settings.getSyncState(job.key);
         const t = nowS();
         const today = localDay(t, tz);
@@ -201,13 +212,19 @@ export function createGoogleSource(deps: SyncDeps): GoogleSource {
         // and holding them raw ran the heap out (a crash loop on a new band's backfill).
         const chunkDays = job.kind === "hr" ? 1 : DATA_TYPES[job.type].maxDays;
         for (const win of localWindows(from, t, chunkDays, tz)) {
-          const hr = job.kind === "hr" ? await heartRate(client, win) : null;
+          const hr = job.kind === "hr" ? await heartRate(client, win, (count) => { returned += count; }) : null;
           const points =
             hr !== null
               ? []
               : job.kind === "rollup" || job.kind === "extra"
                 ? await client.dailyRollUp(job.type, localDay(win.start, tz), dayAfter(win.end, tz))
                 : await client.list(job.type, win.start, win.end);
+          if (hr !== null) mapped += hr.size;
+          else {
+            returned += points.length;
+            if (deps.trace && job.kind === "sleep") mapped += mapSleep(points, tz).sessions.length;
+            else if (deps.trace && job.kind === "daily") mapped += mapDaily(job.type, points, tz).length;
+          }
           await store.transaction(async (tx) => {
             if (await (hr !== null ? w.writeHr(tx, hr, win) : w.write(tx, job, points, win))) run.changed = true;
             if (backfilling) done = Math.min(BACKFILL_DAYS, done + daysIn(win, tz));
@@ -215,6 +232,7 @@ export function createGoogleSource(deps: SyncDeps): GoogleSource {
           });
         }
         if (backfilling) await setState(store, job.key, { syncedThrough: t, backfillDaysDone: BACKFILL_DAYS });
+        deps.trace?.({ type: job.key, from, to: t, returned, mapped, ms: Math.round(performance.now() - began) });
       }
     },
 
@@ -243,9 +261,10 @@ const errorName = (err: unknown) => (err instanceof Error ? err.name : typeof er
 const minute = (s: number) => Math.floor(s / 60) * 60;
 
 /** A window's band heart rate, mapped page by page so only the samples are held, never a day of raw points. */
-async function heartRate(client: Pick<ReturnType<typeof createGoogleClient>, "listEach">, win: TimeWindow) {
+async function heartRate(client: Pick<ReturnType<typeof createGoogleClient>, "listEach">, win: TimeWindow, count?: (n: number) => void) {
   const hr = new Map<number, number>();
   await client.listEach("heart-rate", win.start, win.end, (points) => {
+    count?.(points.length);
     for (const [ts, bpm] of mapHeartRate(points)) hr.set(ts, bpm);
   });
   return hr;

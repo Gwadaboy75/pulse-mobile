@@ -1,5 +1,3 @@
-// Connect, sync and forget Google from the screens: Settings › Data source, onboarding's Connect step and `/connect`.
-// The tokens are src/google/auth.ts; the sync is src/google/sync.ts followed by the pipeline's recompute.
 import { forgetSynced } from "@/actions/reset";
 import type { ActionResult } from "@/actions/journal";
 import { store } from "@/data/store";
@@ -11,6 +9,7 @@ import { recomputeIfNeeded } from "@/pipeline";
 import { getProfile } from "@/profile";
 import { syncErrorText } from "@/queries/settings";
 import { dataChanged } from "../useScreen";
+import { syncChanged } from "./syncSignal";
 
 /** `cancelled`: the person closed Google's consent. There is no error text; the screen offers to connect again. */
 export type ConnectResult = { ok: true; data: undefined } | { ok: false; error: string; cancelled?: true };
@@ -38,7 +37,6 @@ let running: Promise<ActionResult> | null = null;
 /** Whether a sync run is going: the shell's sync dot and Home's "Syncing" line. */
 export const isSyncing = () => running !== null;
 
-/** Screens reload this often while a sync runs, so the import's "n of N days" moves. */
 const PROGRESS_MS = 4000;
 
 /**
@@ -50,9 +48,10 @@ export function syncNow(): Promise<ActionResult> {
   if (!running) {
     running = runSync().finally(() => {
       running = null;
+      syncChanged();
       dataChanged();
     });
-    dataChanged();
+    syncChanged();
   }
   return running;
 }
@@ -63,14 +62,19 @@ async function runSync(): Promise<ActionResult> {
   if (grant.revokedAt !== null) return { ok: false, error: "Google access was revoked. Reconnect Google." };
   const timeZone = (await store.profile.userTimeZone()) ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const started = Math.floor(Date.now() / 1000);
-  // ponytail: every mounted screen reloads on each tick; a progress-only signal if that shows up as jank on the phone.
-  const tick = setInterval(dataChanged, PROGRESS_MS);
+  const tick = setInterval(syncChanged, PROGRESS_MS);
   try {
-    const { changed } = await createGoogleSource({ store, tokens: googleAuth, timeZone }).pull();
-    dataChanged();
+    if (__DEV__) await traceInputs();
+    const { changed } = await createGoogleSource({
+      store, tokens: googleAuth, timeZone,
+      trace: __DEV__ ? (event) => console.info(`[sync] ${JSON.stringify(event)}`) : undefined,
+    }).pull();
     // Before the profile is saved there is nothing to score yet; onboarding's save runs this again.
     await recomputeIfNeeded(store, changed, () => getProfile(store));
-  } catch {
+    if (__DEV__) await traceInputs();
+  } catch (error) {
+    if (__DEV__) console.warn(`[sync] failed: ${error instanceof Error ? error.name : typeof error}`);
+    if (__DEV__ && error instanceof Error) console.warn(error.stack?.split("\n").filter((line) => /^\s+at /.test(line)).slice(0, 4).join("\n"));
     return { ok: false, error: "Sync failed. Try again." };
   } finally {
     clearInterval(tick);
@@ -80,6 +84,14 @@ async function runSync(): Promise<ActionResult> {
   const failed = rows.filter((r) => r.lastError);
   if (rows.length && failed.length === rows.length) return { ok: false, error: `Sync failed: ${syncErrorText(failed[0].lastError!)}` };
   return { ok: true, data: undefined };
+}
+
+async function traceInputs() {
+  const [hr, sessions, metrics, profile, dirty, scores] = await Promise.all([
+    store.samples.sampleRange("hr"), store.sessions.readSessions(), store.daily.readMetrics(),
+    store.profile.getProfileRow(), store.scores.dirtyDays(), store.scores.countDays("9999-12-31"),
+  ]);
+  console.info(`[sync] inputs ${JSON.stringify({ hr, sleepSessions: sessions.length, metricDays: metrics.length, profile: !!profile, dirtyDays: dirty.length, scoreDays: scores })}`);
 }
 
 /** Disconnect and Delete everything: revokes the grant at Google where it can and empties the secure store. */

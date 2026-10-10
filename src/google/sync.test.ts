@@ -8,6 +8,7 @@ import { GoogleError } from "./oauth";
 import { BACKFILL_DAYS, createGoogleSource, DEVICES_KEY, LOG_IMPORT_KEY, NO_DEVICE_ERROR } from "./sync";
 import { freshStore } from "./testing/store";
 import { fakeTokens } from "./testing/tokens";
+import { CORE_SYNC_TYPES, importProgress } from "./progress";
 
 const TZ = "Asia/Kolkata"; // fixed +05:30, which the stub's civil-time filter relies on
 const NOW = Date.parse("2026-10-02T06:00:00Z"); // 11:30 local
@@ -138,6 +139,24 @@ const entries = async (type?: string) => {
 };
 
 describe("google sync", () => {
+  it("reserves the whole backfill before the first data request", async () => {
+    let checked = false;
+    const progress: number[] = [];
+    const { source } = setup({ onRequest: async () => {
+      const rows = await store.settings.readSyncState();
+      if (!checked) {
+        for (const type of CORE_SYNC_TYPES) expect(rows.find((row) => row.type === type)).toMatchObject({ backfillDaysDone: 0, backfillDaysTotal: BACKFILL_DAYS });
+        checked = true;
+      }
+      progress.push(importProgress(rows)?.done ?? BACKFILL_DAYS);
+    } });
+    await source.pull();
+    expect(checked).toBe(true);
+    expect(progress[0]).toBe(0);
+    progress.slice(1).forEach((done, i) => expect(done).toBeGreaterThanOrEqual(progress[i]));
+    expect(importProgress(await store.settings.readSyncState())).toBeNull();
+  });
+
   it("does nothing before the account is connected", async () => {
     store = freshStore(); // no grant
     const { source, calls } = setup();

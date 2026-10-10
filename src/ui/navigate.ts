@@ -14,5 +14,6 @@ export function push(href: string) {
   const now = Date.now();
   if (now - last < IN_FLIGHT_MS) return;
   last = now;
+  if (typeof __DEV__ !== "undefined" && __DEV__) console.info(`[screen] push at-ms=${Math.round(performance.now())}`);
   router.push(href as Href);
 }
