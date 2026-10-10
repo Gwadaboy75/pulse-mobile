@@ -7,7 +7,10 @@ import { useTheme } from "./theme";
 export type PanelLook = {
   /** The 1 px ring's colour token (`null`: none). Default `overlay-ring`, the web's ring-foreground/10. */
   ring?: TokenName | null;
-  /** The ring outside the edge, as the web's `ring-1` draws it (the menu); inside by default. */
+  /**
+   * The ring outside the edge, as the web's `ring-1` draws it (the menu). Differs from web: the dialogs and the chart
+   * tooltip have always drawn it inside, and keep that (the default).
+   */
   ringOutside?: boolean;
   /** The shadow token (`null`: none). Default `overlay`. */
   shadow?: ShadowName | null;

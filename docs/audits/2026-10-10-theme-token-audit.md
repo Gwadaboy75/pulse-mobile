@@ -290,3 +290,49 @@ Other scheme branches that are fine (they pick a native API value, not a colour)
 ## Method
 
 Greps over the 215 in-scope files for `#hex`, `rgba?()/hsla?()`, quoted CSS colour names, tailwind named colours, arbitrary-value classes, `boxShadow/textShadow`, `scheme ===` / `dark:`, class opacity modifiers, `alpha(`, `borderRadius` / `rounded-[`, `duration|Easing|with*`, `strokeWidth`, `<Stop|colors=[`; plus a script diff of `global.css` against the web's `:root` (dark) and `:root.light` blocks. Nothing was run in the simulator or on a device.
+
+## Status (2026-10-10, branch `refactor/tokens`)
+
+Done as a refactor: every replacement resolves to the value it replaced, in light and dark. `shadow.test.ts` checks the shadow helper writes the exact strings the sites typed, `palette.test.ts` checks each named opacity tier equals the alpha it replaces, and `radius.test.ts` checks `radius.ts` against `tailwind.config.js`. Nothing was run in the simulator or on a device.
+
+```mermaid
+flowchart LR
+  css["global.css<br/>colours, shadows, orb scalars, disabled opacity"] --> tw["tailwind.config.js<br/>colours only, opacity-disabled"]
+  tw --> cls["NativeWind classes<br/>bg-fill-faint, text-foreground-body ..."]
+  css -. "palette.test.ts keeps equal" .- pal["palette.ts<br/>LIGHT / DARK colours, VALUES"]
+  pal --> theme["useTheme()"]
+  pal --> shadow["shadow.ts<br/>boxShadow, ring, edge"]
+  shadow --> panel["Panel.tsx<br/>overlay look"]
+  shadow --> card["Card.tsx<br/>card shadow, CardEdge"]
+```
+
+| Step | What changed |
+|------|--------------|
+| 1. Missing tokens (1991abd) | Added `--ground-healthspan`, `--pattern-hatch`, `--selection` (colours) and `--card-shadow`, `--overlay-shadow`, `--thumb-shadow`, `--glass-shadow`, `--orb-lift`, `--orb-sparkle`, `--orb-blend` (values, in `palette.ts` `VALUES`) with the web's light and dark values (4.3-4.7). `tailwind.config.js` takes only colour values and no longer adds `white` / `black`; their uses (the migration error screen, `app/dev/parity.tsx`, `app/dev/time.tsx`, `fontClasses.ts`) use theme classes. `ORB.theme` is gone: the orb reads its scalars from `VALUES`. |
+| 2. Shadow helper (62bc1f7) | `src/ui/shadow.ts` (`boxShadow`, `useShadow`, `ring`, `edge`) is the one place a token becomes a React Native `boxShadow`; it drops layers that draw nothing. 23 hand-typed shadow or ring strings moved onto it: Card (3), Glass (2), Menu panel, InfoDialog, chart tooltip, DismissDialog, Toast, EditDashboard lifted row, DriverList (2), Slider thumb, KeyStatRow, Home's monitor alert, settings controls (3), SyncStatus, DayStrip, Button, GradientBanner. Ground and Hatch read `--ground-healthspan` and `--pattern-hatch`. New tokens: `--overlay-ring`, `--popover-ring`, `--selected-ring`, `--lifted-shadow`, `--toast-shadow`. No `rgba(` is left in a component outside `color.ts`, `palette.ts`, `shadow.ts` and the orb. |
+| 3. Overlay panel (8c9f929) | `src/ui/Panel.tsx`: `<Panel>` and `usePanelStyle` (popover fill, ring, shadow from tokens; radius from the caller's `rounded-*`). Used by all seven variants: MenuPanel (ActivityMenu, TrendMetricMenu), chart tooltip, InfoDialog, DismissDialog, the settings confirm dialog, the iOS date picker card, Toast. Each keeps its own ring and shadow choice. |
+| 4. Opacity tiers (a322bf2) | New colour tokens `fill-faint` (fg 6 %), `fill-hover` (8 %), `fill-pressed` (10 %), `skeleton` (muted 60 %), `foreground-body` (fg 85 %), `card-peek` (card 60 %), `focus-ring` (fg 70 %), `input-fill` (input 30 % in dark, none in light), `alert-ring` (recovery-red 60 %), `warning-ring` (warning 50 %), and `--disabled-opacity` as `opacity-disabled`. Replaced 59 class modifiers, 4 `opacity-50`, and 12 `alpha()` calls (focus ring x3, alert and warning rings x4, input fill x2, `alpha(c.card, 1)`, Hypnogram's lane track = `chart-highlight`, the check-in answer key = `fill-pressed`). |
+| 5. Motion and radius (5aa4080) | `src/ui/motion.ts` (`DURATION.fast/base/collapse/enter/lift`, `EASE.standard/outExpo/inQuick`) replaces 27 duration literals and 2 easings, including Press's 150 ms standard easing. `src/ui/radius.ts` (`RADIUS` = the tailwind scale, `GLASS_RADIUS`) replaces 7 radius numbers (card edge x2, sheet corners, three Glass radii, the tab lens). 21 arbitrary radius classes equal to a scale step now use its name (`rounded-xs` added for 2 px, `rounded-sm`, `rounded-lg`, `rounded-t-4xl`). The ground's 270 / 740 px stops are named once. |
+| 6. Shared looks (b564988) | `Card.tsx` exports `INSET_ROW` (9 sites, 5.1), `SECONDARY_ROW` (6 sites, 5.2), `CARD_BUTTON` (3 sites, 5.3) and `<CardEdge>` (CardFill and GradientBanner, 5.7); `Segmented.tsx` exports `SEGMENT` / `SEGMENT_ON` (insights and report toggles, 5.5); `controls.tsx` exports `FIELD_BOX` (birth date field, 5.4). The alert rings (5.10) are the `alert-ring` / `warning-ring` tokens from step 4. Orb scalars (step 8) were done in step 1. |
+
+### Values that differ from the web (kept as mobile shows them, marked "differs from web" in the code)
+
+- `--lifted-shadow` (EditDashboard's held row): black 35 % in both themes; the web uses `shadow-overlay`.
+- `--selected-ring` (a selected driver row): white 60 % in both themes; the web's `ring-foreground/60` is ink in light. A selected row's ring also replaces its card shadow, as before.
+- DismissDialog keeps the overlay shadow; the web's dialog has only `ring-border`.
+- The dialogs and the chart tooltip draw their ring inside the edge; the web's `ring-1` is outside (the menu panel matches the web).
+- `--toast-shadow` is Sonner's own default, which the web inherits without a token: same value, mobile-only name.
+
+### Visible changes (deliberate)
+
+- The migration error screen and the two dev screens (`app/dev/parity.tsx`, `app/dev/time.tsx`) now use `bg-background`, `text-foreground`, `text-destructive`, `text-optimal` and `text-muted-foreground` instead of white / black and Tailwind palette classes (`text-red-600` and the like generated nothing, since the palette is replaced).
+
+### Left
+
+- Found, not fixed (fixing changes the look): `bg-input/30`, `dark:bg-input/30` and `dark:bg-input/80` generate no CSS, because `--input` is a whole `rgb(... / a)` token and Tailwind 3 cannot apply a modifier to it. The outline Button, the plain settings input and the switch track draw no dark fill, while the web and `log/fields.tsx` do. `bg-input-fill` and `bg-input` at 80 % would fix it.
+- Drift alphas kept at their values for the owner to unify: `bg-foreground/[0.04]` (2), `/[0.045]` (bg and text), `/[0.07]` (3), `/[0.12]`, `border-foreground/[0.06]`, and `opacity-40` on the report toggles and empty zone rows (disabled is 0.5 elsewhere).
+- Status tints (`bg-optimal/15`, `bg-warning/15`, `bg-stress-*/15`, `/20`, `bg-recovery-red/10` and `/15`): the web's own chip classes live in the synced `src/lib/bands.ts`, which cannot change here, so a token would not reach them.
+- One-off data-viz alphas (`bg-foreground/15` to `/90`, `border-foreground/15` to `/90`, about 20 sites) and about 30 chart-local `alpha()` calls (gradients, halos, chart baselines; `alpha(fg, .04)` is not `chart-band` in dark).
+- `--selection` is defined but not applied: the inputs' `selectionColor` is `foreground`, and switching changes the look.
+- Literals kept on purpose: two spinner speeds (900 / 1000 ms), LastReading's pulse, the orb's 700 ms text entry and art constants, `AgeOrb`'s `Skia.Color("white")` buffer initialiser (rewritten before each draw), inner radii one px under a scale step (`rounded-[11px]`, `[14px]`, `[15px]`), `rounded-[3px]` / `[1px]`, and the tab's `rounded-[18px]` (a class cannot read `LENS_RADIUS`).
+- Not started: alias tokens generated from one value (4.2), the type scale names (3E) and an icon stroke token (3D).
