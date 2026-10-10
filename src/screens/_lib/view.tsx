@@ -46,6 +46,7 @@ import type { StressSeries } from "@/ui/charts/StressChart"
 import type { TrendPoint } from "@/ui/charts/TrendChart"
 import type { KeyStatRowProps } from "@/ui/metrics/KeyStatRow"
 import { DeltaMark } from "@/ui/metrics/primitives"
+import { INSET_ROW } from "@/ui/Card"
 import { cn } from "@/ui/cn"
 import { Icon } from "@/ui/Icon"
 import { Text } from "@/ui/Text"
@@ -55,7 +56,7 @@ import type { EnergyBankVM, HrChart, KeyStat, Metric, StressDayChart, Trend } fr
 
 export { CAPTION, LABEL } from "@/ui/metrics/primitives"
 /** The inset legend strip under a summary card (spec §7.2, §7.3, §7.5). */
-export const LEGEND = "mt-1 mb-3 rounded-lg bg-inset px-3 py-2 text-xs leading-4 font-medium text-foreground-secondary"
+export const LEGEND = `${INSET_ROW} mt-1 mb-3 py-2 text-xs leading-4 font-medium text-foreground-secondary`
 
 /** The strip under a score's rows: the two arrows and "Today vs. prior 30 days" (Strain) or "last 30 days" (Recovery). */
 export function TodayVsLegend({ period }: { period: string }) {

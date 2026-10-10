@@ -16,7 +16,7 @@ import { EnergyBankChart } from "@/ui/charts/EnergyBankChart";
 import { StrainRecoveryChart } from "@/ui/charts/StrainRecoveryChart";
 import { StressChart } from "@/ui/charts/StressChart";
 import { cn } from "@/ui/cn";
-import { CARD_CLASS, CardFill, useCardStyle } from "@/ui/Card";
+import { CARD_BUTTON, CARD_CLASS, CardFill, SECONDARY_ROW, useCardStyle } from "@/ui/Card";
 import { Icon } from "@/ui/Icon";
 import { ActivityCard } from "@/ui/metrics/ActivityCard";
 import { KeyStatRow } from "@/ui/metrics/KeyStatRow";
@@ -42,7 +42,7 @@ import { useScreen } from "../useScreen";
 import { EditDashboardButton } from "./EditDashboard";
 import { HomeInsight } from "./HomeInsight";
 import { HomeSkeleton } from "./HomeSkeleton";
-import { CARD_BUTTON, CardButtonContent, CardButtonLink, GradientBanner, IconLink } from "./parts";
+import { CardButtonContent, CardButtonLink, GradientBanner, IconLink } from "./parts";
 import { PlusKey } from "./PlusMenu";
 import { TonightPlan } from "./TonightPlan";
 import { push } from "@/ui/navigate";
@@ -476,7 +476,7 @@ function EnergyBody({ eb, timeZone }: { eb: NonNullable<HomeVM["energyBank"]["va
 
 function MiniStat({ label, value, className }: { label: string; value: string; className: string }) {
   return (
-    <View className="flex-1 rounded-lg bg-secondary p-3">
+    <View className={cn(SECONDARY_ROW, "flex-1 p-3")}>
       <Text className={cn(LABEL, "text-muted-foreground")}>{label}</Text>
       <Text className={cn("mt-1 font-numeric text-xl font-bold leading-6 tabular-nums", className)}>{value}</Text>
     </View>

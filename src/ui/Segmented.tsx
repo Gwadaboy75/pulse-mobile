@@ -3,6 +3,10 @@ import { cn } from "./cn";
 import { haptic } from "./haptics";
 import { Text } from "./Text";
 
+/** One segment (the web's SEGMENT_ITEM): 40 px, 8 px corners; the chosen one adds SEGMENT_ON. Add the width and padding. */
+export const SEGMENT = "h-10 items-center justify-center rounded-md";
+export const SEGMENT_ON = "bg-secondary";
+
 /**
  * The W / M / 6M segmented control (web: SEGMENT_TRACK and SEGMENT_ITEM in primitives.tsx, a ToggleGroup): a muted
  * track, the chosen segment raised. `fill` stretches the segments to share the width (four ranges, or the stages tabs),
@@ -40,7 +44,7 @@ export function Segmented<T extends string>({
               haptic.select();
               onChange(o.value);
             }}
-            className={cn("h-10 items-center justify-center rounded-md", fill ? "flex-1 px-2" : "min-w-11 px-3", on && "bg-secondary")}
+            className={cn(SEGMENT, fill ? "flex-1 px-2" : "min-w-11 px-3", on && SEGMENT_ON)}
           >
             <Text className={cn(textClassName, on ? "text-foreground" : "text-muted-foreground")} numberOfLines={1} adjustsFontSizeToFit>
               {o.label}

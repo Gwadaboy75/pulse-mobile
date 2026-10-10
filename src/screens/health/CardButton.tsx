@@ -2,6 +2,7 @@
 import type { ReactNode } from "react";
 import { Pressable } from "react-native";
 import { ArrowRight } from "lucide-react-native";
+import { CARD_BUTTON } from "@/ui/Card";
 import { Icon } from "@/ui/Icon";
 import { Text } from "@/ui/Text";
 import { push } from "@/ui/navigate";
@@ -9,7 +10,7 @@ import { Press } from "@/ui/Press";
 
 export function CardButton({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Press activeScale={0.96} accessibilityRole="link" onPress={() => push(href)} className="h-12 w-full flex-row items-center justify-center gap-2 rounded-xl bg-secondary">
+    <Press activeScale={0.96} accessibilityRole="link" onPress={() => push(href)} className={CARD_BUTTON}>
       <Text className="text-[13px] font-bold uppercase leading-4 tracking-[0.1em]">{children}</Text>
     </Press>
   );

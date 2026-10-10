@@ -11,6 +11,7 @@ import { MetricState } from "../shells/MetricState";
 import { Skeleton, SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
 import { push } from "../navigate";
+import { SECONDARY_ROW } from "../Card";
 
 /** `zone` 0-5 orders the rows (0 is time under Zone 1: `min` 0, `max` the bpm below Zone 1); `label` names it ("Zone 1"). */
 export type ZoneRow = {
@@ -58,7 +59,7 @@ function Rows({ zones, note, noteLink }: { zones: ZoneRow[]; note?: string; note
   if (!total && lowest)
     return (
       <View>
-        <Text className="rounded-lg bg-secondary px-3 py-3 text-[15px] leading-[22px] text-foreground-secondary">
+        <Text className={cn(SECONDARY_ROW, "px-3 py-3 text-[15px] leading-[22px] text-foreground-secondary")}>
           Heart rate stayed under the {lowest.label} zone ({lowest.min}{" "}bpm) the whole time.
         </Text>
         <Note note={note} link={noteLink} />
@@ -96,7 +97,7 @@ function Rows({ zones, note, noteLink }: { zones: ZoneRow[]; note?: string; note
               key={z.zone}
               accessible
               accessibilityLabel={`${z.label} zone, ${spoken}, ${durationWords(minutes)}, ${sh === "<1%" ? "under 1 percent" : sh.replace("%", " percent")}`}
-              className={cn("gap-2 rounded-lg bg-secondary px-3 py-2.5", !z.seconds && "opacity-40")}
+              className={cn(SECONDARY_ROW, "gap-2 px-3 py-2.5", !z.seconds && "opacity-40")}
             >
               <View className="flex-row items-baseline gap-2">
                 <Text className={cn(LABEL)}>{z.label}</Text>
@@ -189,7 +190,7 @@ export function ZoneBarsSkeleton({ variant }: { variant: "rows" | "stacked" }) {
       // Each zone row's own box: the real zone name, bars for range and time, the hatched track.
       <View accessibilityElementsHidden className="gap-2">
         {["Zone 5", "Zone 4", "Zone 3", "Zone 2", "Zone 1", "Zone 0"].map((k) => (
-          <View key={k} className="gap-2 rounded-lg bg-secondary px-3 py-2.5">
+          <View key={k} className={cn(SECONDARY_ROW, "gap-2 px-3 py-2.5")}>
             <View className="flex-row items-center gap-3">
               <Text className={LABEL}>{k}</Text>
               <SkeletonText className="w-20" />

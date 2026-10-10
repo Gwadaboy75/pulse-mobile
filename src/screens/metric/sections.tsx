@@ -14,13 +14,14 @@ import { EmptyState } from "@/ui/shells/EmptyState";
 import { MetricState } from "@/ui/shells/MetricState";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { Text } from "@/ui/Text";
+import { INSET_ROW } from "@/ui/Card";
 
 type Ctx = { vm: MetricDetailVM; timeZone?: string };
 
 /** The inset strip under a card's rows (the web's LEGEND: the class has text styles a View cannot pass down). */
 function Legend({ children }: { children: ReactNode }) {
   return (
-    <View className="mb-3 mt-1 rounded-lg bg-inset px-3 py-2">
+    <View className={cn(INSET_ROW, "mb-3 mt-1 py-2")}>
       <Text className="text-xs font-medium leading-4 text-foreground-secondary">{children}</Text>
     </View>
   );

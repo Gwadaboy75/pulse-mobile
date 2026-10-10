@@ -25,6 +25,7 @@ import { ErrorView } from "./ErrorView";
 import { categoryTone, categoryWord, ordinal } from "./format";
 import { LastReading } from "./LastReading";
 import { FAST, SLOW } from "./pace";
+import { INSET_ROW } from "@/ui/Card";
 
 const TILE = "font-numeric text-4xl leading-10 font-bold tracking-[-0.01em]";
 const EMPTY = "text-[15px] leading-[22px] text-foreground-secondary";
@@ -149,7 +150,7 @@ function Monitor({ m }: { m: HealthHubVM["monitor"] }) {
         return (
           <View className="gap-4">
             {readings(v)}
-            <View className="flex-row items-center gap-3 rounded-lg bg-inset px-3 py-2.5">
+            <View className={cn(INSET_ROW, "flex-row items-center gap-3 py-2.5")}>
               <View className={cn("size-5 shrink-0 items-center justify-center rounded-sm", all ? "bg-optimal" : "bg-warning")}>
                 {all ? <Icon icon={Check} size={14} tone="background" strokeWidth={3} /> : <Icon icon={TriangleAlert} size={12} tone="primary-foreground" strokeWidth={2.5} />}
               </View>
@@ -302,7 +303,7 @@ function HealthLoading() {
                 </View>
               ))}
             </View>
-            <View className="flex-row items-center gap-3 rounded-lg bg-inset px-3 py-2.5">
+            <View className={cn(INSET_ROW, "flex-row items-center gap-3 py-2.5")}>
               <Skeleton className="size-5 shrink-0 rounded-sm" />
               <SkeletonText lh={22} fs={15} className="w-32" />
             </View>

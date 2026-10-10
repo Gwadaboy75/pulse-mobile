@@ -13,6 +13,15 @@ import { RADIUS } from "./radius";
  */
 export const CARD_CLASS = "overflow-hidden rounded-2xl bg-card";
 
+/** A row set into a card, a legend or a note (the web's rounded-lg bg-inset px-3). Add the vertical padding. */
+export const INSET_ROW = "rounded-lg bg-inset px-3";
+
+/** The flat step down from a card for a row inside one (no card in a card): rounded-lg bg-secondary. */
+export const SECONDARY_ROW = "rounded-lg bg-secondary";
+
+/** The 48 px secondary button at a card's foot ("+ Add activity", "Behaviour insights"): the web's CARD_BUTTON. */
+export const CARD_BUTTON = "h-12 w-full flex-row items-center justify-center gap-2 rounded-xl bg-secondary";
+
 /**
  * The fill of the card material: a native gradient from `card-top` to `card`, with the lit top edge (and an optional
  * inset `ring` colour: a selected or flagged card) drawn over it, since a gradient child would hide the parent's own
@@ -20,14 +29,20 @@ export const CARD_CLASS = "overflow-hidden rounded-2xl bg-card";
  */
 export function CardFill({ ring }: { ring?: string }) {
   const { c, scheme } = useTheme();
-  const shadow = useShadow();
   if (scheme !== "dark") return null;
   return (
     <>
       <Gradient from={c["card-top"]} to={c.card} angle="y" />
-      <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: RADIUS["2xl"], boxShadow: shadow(edge(c["card-edge"]), ring && ringLayer(ring)) }} />
+      <CardEdge ring={ring} />
     </>
   );
+}
+
+/** The card's lit top edge (and an optional inset `ring`), drawn again over a child that covers the card's own: a gradient. */
+export function CardEdge({ ring }: { ring?: string }) {
+  const { c } = useTheme();
+  const shadow = useShadow();
+  return <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: RADIUS["2xl"], boxShadow: shadow(edge(c["card-edge"]), ring && ringLayer(ring)) }} />;
 }
 
 /** True inside a <Card>: a row in a card steps down to a flat secondary row (the web's `in-data-[slot=card]:`), no card in a card. */

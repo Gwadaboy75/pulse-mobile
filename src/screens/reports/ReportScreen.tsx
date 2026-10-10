@@ -16,6 +16,7 @@ import { useScreen } from "@/screens/useScreen";
 import { CAPTION, LABEL } from "@/screens/_lib/view";
 import { ZoneBars, ZoneBarsSkeleton } from "@/ui/charts/ZoneBars";
 import { cn } from "@/ui/cn";
+import { SEGMENT, SEGMENT_ON } from "@/ui/Segmented";
 import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
 import { DriverList, DriverListSkeleton } from "@/ui/metrics/DriverList";
@@ -84,7 +85,7 @@ function KindToggle({ kind, week, month }: { kind: "week" | "month"; week: strin
       accessibilityState={{ selected: kind === k, disabled: !to }}
       disabled={!to}
       onPress={() => to && kind !== k && (haptic.select(), router.setParams({ period: to }))}
-      className={cn("h-10 min-w-11 items-center justify-center rounded-md px-3", kind === k && "bg-secondary", !to && "opacity-40")}
+      className={cn(SEGMENT, "min-w-11 px-3", kind === k && SEGMENT_ON, !to && "opacity-40")}
     >
       <Text className={cn("text-[13px] font-bold uppercase tracking-[0.1em]", kind === k ? "text-foreground" : "text-muted-foreground")}>{label}</Text>
     </Pressable>

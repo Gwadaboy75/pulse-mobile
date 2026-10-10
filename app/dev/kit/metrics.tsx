@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { openSheet } from "@/ui/shells/sheets";
 import { Activity, Droplet, Footprints, Heart, Moon, Rabbit, Thermometer, Timer, Turtle, Wind, Zap, type LucideIcon } from "lucide-react-native";
 import { REASON_CODES } from "@/lib/reasons";
-import { Card } from "@/ui/Card";
+import { Card, INSET_ROW } from "@/ui/Card";
 import { Icon } from "@/ui/Icon";
 import * as fx from "@/ui/fixtures/kit";
 import { Divided, Entry, Frame, Group, KitScreen, ROW, ROWS } from "@/ui/kit/KitScreen";
@@ -24,6 +24,7 @@ import { BreakdownBar } from "@/ui/metrics/BreakdownBar";
 import { TrendLegend } from "@/ui/metrics/TrendLegend";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
+import { cn } from "@/ui/cn";
 
 const STAT_ICON: Record<string, LucideIcon> = { hrv: Activity, rhr: Heart, rr: Wind, sleep: Moon, cal: Zap, steps: Footprints, spo2: Droplet, temp: Thermometer, max: Heart, dur: Timer, hours: Moon, consistency: Moon, efficiency: Moon, restorative: Moon };
 const statIcon = (key: string, stroke = 1.75): ReactNode => (STAT_ICON[key] ? <Icon icon={STAT_ICON[key]} size={20} tone="muted-foreground" strokeWidth={stroke} /> : undefined);
@@ -220,7 +221,7 @@ export default function KitMetrics() {
                 {fx.contributors.map(({ key, ...ct }) => <ContributorRow key={key} variant="recovery" icon={statIcon(key)} {...ct} />)}
                 <ContributorRow.Skeleton />
               </Divided>
-              <View className="my-3 rounded-lg bg-inset px-3 py-2"><Text className="text-xs font-medium leading-4 text-foreground-secondary">Dot: today. Shaded: your normal range.</Text></View>
+              <View className={cn(INSET_ROW, "my-3 py-2")}><Text className="text-xs font-medium leading-4 text-foreground-secondary">Dot: today. Shaded: your normal range.</Text></View>
             </Card>
           </Frame>
           <Frame name="healthspan, selectable (opens a sheet)"><Card className="gap-0 px-4 py-1"><HealthspanList /></Card></Frame>

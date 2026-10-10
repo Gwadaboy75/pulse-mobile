@@ -8,7 +8,7 @@ import { getSleep } from "@/queries/sleep";
 import { getWeeklyTrends, type TrendViewKey, type TrendViewVM } from "@/queries/trendView";
 import type { SleepVM } from "@/queries/types";
 import { cn } from "@/ui/cn";
-import { Card } from "@/ui/Card";
+import { Card, INSET_ROW } from "@/ui/Card";
 import { InsightCard } from "@/ui/metrics/InsightCard";
 import { KeyStatRow } from "@/ui/metrics/KeyStatRow";
 import { CAPTION, LABEL } from "@/ui/metrics/primitives";
@@ -78,7 +78,7 @@ function Sleep({ vm, weekly, timeZone }: { vm: SleepVM; weekly: TrendViewVM[]; t
               <KeyStatRow variant="row" {...statProps(k, { d, today })} average={null} direction="none" />
             </Fragment>
           ))}
-          <View className="mb-3 mt-1 flex-row flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-inset px-3 py-2">
+          <View className={cn(INSET_ROW, "mb-3 mt-1 flex-row flex-wrap items-center gap-x-4 gap-y-1 py-2")}>
             {STATUS_LEGEND.map(([swatch, word]) => (
               <View key={word} className="flex-row items-center gap-1.5">
                 <View accessibilityElementsHidden className={cn("h-1 w-4 rounded-sm", swatch)} />

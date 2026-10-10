@@ -4,6 +4,7 @@ import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft, ChevronRight, Info, Plus } from "lucide-react-native";
 import { formatValue } from "@/lib/format";
+import { CARD_BUTTON } from "@/ui/Card";
 import { cn } from "@/ui/cn";
 import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
@@ -89,7 +90,7 @@ export default function TrendViewScreen() {
           {/* Pulse imports workouts, so Add activity explains where they come from (§11 R2). The goal button waits for a
               plan source (FEATURES.goals is off). */}
           {vm.actions.addActivity && (
-            <InfoCardTrigger info={ADD_ACTIVITY_INFO} activeScale={0.96} className="h-12 w-full flex-row items-center justify-center gap-2 rounded-xl bg-secondary">
+            <InfoCardTrigger info={ADD_ACTIVITY_INFO} activeScale={0.96} className={CARD_BUTTON}>
               <Icon icon={Plus} size={20} tone="foreground" strokeWidth={2} />
               <Text className="text-[13px] font-bold uppercase leading-4 tracking-[0.1em]">Add activity</Text>
             </InfoCardTrigger>

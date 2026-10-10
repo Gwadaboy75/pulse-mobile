@@ -2,7 +2,7 @@
 // real shell and each card's own box with its static titles and labels; only values are bars.
 import { Fragment } from "react";
 import { View } from "react-native";
-import { Card } from "@/ui/Card";
+import { Card, INSET_ROW } from "@/ui/Card";
 import { InsightCardSkeleton } from "@/ui/metrics/InsightCard";
 import { KeyStatRowSkeleton } from "@/ui/metrics/KeyStatRow";
 import { ScoreDialSkeleton } from "@/ui/metrics/ScoreDial";
@@ -13,6 +13,7 @@ import { Skeleton, SkeletonText } from "@/ui/Skeleton";
 import { Text } from "@/ui/Text";
 import { TONIGHT_INFO } from "../_lib/info";
 import { WeeklyTrendsSkeleton } from "../trends/WeeklyTrends";
+import { cn } from "@/ui/cn";
 
 const rows = (n: number, Row: (i: number) => React.ReactNode) => Array.from({ length: n }, (_, i) => <Fragment key={i}>{Row(i)}</Fragment>);
 
@@ -30,7 +31,7 @@ function MeasureSkeleton({ rows: labels }: { rows: string[] }) {
     <View accessibilityElementsHidden>
       <SkeletonText lh={40} fs={36} className="w-24" />
       <Skeleton className="mt-4 h-3.5 rounded-[3px]" />
-      <View className="mt-4 gap-2 rounded-lg bg-inset px-3 py-3">
+      <View className={cn(INSET_ROW, "mt-4 gap-2 py-3")}>
         {labels.map((l) => (
           <View key={l} className="flex-row items-center gap-3">
             <View className="size-3 shrink-0 rounded-[3px] bg-secondary" />
@@ -59,7 +60,7 @@ export function SleepSkeleton() {
               <KeyStatRowSkeleton variant="row" label={l} />
             </Fragment>
           ))}
-          <View className="mb-3 mt-1 rounded-lg bg-inset px-3 py-2">
+          <View className={cn(INSET_ROW, "mb-3 mt-1 py-2")}>
             <SkeletonText className="w-48" />
           </View>
         </Card>

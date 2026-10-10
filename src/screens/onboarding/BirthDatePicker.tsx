@@ -13,7 +13,7 @@ import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
-import { ringStyle, SmallButton } from "../settings/controls";
+import { FIELD_BOX, ringStyle, SmallButton } from "../settings/controls";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => formatDay(`2026-${String(i + 1).padStart(2, "0")}`, { month: "long" }));
 const OLDEST = 1920;
@@ -112,7 +112,7 @@ export function BirthDatePicker({ value, onChange, invalid }: { value: string; o
           haptic.tap();
           setOpen((o) => !o);
         }}
-        className="h-13 w-full min-w-0 flex-row items-center justify-between gap-3 rounded-xl bg-field px-4"
+        className={cn(FIELD_BOX, "w-full min-w-0 flex-row items-center justify-between gap-3 px-4")}
         style={ringStyle(invalid ? c["recovery-red-text"] : open ? c["focus-ring"] : null)}
       >
         <Text className={cn("text-[17px] leading-6 tabular-nums", !value && "text-muted-foreground")}>{value ? formatDay(value, { ...DAY.full, month: "long" }) : "Choose your birth date"}</Text>

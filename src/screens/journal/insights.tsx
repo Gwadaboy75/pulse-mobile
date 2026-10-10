@@ -7,6 +7,7 @@ import type { ImpactMetricKey, JournalInsightsVM } from "@/queries/types";
 import { CARD_CLASS, CardFill, useCardStyle } from "@/ui/Card";
 import { haptic } from "@/ui/haptics";
 import { cn } from "@/ui/cn";
+import { SEGMENT, SEGMENT_ON } from "@/ui/Segmented";
 import { DriverList } from "@/ui/metrics/DriverList";
 import { openSheet } from "@/ui/shells/sheets";
 import { Text } from "@/ui/Text";
@@ -45,7 +46,7 @@ export function MetricToggle({ metric }: { metric: ImpactMetricKey }) {
               haptic.select();
               router.setParams({ m: o.value === "recovery" ? "" : o.value });
             }}
-            className={cn("h-10 min-w-11 items-center justify-center rounded-md px-2", on && "bg-secondary")}
+            className={cn(SEGMENT, "min-w-11 px-2", on && SEGMENT_ON)}
           >
             <Text className={cn("text-[13px] font-bold uppercase tracking-[0.1em]", on ? "text-foreground" : "text-muted-foreground")}>{o.label}</Text>
           </Pressable>

@@ -10,6 +10,7 @@ import { Text } from "../Text";
 import { capTrim } from "./primitives";
 import { push } from "../navigate";
 import { Press } from "../Press";
+import { SECONDARY_ROW } from "../Card";
 
 /** The chip's 20 px value, cap-trimmed as the web's CAP_TRIM. */
 const VALUE_TRIM = capTrim(20, "numeric");
@@ -42,7 +43,7 @@ export function distanceText(km: number | null | undefined, paceS?: number | nul
 }
 
 // Rows are 10 px inside a 16 px card with a 6 px inset; the chip is 8 px inside the row (concentric, spec §2.4).
-const ROW = "h-14 flex-row items-center gap-3 rounded-lg bg-secondary pl-1.5 pr-3";
+const ROW = `${SECONDARY_ROW} h-14 flex-row items-center gap-3 pl-1.5 pr-3`;
 // One fixed width, so every row's title starts on the same line whatever the number ("6.3", "11.4", "7:13").
 const CHIP = "h-11 w-[84px] shrink-0 flex-row items-center justify-center gap-1.5 rounded-md";
 

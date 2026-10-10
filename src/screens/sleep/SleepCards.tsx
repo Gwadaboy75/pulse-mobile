@@ -17,6 +17,7 @@ import { CAPTION, DeltaMark, LABEL } from "@/ui/metrics/primitives";
 import { ReasonPlaceholder } from "@/ui/metrics/ReasonPlaceholder";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
+import { INSET_ROW } from "@/ui/Card";
 
 const BAR = "h-3.5 rounded-[3px]";
 const signed = (min: number, sign: "+" | "−") => `${sign}${hmm(Math.abs(min))}`;
@@ -44,7 +45,7 @@ function Headline({ value, stat, down = false }: { value: number; stat?: Pick<Ke
 /** A swatch, a name and a right-aligned value: the legend under a bar. */
 function Legend({ rows }: { rows: { swatch: string; label: string; value: string }[] }) {
   return (
-    <View className="mt-4 gap-2 rounded-lg bg-inset px-3 py-3">
+    <View className={cn(INSET_ROW, "mt-4 gap-2 py-3")}>
       {rows.map((r) => (
         <View key={r.label} accessible accessibilityLabel={`${r.label} ${r.value}`} className="flex-row items-center gap-3">
           <View accessibilityElementsHidden className={cn("size-3 shrink-0 rounded-[3px]", r.swatch)} />

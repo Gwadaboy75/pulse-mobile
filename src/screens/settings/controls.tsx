@@ -56,9 +56,12 @@ export function Field({ label, hint, error, optional, children }: { label: strin
 /** The inset ring the web draws with `ring-2` on focus or on an invalid field. */
 export const ringStyle = (color: string | null) => (color ? { boxShadow: ringLayer(color, { width: 2 }) } : undefined);
 
+/** A profile field's box (the web's FIELD: h-13 rounded-xl bg-field), for a text field or a button that opens a picker. */
+export const FIELD_BOX = "h-13 rounded-xl bg-field";
+
 const FIELDS = {
   /** Profile fields (web FIELD): h-13 rounded-xl bg-field px-4 text-[17px]. */
-  field: { box: "h-13 rounded-xl bg-field", input: "px-4 text-[17px]" },
+  field: { box: FIELD_BOX, input: "px-4 text-[17px]" },
   /** The behaviour search (web: h-12 rounded-xl bg-foreground/[0.06] pl-11 text-base). */
   search: { box: "h-12 rounded-xl border border-input bg-fill-faint", input: "px-4 text-base" },
   /** The web's plain Input (shadcn: h-11 rounded-lg border border-input, dark:bg-input/30 px-2.5 text-base). */

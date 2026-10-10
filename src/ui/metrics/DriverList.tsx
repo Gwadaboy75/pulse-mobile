@@ -2,7 +2,7 @@ import { View } from "react-native";
 import { ChevronDown, ChevronRight, ChevronUp } from "lucide-react-native";
 import { formatValue } from "@/lib/format";
 import type { Metric } from "@/lib/reasons";
-import { CARD_CLASS, CardFill, useCardStyle, useInCard } from "../Card";
+import { CARD_CLASS, CardFill, SECONDARY_ROW, useCardStyle, useInCard } from "../Card";
 import { cn } from "../cn";
 import { ring as ringLayer } from "../shadow";
 import { useTheme } from "../theme";
@@ -123,7 +123,7 @@ function Item({ i, max, p }: { i: DriverItem; max: number; p: DriverListProps })
     </View>
   );
   // Each row is its own card; inside a card it steps down to a 10 px bg-secondary row (no card in a card). Rows that open a sheet press in.
-  const cls = cn(inCard ? "rounded-lg bg-secondary" : CARD_CLASS, "px-4 py-3");
+  const cls = cn(inCard ? SECONDARY_ROW : CARD_CLASS, "px-4 py-3");
   const style = inCard ? undefined : shadow;
   const selected = p.selectedKey === i.key;
   // The ring replaces the card's own shadow while selected (a later style wins), as it always has.
