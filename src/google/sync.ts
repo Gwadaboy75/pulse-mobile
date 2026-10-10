@@ -97,7 +97,7 @@ const JOBS: Job[] = [
   ...EXTRA_JOBS,
 ];
 
-export type SyncTrace = { type: string; from: number; to: number; returned: number; mapped: number; ms: number };
+export type SyncTrace = { type: string; from: number; to: number; returned: number; mapped?: number; ms: number };
 export type SyncDeps = ClientDeps & { store: Store; log?: Pick<Console, "error">; trace?: (event: SyncTrace) => void };
 
 /** What the sync exposes (pulse's `Source`, without the user id). `changed` is true when any row was inserted or updated. */
@@ -182,7 +182,7 @@ export function createGoogleSource(deps: SyncDeps): GoogleSource {
       async function syncJob(job: Job) {
         const began = performance.now();
         let returned = 0;
-        let mapped = 0;
+        let mapped: number | undefined = ["hr", "sleep", "daily"].includes(job.kind) ? 0 : undefined;
         const st = await store.settings.getSyncState(job.key);
         const t = nowS();
         const today = localDay(t, tz);
@@ -219,11 +219,11 @@ export function createGoogleSource(deps: SyncDeps): GoogleSource {
               : job.kind === "rollup" || job.kind === "extra"
                 ? await client.dailyRollUp(job.type, localDay(win.start, tz), dayAfter(win.end, tz))
                 : await client.list(job.type, win.start, win.end);
-          if (hr !== null) mapped += hr.size;
+          if (hr !== null) mapped = (mapped ?? 0) + hr.size;
           else {
             returned += points.length;
-            if (deps.trace && job.kind === "sleep") mapped += mapSleep(points, tz).sessions.length;
-            else if (deps.trace && job.kind === "daily") mapped += mapDaily(job.type, points, tz).length;
+            if (deps.trace && job.kind === "sleep") mapped = (mapped ?? 0) + mapSleep(points, tz).sessions.length;
+            else if (deps.trace && job.kind === "daily") mapped = (mapped ?? 0) + mapDaily(job.type, points, tz).length;
           }
           await store.transaction(async (tx) => {
             if (await (hr !== null ? w.writeHr(tx, hr, win) : w.write(tx, job, points, win))) run.changed = true;
