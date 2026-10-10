@@ -10,7 +10,8 @@ import { Skeleton, SkeletonText } from "@/ui/Skeleton";
 import { DetailShell } from "@/ui/shells/DetailShell";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { AppSettings } from "./AppSettings";
-import { Divider, ROW } from "./controls";
+import { cn } from "@/ui/cn";
+import { ROW, ROW_RULE } from "./controls";
 import { DataSource } from "./DataSource";
 import { DeleteEverything } from "./DeleteEverything";
 import { ProfileCard } from "./ProfileCard";
@@ -62,12 +63,9 @@ function SectionSkeleton({ section }: { section: SectionId }) {
     <SectionShell variant="card" title="Profile" action={<Skeleton className="h-5 w-14 rounded-full" />}>
       <View>
         {PROFILE_ROWS.map((k, i) => (
-          <View key={k}>
-            {i > 0 && <Divider />}
-            <View className={ROW}>
-              <View><SkeletonText lh={22} fs={15} className="w-28" /></View>
-              <SkeletonText lh={22} fs={15} className="w-24" />
-            </View>
+          <View key={k} className={cn(ROW, i > 0 && ROW_RULE)}>
+            <View><SkeletonText lh={22} fs={15} className="w-28" /></View>
+            <SkeletonText lh={22} fs={15} className="w-24" />
           </View>
         ))}
       </View>

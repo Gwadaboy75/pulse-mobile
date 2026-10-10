@@ -24,8 +24,10 @@ export const HINT = "text-[13px] leading-[18px] text-muted-foreground";
 const LABEL = "text-xs font-bold uppercase leading-4 tracking-[0.1em] text-foreground-secondary";
 const ERROR = "text-[13px] font-medium leading-[18px] text-recovery-red-text";
 
-/** A hairline between rows (the web's `divide-y divide-border`). */
+/** A hairline between rows (the web's `divide-y divide-border`) for rows of automatic height, where the border adds its 1 px. */
 export const Divider = ({ className }: { className?: string }) => <View className={cn("h-px bg-border", className)} />;
+/** The same rule as the top border of a row with a minimum height (ROW): the web's min-h includes the border, so the row stays 52 px. */
+export const ROW_RULE = "border-t border-border";
 
 /** A form field: caps label (with "Optional"), the control, then its error or its hint (web ProfileForm `Field`). */
 export function Field({ label, hint, error, optional, children }: { label: string; hint: string; error?: string; optional?: boolean; children: ReactNode }) {

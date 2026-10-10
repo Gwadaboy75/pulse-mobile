@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronDown, ChevronsUpDown } from "lucide-react-native";
 import { cn } from "@/ui/cn";
 import { haptic } from "@/ui/haptics";
@@ -13,7 +14,7 @@ import { SheetScreen } from "@/ui/shells/SheetScreen";
 import { openSheet } from "@/ui/shells/sheets";
 import { Text } from "@/ui/Text";
 import { TREND_GROUPS, TREND_METRICS, type TrendMetricKey } from "@/queries/trends";
-import { CardButton } from "./parts";
+import { CardButton, Turn } from "./parts";
 
 const GROUPS = TREND_GROUPS.map((g) => ({ group: g, metrics: TREND_METRICS.filter((m) => m.group === g).map(({ key, label }) => ({ key, label })) }));
 const SHOWN = GROUPS.flatMap((g) => g.metrics.map((m) => ({ ...m, group: g.group })));
@@ -41,10 +42,12 @@ export function MetricPicker({ current, r }: { current?: TrendMetricKey; r?: str
 export function MetricSheetBody({ current, r }: { current?: string; r?: string }) {
   const metric = metricOf(current);
   const [expanded, setExpanded] = useState<string>(metric.group);
+  const insets = useSafeAreaInsets();
   const choose = (key: TrendMetricKey) => router.dismissTo({ pathname: "/trends", params: { metric: key, ...(r ? { r } : null) } });
   return (
     <SheetScreen title="Metric" size="default">
-      <View>
+      {/* The web's list has its own `px-4 pb-[max(env(safe-area-inset-bottom),16px)]` inside the drawer's `px-4 pb-4`: 32 px of side margin; the sheet's foot already adds max(inset, 8). */}
+      <View className="px-4" style={{ paddingBottom: Math.max(insets.bottom, 16) - Math.max(insets.bottom, 8) }}>
         {GROUPS.map(({ group, metrics }, i) => {
           const on = group === expanded;
           return (
@@ -53,9 +56,9 @@ export function MetricSheetBody({ current, r }: { current?: string; r?: string }
                 <Text className="text-[15px] font-semibold leading-[22px]">{group}</Text>
                 <View className="flex-row items-center gap-2">
                   <Text className="text-[13px] font-medium text-muted-foreground">{metrics.length}</Text>
-                  <View style={on ? { transform: [{ rotate: "180deg" }] } : undefined}>
+                  <Turn on={on}>
                     <Icon icon={ChevronDown} size={20} tone="muted-foreground" strokeWidth={1.75} />
-                  </View>
+                  </Turn>
                 </View>
               </Pressable>
               {on && (

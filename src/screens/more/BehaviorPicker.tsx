@@ -9,11 +9,14 @@ import { saveBehaviors } from "@/actions/behaviours";
 import { store } from "@/data/store";
 import { BEHAVIOR_CATEGORIES, BEHAVIORS, type BehaviorCategory, questionOf } from "@/lib/behaviors";
 import type { BehavioursVM } from "@/queries/types";
+import { alpha } from "@/ui/color";
 import { cn } from "@/ui/cn";
+import { Gradient } from "@/ui/Gradient";
 import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
 import { SheetSection } from "@/ui/shells/SheetScreen";
 import { Text } from "@/ui/Text";
+import { useTheme } from "@/ui/theme";
 import { TextField } from "../settings/controls";
 
 type Tab = "all" | BehaviorCategory | "custom";
@@ -29,6 +32,7 @@ const itemsOf = (tags: BehavioursVM["tags"]): Item[] => [
 export const shownOf = (tags: BehavioursVM["tags"]) => new Set(tags.filter((t) => !t.hidden).map((t) => t.tag));
 
 export function BehaviorPicker({ tags, initial, selected, onChange }: { tags: BehavioursVM["tags"]; initial: Set<string>; selected: Set<string>; onChange: (next: Set<string>) => void }) {
+  const { c } = useTheme();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<Tab>("all");
   const items = itemsOf(tags);
@@ -63,27 +67,33 @@ export function BehaviorPicker({ tags, initial, selected, onChange }: { tags: Be
         }
       />
       {/* Category tabs in one scrolling row, the chosen one underlined (journal-04, journal-06). */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist" className="mt-3 -mx-4" contentContainerClassName="gap-1 px-4 pr-8">
-        {tabs.map((t) => {
-          const on = t.key === tab;
-          return (
-            <Pressable
-              key={t.key}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: on }}
-              onPress={() => {
-                if (on) return;
-                haptic.select();
-                setTab(t.key);
-              }}
-              className="h-11 justify-center px-2.5"
-            >
-              <Text className={cn("text-xs font-bold uppercase leading-4 tracking-[0.1em]", on ? "text-foreground" : "text-muted-foreground")}>{t.label}</Text>
-              <View className={cn("absolute inset-x-2.5 bottom-1.5 h-0.5 rounded-full bg-foreground", !on && "opacity-0")} />
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <View className="mt-3 -mx-4">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist" contentContainerClassName="gap-1 px-4">
+          {tabs.map((t) => {
+            const on = t.key === tab;
+            return (
+              <Pressable
+                key={t.key}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: on }}
+                onPress={() => {
+                  if (on) return;
+                  haptic.select();
+                  setTab(t.key);
+                }}
+                className="h-11 justify-center px-2.5"
+              >
+                <Text className={cn("text-xs font-bold uppercase leading-4 tracking-[0.1em]", on ? "text-foreground" : "text-muted-foreground")}>{t.label}</Text>
+                <View className={cn("absolute inset-x-2.5 bottom-1.5 h-0.5 rounded-full bg-foreground", !on && "opacity-0")} />
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      {/* The web masks the row's last 32 px to transparent ([mask-image:linear-gradient(to_right,black_calc(100%-32px),transparent)]); there is no mask view, so the ground fades over it. */}
+      <View pointerEvents="none" className="absolute inset-y-0 right-0 w-8">
+        <Gradient from={alpha(c["background-mid"], 0)} to={c["background-mid"]} />
+      </View>
+      </View>
       {shown.length === 0 && <Text className="py-8 text-center text-[15px] leading-[22px] text-foreground-secondary">No behaviours match “{query.trim()}”.</Text>}
       {groups.map(
         (g) =>

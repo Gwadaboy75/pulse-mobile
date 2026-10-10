@@ -6,7 +6,8 @@ import { Button } from "@/ui/Button";
 import { Icon } from "@/ui/Icon";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { Text } from "@/ui/Text";
-import { BODY, Divider, ROW } from "../settings/controls";
+import { cn } from "@/ui/cn";
+import { BODY, ROW, ROW_RULE } from "../settings/controls";
 
 export const REPO_URL = "https://github.com/adityaongit/pulse";
 
@@ -19,12 +20,9 @@ export function About({ version, scoringVersion }: { version: string; scoringVer
           ["Version", version],
           ["Scoring version", String(scoringVersion)],
         ].map(([k, v], i) => (
-          <View key={k}>
-            {i > 0 && <Divider />}
-            <View className={ROW}>
-              <Text className="text-[15px] leading-[22px]">{k}</Text>
-              <Text className="font-numeric text-[15px] font-semibold leading-[22px] tabular-nums text-foreground-secondary">{v}</Text>
-            </View>
+          <View key={k} className={cn(ROW, i > 0 && ROW_RULE)}>
+            <Text className="text-[15px] leading-[22px]">{k}</Text>
+            <Text className="font-numeric text-[15px] font-semibold leading-[22px] tabular-nums text-foreground-secondary">{v}</Text>
           </View>
         ))}
       </View>
