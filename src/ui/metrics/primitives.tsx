@@ -92,13 +92,20 @@ export function DeltaMark({ dir, tone, color }: { dir: DeltaDir; tone: Tone; col
 }
 
 /** A formatted value with its unit in the unit role ("124 ms", "72%"). Nest it inside a <Text>; it renders as one. */
+/** The advance of a space in Figtree SemiBold at 13 px (0.241 em). */
+const SPACE_13 = 0.241 * 13;
+
 export function ValueUnit({ value, unit, className, unitClassName }: { value: string; unit?: string; className?: string; unitClassName?: string }) {
   return (
     <Text className={cn("tabular-nums", className)}>
       {value}
       {unit && value !== "--" && (
-        // A hair space before a symbol (ml-0.5 on the web), a normal one before a word (ml-1).
-        <Text className={cn("text-[13px] font-semibold leading-4 text-foreground-secondary", unitClassName)}>{`${isSymbolUnit(unit) ? " " : " "}${unit}`}</Text>
+        <>
+          {/* The web's ml-0.5 before a symbol, ml-1 before a word. A nested text has no margin, so the gap is a space of
+              a known face and size (Figtree SemiBold 13 px: 0.241 em, 3.13 px) with letter spacing making up the rest. */}
+          <Text className="font-sans text-[13px] font-semibold" style={{ letterSpacing: (isSymbolUnit(unit) ? 2 : 4) - SPACE_13 }}>{" "}</Text>
+          <Text className={cn("text-[13px] font-semibold leading-4 text-foreground-secondary", unitClassName)}>{unit}</Text>
+        </>
       )}
     </Text>
   );
