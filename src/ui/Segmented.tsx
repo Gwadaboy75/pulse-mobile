@@ -5,7 +5,9 @@ import { Text } from "./Text";
 
 /**
  * The W / M / 6M segmented control (web: SEGMENT_TRACK and SEGMENT_ITEM in primitives.tsx, a ToggleGroup): a muted
- * track, the chosen segment raised. `fill` stretches the segments to share the width (four ranges, or the stages tabs).
+ * track, the chosen segment raised. `fill` stretches the segments to share the width (four ranges, or the stages tabs),
+ * with the web's px-2 (Tonight's sleep). A label never breaks inside its word: where a third of a 320 px card is short of
+ * it ("PERFORM"), the web's grid column grows to the word; here the word scales down a little to fit.
  */
 export function Segmented<T extends string>({
   value,
@@ -38,9 +40,11 @@ export function Segmented<T extends string>({
               haptic.select();
               onChange(o.value);
             }}
-            className={cn("h-10 items-center justify-center rounded-md px-3", fill ? "flex-1" : "min-w-11", on && "bg-secondary")}
+            className={cn("h-10 items-center justify-center rounded-md", fill ? "flex-1 px-2" : "min-w-11 px-3", on && "bg-secondary")}
           >
-            <Text className={cn(textClassName, on ? "text-foreground" : "text-muted-foreground")}>{o.label}</Text>
+            <Text className={cn(textClassName, on ? "text-foreground" : "text-muted-foreground")} numberOfLines={1} adjustsFontSizeToFit>
+              {o.label}
+            </Text>
           </Pressable>
         );
       })}
