@@ -50,6 +50,7 @@ src/
   notify/     local notification scheduling
   tasks/      background sync task
   ui/         tokens, shells, kit, charts
+  dev/        development screens (kit, parity, time, demo); the routes in app/dev/ load them in development builds only
 fixtures/     parity fixtures exported from pulse
 scripts/      sync-core.sh and other tooling
 docs/         plan.md, design/spec.md, learning.md, runbooks

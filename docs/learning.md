@@ -261,3 +261,12 @@ Onboarding is one route with steps held in state, so the navigator's back would 
 ## Animating SVG on the UI thread: Reanimated `animatedProps`
 
 The welcome mark's heartbeat (`src/screens/onboarding/HeartbeatMark.tsx`) moves two `react-native-svg` rects. `Animated.createAnimatedComponent(Rect)` plus `useAnimatedProps` writes their `y` from shared values on the UI thread, so the beat never waits on JavaScript. CSS keyframes become `withRepeat(withSequence(withTiming(...)))`: each `withTiming` is one keyframe step with the web's easing, and `withDelay` stands in for `animation-delay`. `useReducedMotion()` replaces `motion-safe:` and leaves everything still.
+
+## Development screens stay out of release bundles
+
+Expo Router turns every file under `app/` into a route and bundles it, so a dev screen's imports (the parity fixtures are
+12 MB of JSON) would ship in every release. The dev screens live in `src/dev/`; each route under `app/dev/` is one line,
+`export default __DEV__ ? require("@/dev/<name>").default : NotInRelease`. In a release bundle `__DEV__` is the literal
+`false`, Metro folds the condition before it collects dependencies, and the `require` with everything behind it is gone.
+In release the route still exists and sends the person home. A static `import` would not work: without Expo's
+experimental tree shaking, every imported module ships.

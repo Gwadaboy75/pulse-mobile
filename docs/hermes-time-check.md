@@ -28,8 +28,9 @@ flowchart LR
 - **Development build**: your own app binary (`in.portlabs.pulse`) with the `expo-dev-client` launcher inside. You build
   it once with EAS (Expo's cloud build service); after that it loads JavaScript from Metro like Expo Go does. You need
   one when the app uses native code Expo Go does not ship.
-- **Expo Router route**: every file under `app/` is a screen, addressed by its path. `app/dev/time.tsx` is the screen at
-  `/dev/time`. Nothing in the app links to it; you open it with a deep link.
+- **Expo Router route**: every file under `app/` is a screen, addressed by its path. `app/dev/time.tsx` is the route at
+  `/dev/time`; the screen itself is `src/dev/time.tsx` and exists in development builds only. Nothing in the app links to
+  it; you open it with a deep link.
 - **Deep link**: a URL that opens an app at a screen. In Expo Go it is `exp://<mac-ip>:8081/--/dev/time` (Expo Go puts
   `/--/` before the route). In the development build it is `pulse://dev/time` (`scheme` is `pulse` in `app.json`).
 - **NativeWind `className`**: Tailwind classes on React Native's `View` and `Text`, turned into native styles. The
