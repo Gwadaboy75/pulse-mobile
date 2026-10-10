@@ -12,8 +12,8 @@ import { MetricState } from "../shells/MetricState";
 import { useOptionalShellCalendar } from "../shells/ShellStatus";
 import { Skeleton } from "../Skeleton";
 import { useTheme } from "../theme";
-import { ChartFigure, ChartLabel, DashedLine, GlowDot, GridLines, Pill, PlotCanvas, ScrubLayer, ScrubTick, TooltipCard, TooltipLine } from "./ChartFrame";
-import { areaPath, linePath, linearScale, nearestIndex, thin } from "./geometry";
+import { ChartFigure, ChartLabel, DashedLine, GlowDot, GridLines, Pill, PlotCanvas, ScrubLayer, ScrubTick, TooltipCard, TooltipLine, xTickY, yTickX } from "./ChartFrame";
+import { areaPath, linePath, linearScale, nearestIndex, preserveStartEnd, tickTextWidth } from "./geometry";
 import { bandPaint, FadeFill, StrokePath } from "./paint";
 import { SpanFills, SpanHeads } from "./spans";
 
@@ -57,7 +57,9 @@ function Chart({ e }: { e: EnergySeries }) {
         const tx = linearScale([first, last], [x0, x1]);
         const y = linearScale([0, 100], [y1, y0]);
         const pts = e.points.map((p) => ({ x: tx(p.t), y: p.value === null ? null : y(p.value) }));
-        const ticks = thin(hourTicks(first, last, 6, tz), tx, 24 + 30);
+        const hours = hourTicks(first, last, 6, tz);
+        // The web's interval="preserveStartEnd" minTickGap={24}.
+        const ticks = preserveStartEnd(hours.map((t) => ({ x: tx(t), size: tickTextWidth(clock(t, tz)) })), x0, x1, 24).map((k) => ({ t: hours[k.index], x: k.x }));
         const valid = e.points.filter((p) => p.value !== null);
         const ai = x === null ? -1 : nearestIndex(valid.map((p) => tx(p.t)), x);
         const a = ai >= 0 ? valid[ai] : null;
@@ -84,10 +86,10 @@ function Chart({ e }: { e: EnergySeries }) {
             </PlotCanvas>
             <SpanHeads spans={naps} x={tx} x0={x0} x1={x1} y0={y0} />
             {[33, 67, 100].map((v) => (
-              <ChartLabel key={v} x={x0 - 4} y={y(v)} anchor="end" w={24}>{String(v)}</ChartLabel>
+              <ChartLabel key={v} x={yTickX(x0, 4)} y={y(v)} anchor="end" w={24}>{String(v)}</ChartLabel>
             ))}
-            {ticks.map((t) => (
-              <ChartLabel key={t} x={tx(t)} y={y1 + 16}>{clock(t, tz)}</ChartLabel>
+            {ticks.map(({ t, x }) => (
+              <ChartLabel key={t} x={x} y={xTickY(y1)}>{clock(t, tz)}</ChartLabel>
             ))}
             {/* A pill chip above the point, so the drain reads as a marker, not loose text over the line. */}
             {drains.map((d) => {

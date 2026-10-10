@@ -10,7 +10,7 @@ import { MetricState } from "../shells/MetricState";
 import { useOptionalShellCalendar } from "../shells/ShellStatus";
 import { Skeleton } from "../Skeleton";
 import { useTheme } from "../theme";
-import { ChartFigure, ChartLabel, DashedLine, GlowDot, GridLines, Pill, PlotCanvas, ScrubLayer, ScrubTick, TooltipCard, TooltipLine } from "./ChartFrame";
+import { ChartFigure, ChartLabel, DashedLine, GlowDot, GridLines, Pill, PlotCanvas, ScrubLayer, ScrubTick, TooltipCard, TooltipLine, xTickY, yTickX } from "./ChartFrame";
 import { areaPath, linePath, linearScale, nearestIndex } from "./geometry";
 import { FadeFill, StrokePath } from "./paint";
 
@@ -93,10 +93,10 @@ function Chart({ hr, highlight }: { hr: SleepHr; highlight?: { start: number; en
               {a && a.v !== null && <GlowDot x={tx(a.t)} y={y(a.v)} fill={c.foreground} />}
             </PlotCanvas>
             {yTicks.map((t) => (
-              <ChartLabel key={t} x={x0 - 8} y={y(t)} anchor="end" w={x0 - 8}>{String(t)}</ChartLabel>
+              <ChartLabel key={t} x={yTickX(x0)} y={y(t)} anchor="end" w={x0}>{String(t)}</ChartLabel>
             ))}
             {[bed, wake].map((t) => (
-              <ChartLabel key={t} x={tx(t)} y={y1 + 16} color={c["foreground-secondary"]}>{clock(t, tz)}</ChartLabel>
+              <ChartLabel key={t} x={tx(t)} y={xTickY(y1)} color={c["foreground-secondary"]}>{clock(t, tz)}</ChartLabel>
             ))}
             {low && <Pill x={tx(low.t)} y={y(low.v) + 14} anchor="middle" text={`Low ${low.v}`} />}
             <ScrubLayer width={width} height={height} onScrub={setX} />

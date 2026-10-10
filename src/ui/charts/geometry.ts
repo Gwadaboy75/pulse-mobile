@@ -189,13 +189,59 @@ export function ticksIn(lo: number, hi: number, count: number): number[] {
   return [...out, hi];
 }
 
-/** Drops ticks closer than `gap` px to the one kept before (Recharts' minTickGap with preserveStartEnd: the first and last stay). */
-export function thin(ticks: number[], pos: (t: number) => number, gap: number): number[] {
-  if (ticks.length <= 2) return ticks;
-  const kept: number[] = [ticks[0]];
-  for (const t of ticks.slice(1, -1)) if (pos(t) - pos(kept[kept.length - 1]) >= gap) kept.push(t);
-  const last = ticks[ticks.length - 1];
-  if (pos(last) - pos(kept[kept.length - 1]) < gap && kept.length > 1) kept.pop();
-  kept.push(last);
-  return kept;
+/** An axis tick as Recharts thins it: its x and the width of its text. */
+export type AxisTick = { x: number; size: number };
+
+// ponytail: an average Figtree advance (0.55 em) stands in for Recharts' DOM measurement of the tick text; it is
+// within 3 % on dates and clock times. Measure real glyph advances if a label set ever thins differently.
+/** A tick's text width as Recharts measures it (the axis's 12 px text). Recharts measures the raw value when the axis
+ * has no tickFormatter (TrendChart's ISO dates), the formatted text when it has one. */
+export const tickTextWidth = (text: string, fontSize = 12) => text.length * 0.55 * fontSize;
+
+const fits = (x: number, size: number, lo: number, hi: number) => x - size / 2 >= lo && x + size / 2 <= hi;
+
+/**
+ * Recharts' interval="preserveStartEnd" (getTicksStart): the last tick is kept, pulled inside the plot's right edge;
+ * then from the first (pulled inside the left edge) each tick is kept when its text clears the one kept before it by
+ * `gap` and the last one too. Returns the kept indices with the x to draw them at.
+ */
+export function preserveStartEnd(ticks: AxisTick[], start: number, end: number, gap: number): { index: number; x: number }[] {
+  const n = ticks.length;
+  if (!n) return [];
+  const tail = ticks[n - 1];
+  const tailX = Math.min(tail.x, end - tail.size / 2);
+  const tailShown = fits(tailX, tail.size, start, end);
+  const hi = tailShown ? tailX - (tail.size / 2 + gap) : end;
+  const kept: { index: number; x: number }[] = [];
+  let lo = start;
+  for (let i = 0; i < n - 1; i++) {
+    const t = ticks[i];
+    const x = i === 0 ? Math.max(t.x, start + t.size / 2) : t.x;
+    if (fits(x, t.size, lo, hi)) {
+      kept.push({ index: i, x });
+      lo = x + t.size / 2 + gap;
+    }
+  }
+  return tailShown ? [...kept, { index: n - 1, x: tailX }] : kept;
+}
+
+/**
+ * Recharts' interval="equidistantPreserveStart" (getEquidistantTicks): every k-th tick from the first, with the
+ * smallest k at which no text runs into the one before it (by `gap`) or past the plot's right edge.
+ */
+export function equidistantPreserveStart(ticks: AxisTick[], start: number, end: number, gap: number): number[] {
+  for (let step = 1; step <= ticks.length; step++) {
+    let lo = start;
+    let ok = true;
+    for (let i = 0; i < ticks.length; i += step) {
+      const t = ticks[i];
+      if (i > 0 && !fits(t.x, t.size, lo, end)) {
+        ok = false;
+        break;
+      }
+      lo = t.x + t.size / 2 + gap;
+    }
+    if (ok) return ticks.flatMap((_, i) => (i % step === 0 ? [i] : []));
+  }
+  return [];
 }

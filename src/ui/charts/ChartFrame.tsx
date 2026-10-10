@@ -125,6 +125,16 @@ export function ChartLabel({ x, y, children, anchor = "middle", className, w = T
   );
 }
 
+/** Recharts' tick size: 6 px between the plot and the tick margin, whether or not the tick line is drawn. */
+const TICK_SIZE = 6;
+/** The right edge of a Y tick's text: tick size plus the axis's tickMargin (the web's AXIS: 8) left of the plot. */
+export const yTickX = (x0: number, margin = 8) => x0 - TICK_SIZE - margin;
+/**
+ * The centre of an X tick's label (a 16 px line): Recharts sets the text's baseline 0.71 em below tick size plus
+ * tickMargin; in a 16 px line a 12 px Barlow baseline sits 4.8 px below the centre.
+ */
+export const xTickY = (y1: number, margin = 8) => y1 + TICK_SIZE + margin + 0.71 * 12 - 4.8;
+
 /** A filled pill at (x, y), vertically centred: the label of a reference line or a marked point. */
 export function Pill({ x, y, text, fill, color, anchor = "start" }: { x: number; y: number; text: string; fill?: string; color?: string; anchor?: "start" | "middle" }) {
   const { c } = useTheme();

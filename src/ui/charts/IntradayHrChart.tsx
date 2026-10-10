@@ -11,8 +11,8 @@ import { useOptionalShellCalendar } from "../shells/ShellStatus";
 import { Skeleton } from "../Skeleton";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
-import { ChartFigure, ChartLabel, DashedLine, GlowDot, GridLines, PlotCanvas, ScrubLayer, ScrubTick, TooltipCard, TooltipLine } from "./ChartFrame";
-import { areaPath, linePath, linearScale, nearestIndex, thin, ticksIn } from "./geometry";
+import { ChartFigure, ChartLabel, DashedLine, GlowDot, GridLines, PlotCanvas, ScrubLayer, ScrubTick, TooltipCard, TooltipLine, xTickY, yTickX } from "./ChartFrame";
+import { areaPath, linePath, linearScale, nearestIndex, preserveStartEnd, tickTextWidth, ticksIn } from "./geometry";
 import { bandPaint, FadeFill, StrokePath } from "./paint";
 import { SpanFills, SpanHeads, zoneBands, zoneStrips, ZoneStripBars, ZoneStripLabels, type ChartSpan, type HrZone } from "./spans";
 
@@ -74,7 +74,8 @@ function Chart({ hr, variant }: { hr: HrSeries; variant: "day" | "activity" }) {
         const y = linearScale(domain, [y1, y0]);
         const yTicks = ticksIn(domain[0], domain[1], 4);
         const tickTimes = workout ? [workout.start, workout.end] : variant === "day" ? hourTicks(first, last, 6, tz) : clockTicks(first, last, last - first <= 3_600_000 ? 15 : last - first <= 3 * 3_600_000 ? 30 : 60, tz);
-        const shownTicks = workout ? tickTimes : thin(tickTimes, tx, 24 + 30);
+        // A workout's two ends always show (interval 0); else the web's interval="preserveStartEnd" minTickGap={24}.
+        const shownTicks = workout ? tickTimes.map((t) => ({ t, x: tx(t) })) : preserveStartEnd(tickTimes.map((t) => ({ x: tx(t), size: tickTextWidth(clock(t, tz)) })), x0, x1, 24).map((k) => ({ t: tickTimes[k.index], x: k.x }));
         const mk = (key: "hot" | "cool") => rows.map((r) => ({ x: tx(r.t), y: r[key] === null ? null : y(r[key]!) }));
         const strips = variant === "day" ? zoneStrips(hr.zones, domain, y, x1) : [];
         const valid = rows.filter((r) => r.bpm !== null);
@@ -107,10 +108,10 @@ function Chart({ hr, variant }: { hr: HrSeries; variant: "day" | "activity" }) {
             {variant === "day" && <SpanHeads spans={hr.spans} x={tx} x0={x0} x1={x1} y0={y0} />}
             {variant === "day" && <ZoneStripLabels strips={strips} css={css} />}
             {yTicks.map((t) => (
-              <ChartLabel key={t} x={x0 - 8} y={y(t)} anchor="end" w={x0 - 8}>{String(t)}</ChartLabel>
+              <ChartLabel key={t} x={yTickX(x0)} y={y(t)} anchor="end" w={x0}>{String(t)}</ChartLabel>
             ))}
-            {shownTicks.map((t) => (
-              <ChartLabel key={t} x={tx(t)} y={y1 + 16} className={workout ? "text-xs font-bold text-foreground" : undefined}>{clock(t, tz)}</ChartLabel>
+            {shownTicks.map(({ t, x }) => (
+              <ChartLabel key={t} x={x} y={xTickY(y1)} className={workout ? "text-xs font-bold text-foreground" : undefined}>{clock(t, tz)}</ChartLabel>
             ))}
             <ScrubLayer width={width} height={h} onScrub={setX} />
             <ScrubTick index={ai} />

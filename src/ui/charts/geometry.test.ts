@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arcPath, areaPath, evenTicks, linePath, linearScale, nearestIndex, segments, ticksIn } from "./geometry";
+import { arcPath, areaPath, equidistantPreserveStart, evenTicks, linePath, linearScale, nearestIndex, preserveStartEnd, segments, tickTextWidth, ticksIn } from "./geometry";
 
 describe("scales", () => {
   it("maps a domain onto a reversed range", () => {
@@ -72,5 +72,21 @@ describe("nearestIndex and ticks", () => {
     // A fixed numeric domain: Recharts' getTickValuesFixedDomain.
     expect(ticksIn(40, 180, 4)).toEqual([40, 90, 140, 180]);
     expect(ticksIn(50, 170, 4)).toEqual([50, 90, 130, 170]);
+  });
+});
+
+describe("tick thinning (Recharts)", () => {
+  // A month of weekly ticks 65 px apart; Recharts measures the raw ISO date, about 66 px of 12 px text.
+  const weekly = [10, 75, 140, 205, 270].map((x) => ({ x, size: tickTextWidth("2026-09-12") }));
+  it("preserveStartEnd keeps the ends, pulled inside the plot, and every tick that clears its neighbour", () => {
+    expect(preserveStartEnd(weekly, 0, 270, 8).map((k) => k.index)).toEqual([0, 2, 4]);
+    const [first, , last] = preserveStartEnd(weekly, 0, 270, 8);
+    expect(first.x).toBeCloseTo(tickTextWidth("2026-09-12") / 2);
+    expect(last.x).toBeCloseTo(270 - tickTextWidth("2026-09-12") / 2);
+    expect(preserveStartEnd([], 0, 100, 8)).toEqual([]);
+  });
+  it("equidistantPreserveStart takes every k-th tick from the first", () => {
+    const hours = [0, 40, 80, 120, 160, 200, 240].map((x) => ({ x, size: 33 }));
+    expect(equidistantPreserveStart(hours, 0, 260, 24)).toEqual([0, 2, 4, 6]);
   });
 });

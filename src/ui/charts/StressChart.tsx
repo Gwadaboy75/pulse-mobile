@@ -12,8 +12,8 @@ import { useOptionalShellCalendar } from "../shells/ShellStatus";
 import { Skeleton } from "../Skeleton";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
-import { ChartFigure, ChartLabel, DashedLine, GlowDot, GridLines, PlotCanvas, ScrubLayer, ScrubTick, TooltipCard, TooltipLine } from "./ChartFrame";
-import { areaPath, linePath, linearScale, nearestIndex, thin } from "./geometry";
+import { ChartFigure, ChartLabel, DashedLine, GlowDot, GridLines, PlotCanvas, ScrubLayer, ScrubTick, TooltipCard, TooltipLine, xTickY, yTickX } from "./ChartFrame";
+import { areaPath, equidistantPreserveStart, linePath, linearScale, nearestIndex, tickTextWidth } from "./geometry";
 import { bandPaint, FadeFill, StrokePath } from "./paint";
 import { SpanFills, SpanHeads, type ChartSpan } from "./spans";
 
@@ -61,7 +61,8 @@ function Chart({ s, variant }: { s: StressSeries; variant: "full" | "spark" }) {
         const y = linearScale([0, 3], [y1, y0]);
         const pts = s.points.map((p) => ({ x: tx(p.t), y: p.value === null ? null : y(p.value) }));
         const ticks = full ? (s.now ? [...hourTicks(first, last, 6, tz).filter((t) => last - t >= 5 * 3_600_000), s.now] : hourTicks(first, last, 4, tz)) : [];
-        const shown = s.now ? ticks : thin(ticks, tx, 24 + 30);
+        // With a "now" every tick shows (interval 0); else the web's interval="equidistantPreserveStart" minTickGap={24}.
+        const shown = s.now ? ticks : equidistantPreserveStart(ticks.map((t) => ({ x: tx(t), size: tickTextWidth(clock(t, tz)) })), x0, x1, 24).map((i) => ticks[i]);
         const valid = s.points.filter((p) => p.value !== null);
         const ai = full && x !== null ? nearestIndex(valid.map((p) => tx(p.t)), x) : -1;
         const a = ai >= 0 ? valid[ai] : null;
@@ -82,13 +83,13 @@ function Chart({ s, variant }: { s: StressSeries; variant: "full" | "spark" }) {
             {full && <SpanHeads spans={s.spans} x={tx} x0={x0} x1={x1} y0={y0} iconOnly />}
             {full &&
               [0, 1, 2, 3].map((v) => (
-                <ChartLabel key={v} x={x0 - 4} y={y(v)} anchor="end" w={24}>{formatValue("decimal1", v)}</ChartLabel>
+                <ChartLabel key={v} x={yTickX(x0, 4)} y={y(v)} anchor="end" w={24}>{formatValue("decimal1", v)}</ChartLabel>
               ))}
             {/* The hours, then the time now in bold at the end of the line (dashboard-08), clear of the last hour. */}
             {shown.map((t) => {
               const isNow = t === s.now;
               return (
-                <ChartLabel key={t} x={tx(t)} y={y1 + 8 + 0.9 * 12} anchor={isNow ? "end" : t <= first ? "start" : "middle"} className={isNow ? "font-bold text-foreground" : "font-normal"}>
+                <ChartLabel key={t} x={tx(t)} y={xTickY(y1)} anchor={isNow ? "end" : t <= first ? "start" : "middle"} className={isNow ? "font-bold text-foreground" : "font-normal"}>
                   {clock(t, tz)}
                 </ChartLabel>
               );

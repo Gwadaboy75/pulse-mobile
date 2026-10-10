@@ -16,8 +16,8 @@ import { useTheme } from "../theme";
 import { EmptyState } from "../shells/EmptyState";
 import { MetricState } from "../shells/MetricState";
 import { useOptionalShellCalendar } from "../shells/ShellStatus";
-import { ChartFigure, ChartLabel, DashedLine, GlowDot, GridLines, labelGutter, Pill, PlotCanvas, ScrubLayer, ScrubTick, wholeTick } from "./ChartFrame";
-import { areaPath, bandCenters, evenTicks, linePath, linearScale, nearestIndex } from "./geometry";
+import { ChartFigure, ChartLabel, DashedLine, GlowDot, GridLines, labelGutter, Pill, PlotCanvas, ScrubLayer, ScrubTick, wholeTick, xTickY, yTickX } from "./ChartFrame";
+import { areaPath, bandCenters, evenTicks, linePath, linearScale, nearestIndex, preserveStartEnd, tickTextWidth } from "./geometry";
 import { bandPaint, FadeFill, StrokePath } from "./paint";
 
 export type TrendPoint = {
@@ -157,12 +157,18 @@ function Trend({ points, p }: { points: TrendPoint[]; p: TrendChartProps }) {
             const band = bandCenters(rows.length, x0, x1, 0.1);
             const xs = line ? rows.map((_, i) => (rows.length === 1 ? (x0 + x1) / 2 : x0 + (i * (x1 - x0)) / (rows.length - 1))) : band.centers;
             const bw = Math.min(MAX_BAR, band.step * 0.9);
-            const ticks =
+            const candidates =
               range === "w"
                 ? rows.map((_, i) => i)
                 : range === "m"
                   ? rows.flatMap((_, i) => ((rows.length - 1 - i) % 7 === 0 ? [i] : []))
                   : rows.flatMap((r, i) => (i > 0 && r.date.slice(0, 7) !== rows[i - 1].date.slice(0, 7) ? [i] : []));
+            // W shows every day (interval 0); M and 6M thin as the web's interval="preserveStartEnd" minTickGap={8}, which
+            // measures the raw ISO date (the axis has a custom tick but no tickFormatter).
+            const ticks =
+              range === "w"
+                ? candidates.map((i) => ({ index: i, x: xs[i] }))
+                : preserveStartEnd(candidates.map((i) => ({ x: xs[i], size: tickTextWidth(rows[i].date) })), x0, x1, 8).map((k) => ({ index: candidates[k.index], x: k.x }));
             const tickFormat = (d: string) => formatDay(d, range === "w" ? { weekday: "narrow" } : range === "m" ? DAY.monthDay : { month: "short" });
 
             const lineDraw = line ? linePath(rows.map((r, i) => ({ x: xs[i], y: r.value === null ? null : y(r.value) })), p.line ? "linear" : "monotone") : "";
@@ -302,15 +308,15 @@ function Trend({ points, p }: { points: TrendPoint[]; p: TrendChartProps }) {
                   if (!line && t === 0) return null;
                   const bandTone = p.colorBy === "band" && !line;
                   return (
-                    <ChartLabel key={t} x={x0 - 8} y={y(t)} anchor="end" w={axisWidth} className={bandTone ? "font-semibold" : undefined} color={bandTone ? css(`var(--${BAND_TICK[recoveryBand(t)]})`) : undefined}>
+                    <ChartLabel key={t} x={yTickX(x0)} y={y(t)} anchor="end" w={axisWidth} className={bandTone ? "font-semibold" : undefined} color={bandTone ? css(`var(--${BAND_TICK[recoveryBand(t)]})`) : undefined}>
                       {fmtTick(t)}
                     </ChartLabel>
                   );
                 })}
-                {ticks.map((i) => {
+                {ticks.map(({ index: i, x }) => {
                   const on = range === "w" && rows[i].date === shown?.date;
                   return (
-                    <ChartLabel key={rows[i].date} x={xs[i]} y={y1 + 16} anchor="middle" className={on ? "font-bold text-foreground" : undefined} w={48}>
+                    <ChartLabel key={rows[i].date} x={x} y={xTickY(y1)} anchor="middle" className={on ? "font-bold text-foreground" : undefined} w={48}>
                       {tickFormat(rows[i].date)}
                     </ChartLabel>
                   );
