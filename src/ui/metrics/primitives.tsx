@@ -1,0 +1,94 @@
+import { View } from "react-native";
+import { Check, CircleAlert, Triangle, TriangleAlert, type LucideIcon } from "lucide-react-native";
+import { CHIP_TONE_CLASS, type ChipTone, type DeltaDir, type Tone } from "@/lib/bands";
+import { isSymbolUnit } from "@/lib/format";
+import { TAG_COPY, type MetricTag } from "@/lib/reasons";
+import { cn } from "../cn";
+import { Icon } from "../Icon";
+import type { TokenName } from "../palette";
+import { Text } from "../Text";
+import { useTheme } from "../theme";
+
+// Small shared marks used by every kit component (spec §5.0). One look per meaning.
+
+/** Shared type styles: the uppercase small label and the muted caption. */
+export const LABEL = "text-xs leading-4 font-bold tracking-[0.1em] uppercase";
+export const CAPTION = "text-xs leading-4 font-medium text-muted-foreground";
+// The web's CAP_TRIM (text-box-trim) has no React Native counterpart; `leading-none` is the nearest.
+export const CAP_TRIM = "leading-none";
+
+export type TagKind = keyof typeof TAG_COPY | "so_far" | "partial_week" | "partial_month" | "estimate" | "beta";
+const EXTRA_TAGS: Record<Exclude<TagKind, keyof typeof TAG_COPY>, string> = {
+  so_far: "So far",
+  partial_week: "Partial week",
+  partial_month: "Partial month",
+  estimate: "Estimate",
+  beta: "Beta",
+};
+export const tagLabel = (kind: TagKind) => (kind in TAG_COPY ? TAG_COPY[kind as keyof typeof TAG_COPY].label : EXTRA_TAGS[kind as keyof typeof EXTRA_TAGS]);
+
+/** Status tag ("Provisional", "So far"…). Never coloured: colour is for data. */
+export function Tag({ kind, className }: { kind: TagKind; className?: string }) {
+  return (
+    <View className={cn("h-5 items-center justify-center rounded-full border border-border px-2", className)}>
+      <Text className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.1em] text-foreground-secondary">{tagLabel(kind)}</Text>
+    </View>
+  );
+}
+
+/** The tags a metric carries: "Provisional" first, then "Baseline stale" / "Updated". */
+export function MetricTags({ provisional, tags, extra, className }: { provisional?: boolean; tags?: MetricTag[]; extra?: TagKind[]; className?: string }) {
+  const all: TagKind[] = [...(provisional ? ["provisional" as const] : []), ...(tags ?? []), ...(extra ?? [])];
+  if (!all.length) return null;
+  return (
+    <View className={cn("flex-row flex-wrap items-center justify-center gap-1", className)}>
+      {all.map((k) => (
+        <Tag key={k} kind={k} />
+      ))}
+    </View>
+  );
+}
+
+const CHIP_ICON: Record<ChipTone, LucideIcon | null> = { optimal: Check, warning: TriangleAlert, alert: CircleAlert, neutral: null };
+
+/** Value plus tone, e.g. "✓ within 16.1 - 16.9". Icon follows the tone unless `delta` is given. Children may be text or nested <Text>. */
+export function StatusChip({ tone, children, delta, className, textClassName }: { tone: ChipTone; children: React.ReactNode; delta?: DeltaDir; className?: string; textClassName?: string }) {
+  // CHIP_TONE_CLASS is "bg-... text-..." for the web, where the text colour inherits; here the two go to different elements.
+  const classes = CHIP_TONE_CLASS[tone].split(" ");
+  const bg = classes.find((k) => k.startsWith("bg-"));
+  const text = classes.find((k) => k.startsWith("text-")) ?? "";
+  const glyph = CHIP_ICON[tone];
+  return (
+    <View className={cn("min-h-6 flex-row items-center gap-1 self-start rounded-md px-2 py-1", bg, className)}>
+      {delta ? <DeltaMark dir={delta} tone="neutral" color={text.slice(5) as TokenName} /> : glyph && <Icon icon={glyph} size={12} tone={text.slice(5) as TokenName} strokeWidth={2.5} />}
+      <Text className={cn("text-xs font-bold leading-4 tabular-nums", text, textClassName)}>{children}</Text>
+    </View>
+  );
+}
+
+const DELTA_TONE: Record<Tone, TokenName> = { good: "optimal-text", bad: "warning-text", neutral: "foreground-secondary" };
+
+/** Filled 8 px triangle (up/down), or a 6 px dot when flat. `color` overrides the tone's colour (a chip's own text colour). */
+export function DeltaMark({ dir, tone, color }: { dir: DeltaDir; tone: Tone; color?: TokenName }) {
+  const { c } = useTheme();
+  if (dir === "flat") return <View accessibilityElementsHidden className="size-1.5 shrink-0 rounded-full bg-muted-foreground" />;
+  const fill = c[color ?? DELTA_TONE[tone]];
+  return (
+    <View accessibilityElementsHidden style={dir === "down" ? { transform: [{ rotate: "180deg" }] } : undefined}>
+      <Triangle size={8} color={fill} fill={fill} strokeWidth={0} />
+    </View>
+  );
+}
+
+/** A formatted value with its unit in the unit role ("124 ms", "72%"). Nest it inside a <Text>; it renders as one. */
+export function ValueUnit({ value, unit, className, unitClassName }: { value: string; unit?: string; className?: string; unitClassName?: string }) {
+  return (
+    <Text className={cn("tabular-nums", className)}>
+      {value}
+      {unit && value !== "--" && (
+        // A hair space before a symbol (ml-0.5 on the web), a normal one before a word (ml-1).
+        <Text className={cn("text-[13px] font-semibold leading-4 text-foreground-secondary", unitClassName)}>{`${isSymbolUnit(unit) ? " " : " "}${unit}`}</Text>
+      )}
+    </Text>
+  );
+}

@@ -1,0 +1,22 @@
+import { View, type ViewProps } from "react-native";
+import { cn } from "./cn";
+
+// Skeletons reuse the component's own box (spec §5.19); these are only the bars inside it.
+// animate-pulse is NativeWind's (it runs on Reanimated).
+const BAR = "animate-pulse rounded-md bg-muted";
+
+export function Skeleton({ className, ...props }: ViewProps) {
+  return <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className={cn(BAR, className)} {...props} />;
+}
+
+/**
+ * A text bar for one line of a type role. The web sizes it with `h-[1lh]` and a bar 0.72em tall; React Native has no
+ * `lh` unit, so the role's line height `lh` and font size `fs` (px) are given. Width goes in `className` (w-40, w-full).
+ */
+export function SkeletonText({ lh = 16, fs = 12, className }: { lh?: number; fs?: number; className?: string }) {
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className={cn("justify-center", className)} style={{ height: lh }}>
+      <View className={cn(BAR, "w-full rounded-sm")} style={{ height: Math.round(fs * 0.72) }} />
+    </View>
+  );
+}

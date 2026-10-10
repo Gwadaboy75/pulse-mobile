@@ -1,0 +1,54 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import { alpha, mix, parseColor, resolveCss } from "./color";
+import { DARK, LIGHT } from "./palette";
+
+const css = readFileSync(new URL("../../global.css", import.meta.url), "utf8");
+const block = (selector: string) => {
+  const open = css.indexOf(`\n${selector} {`);
+  return css.slice(css.indexOf("{", open) + 1, css.indexOf("}", open));
+};
+const vars = (b: string) => Object.fromEntries([...b.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)].map(([, n, v]) => [n, v.trim()]));
+
+/** global.css stores "R G B" channels or rgb(r g b / a); palette.ts stores "#rrggbb" or "rgba(r, g, b, a)". */
+function asPalette(v: string) {
+  const m = /^rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)$/.exec(v);
+  if (m) return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${m[4]})`;
+  return `#${v.split(" ").map((n) => Number(n).toString(16).padStart(2, "0")).join("")}`;
+}
+
+describe("global.css and palette.ts hold the same tokens", () => {
+  for (const [name, selector, palette] of [["light", ":root", LIGHT], ["dark", ".dark:root", DARK]] as const) {
+    it(`${name}: every token matches`, () => {
+      const fromCss = Object.fromEntries(Object.entries(vars(block(selector))).map(([k, v]) => [k, asPalette(v)]));
+      expect(fromCss).toEqual(palette);
+    });
+  }
+  it("both themes define the same names", () => {
+    expect(Object.keys(LIGHT)).toEqual(Object.keys(DARK));
+  });
+});
+
+describe("colour helpers", () => {
+  it("parses hex and rgba", () => {
+    expect(parseColor("#0093e7")).toEqual([0, 147, 231, 1]);
+    expect(parseColor("rgba(255, 255, 255, 0.1)")).toEqual([255, 255, 255, 0.1]);
+  });
+  it("alpha and mix write what color-mix writes", () => {
+    expect(alpha("#ffffff", 0.07)).toBe("rgba(255, 255, 255, 0.07)");
+    expect(mix("#0093e7", "#ffffff", 0.78)).toBe("#38abec");
+  });
+  it("resolves var() and the two inline color-mix shapes", () => {
+    expect(resolveCss("var(--recovery-green)", DARK)).toBe("#16ec06");
+    expect(resolveCss("color-mix(in srgb, var(--foreground) 5%, transparent)", DARK)).toBe("rgba(255, 255, 255, 0.05)");
+    expect(resolveCss("color-mix(in srgb, var(--warning) 16%, var(--card))", DARK)).toBe(mix(DARK.warning, DARK.card, 0.16));
+    expect(resolveCss("#abc", DARK)).toBe("#abc");
+  });
+  it("the stored strain bands equal the web's color-mix of strain and card", () => {
+    expect(DARK["strain-band-2"]).toBe(mix(DARK.strain, DARK.card, 0.78));
+    expect(LIGHT["strain-band-4"]).toBe(mix(LIGHT.strain, LIGHT.card, 0.4));
+  });
+  it("throws on an unknown token rather than drawing nothing", () => {
+    expect(() => resolveCss("var(--nope)", DARK)).toThrow();
+  });
+});
