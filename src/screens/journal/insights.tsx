@@ -1,11 +1,11 @@
 // Journal Insights' own pieces (pulse's (app)/journal/insights/{page,Impacts}.tsx): the metric words, the outcome toggle,
 // the impact list and the "Keep logging to unlock" group. The page is app/journal/insights.tsx.
 import { useCallback, useState } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import type { ImpactMetricKey, JournalInsightsVM } from "@/queries/types";
 import { CARD_CLASS, CardFill, useCardStyle } from "@/ui/Card";
-import { Segmented } from "@/ui/Segmented";
+import { haptic } from "@/ui/haptics";
 import { cn } from "@/ui/cn";
 import { DriverList } from "@/ui/metrics/DriverList";
 import { openSheet } from "@/ui/shells/sheets";
@@ -25,12 +25,32 @@ export const parseMetric = (raw: string | string[] | undefined): ImpactMetricKey
   return v === "hrv" || v === "sleep" ? v : "recovery";
 };
 
-/** Recovery / HRV / Sleep, kept in `m` by replacing the param (spec §7.12). */
+/**
+ * Recovery / HRV / Sleep, kept in `m` by replacing the param (spec §7.12). The web's ToggleGroup is w-fit, and with spacing 0
+ * its items get px-2 (toggle-group.tsx `group-data-[spacing=0]:px-2` beats the page's px-3), so the kit's Segmented (px-3, for
+ * the W / M / 6M control) is 2 x 4 px too wide per segment here.
+ */
 export function MetricToggle({ metric }: { metric: ImpactMetricKey }) {
-  // The web's ToggleGroup is w-fit: it hugs its three segments, where a column would stretch it.
   return (
-    <View className="self-start">
-      <Segmented label="Outcome" value={metric} options={METRICS} onChange={(v) => router.setParams({ m: v === "recovery" ? "" : v })} textClassName="text-[13px] font-bold uppercase tracking-[0.1em]" />
+    <View accessibilityRole="tablist" accessibilityLabel="Outcome" className="flex-row gap-0.5 self-start rounded-lg bg-muted p-0.5">
+      {METRICS.map((o) => {
+        const on = o.value === metric;
+        return (
+          <Pressable
+            key={o.value}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: on }}
+            onPress={() => {
+              if (on) return;
+              haptic.select();
+              router.setParams({ m: o.value === "recovery" ? "" : o.value });
+            }}
+            className={cn("h-10 min-w-11 items-center justify-center rounded-md px-2", on && "bg-secondary")}
+          >
+            <Text className={cn("text-[13px] font-bold uppercase tracking-[0.1em]", on ? "text-foreground" : "text-muted-foreground")}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
