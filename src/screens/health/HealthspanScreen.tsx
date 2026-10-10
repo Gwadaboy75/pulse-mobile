@@ -19,6 +19,7 @@ import { AgeOrb } from "./AgeOrb";
 import { ContributorCard } from "./ContributorCard";
 import { useDayScreen } from "./day";
 import { ErrorView } from "./ErrorView";
+import { FirstAge } from "./FirstAge";
 import { HEALTHSPAN_INFO } from "./info";
 import { FAST, SLOW } from "./pace";
 
@@ -72,24 +73,29 @@ export function HealthspanScreen() {
       stats={stats}
       collapse
       summary={
-        <SectionShell variant="card" title="Pace of Aging">
-          <TickScale
-            variant="marker"
-            label="Pace of Aging"
-            metric={pace}
-            min={-1}
-            max={3}
-            format="decimal1"
-            unit="x"
-            describe={r ? (r.pace < 1 ? "aging slower than your 6-month average" : r.pace > 1 ? "aging faster than your 6-month average" : "aging at the normal rate") : undefined}
-            ends={["−1.0x", "1.0x", "3.0x"]}
-            leading={SLOW}
-            trailing={FAST}
-          />
-          <Text className={cn(CAPTION, "mt-3")}>
-            {r?.paceProvisional ? "Pace of Aging uses a 6-month window. It firms up as history builds." : "Compares your last 30 days with your 6-month Pulse Age."}
-          </Text>
-        </SectionShell>
+        // No Pulse Age yet: what it is waiting for, in place of an empty Pace of Aging.
+        !r ? (
+          <FirstAge vm={vm} />
+        ) : (
+          <SectionShell variant="card" title="Pace of Aging">
+            <TickScale
+              variant="marker"
+              label="Pace of Aging"
+              metric={pace}
+              min={-1}
+              max={3}
+              format="decimal1"
+              unit="x"
+              describe={r ? (r.pace < 1 ? "aging slower than your 6-month average" : r.pace > 1 ? "aging faster than your 6-month average" : "aging at the normal rate") : undefined}
+              ends={["−1.0x", "1.0x", "3.0x"]}
+              leading={SLOW}
+              trailing={FAST}
+            />
+            <Text className={cn(CAPTION, "mt-3")}>
+              {r?.paceProvisional ? "Pace of Aging uses a 6-month window. It firms up as history builds." : "Compares your last 30 days with your 6-month Pulse Age."}
+            </Text>
+          </SectionShell>
+        )
       }
       insight={vm.insight ? <InsightCard title={vm.insight.title} body={vm.insight.body} /> : undefined}
       primary={

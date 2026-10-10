@@ -91,6 +91,16 @@ export function createRepos(db: Db): Repos {
   };
 }
 
+/**
+ * Empties every table (TABLE_OWNER lists them all; schema.test.ts holds it to the schema). Leaving sample data for the
+ * person's own: src/actions/sample.ts runs it inside a transaction. Foreign keys are checked at commit, so the order
+ * of the deletes does not matter.
+ */
+export function clearAllTables(db: Db): void {
+  db.run(sql`pragma defer_foreign_keys = on`);
+  for (const table of Object.keys(TABLE_OWNER)) db.run(sql.raw(`delete from "${table}"`));
+}
+
 export function createStore(db: Db): Store {
   const repos = createRepos(db);
   // Transactions run one after another: each starts when the one before has finished (committed or rolled back).

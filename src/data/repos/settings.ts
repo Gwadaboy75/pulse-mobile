@@ -21,6 +21,8 @@ export type SettingValues = {
   theme: "system" | "light" | "dark";
   /** Onboarding's "Explore with sample data": the database holds the generated demo, not the person's own data. */
   sample: boolean;
+  /** The Journal has offered "Log yesterday" once (docs/onboarding.md): it never opens the sheet on its own again. */
+  "journal.yesterdayOffered": boolean;
 };
 export type SettingKey = keyof SettingValues;
 /** The keys `claimDay` works on. */

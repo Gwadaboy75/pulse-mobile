@@ -33,7 +33,7 @@ import { MetricState } from "@/ui/shells/MetricState";
 import { HeaderSentinel, PageShell } from "@/ui/shells/PageShell";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { useSelectedDay } from "@/ui/shells/DateSwitcher";
-import { useShellCalendar } from "@/ui/shells/ShellStatus";
+import { useShellCalendar, useShellSync } from "@/ui/shells/ShellStatus";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { ADD_ACTIVITY_INFO, ENERGY_INFO, STRAIN_RECOVERY_INFO, TONIGHT_INFO } from "../_lib/info";
@@ -44,7 +44,6 @@ import { HomeInsight } from "./HomeInsight";
 import { HomeSkeleton } from "./HomeSkeleton";
 import { CARD_BUTTON, CardButtonContent, CardButtonLink, GradientBanner, IconLink } from "./parts";
 import { PlusKey } from "./PlusMenu";
-import { SampleBanner } from "./SampleBanner";
 import { TonightPlan } from "./TonightPlan";
 import { push } from "@/ui/navigate";
 import { Press } from "@/ui/Press";
@@ -104,6 +103,7 @@ function Home({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
               <View accessibilityElementsHidden className="items-center">
                 <Wordmark height={17} tone="foreground-secondary" />
               </View>
+              <FirstSync />
               {/* The dials shrink into the header's ring row as this row scrolls under it (spec §4.3, HomeHeader). */}
               <View className="flex-row items-start justify-around">
                 <View className="flex-1 items-center"><ScoreDial variant="sleep" size="md" value={dials.sleep.value} reason={dials.sleep.reason} provisional={dials.sleep.provisional} tags={dials.sleep.tags} href={at("/sleep")} /></View>
@@ -142,7 +142,6 @@ function Home({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
         main: (
           <View className="gap-8">
             <View className="-mt-2 gap-6">
-              <SampleBanner />
               {vm.phone ? (
                 // Leads where the monitor cards sit: with no band they would only say "No readings" (§11 CD2).
                 <PhoneActivity stats={vm.phone} link={{ d, today }} />
@@ -482,5 +481,20 @@ function MiniStat({ label, value, className }: { label: string; value: string; c
       <Text className={cn(LABEL, "text-muted-foreground")}>{label}</Text>
       <Text className={cn("mt-1 font-numeric text-xl font-bold leading-6 tabular-nums", className)}>{value}</Text>
     </View>
+  );
+}
+
+/**
+ * Baro's "Syncing" over the dials (docs/onboarding.md): while the first import runs, the dials show their honest empty
+ * states and this line says why, with the days imported so far.
+ */
+function FirstSync() {
+  const s = useShellSync();
+  if (!s || (s.connection !== "importing" && !(s.sync.state === "syncing" && s.sync.lastSuccessAt == null))) return null;
+  const p = s.importProgress;
+  return (
+    <Text accessibilityLiveRegion="polite" className={cn(LABEL, "text-center text-muted-foreground")}>
+      {p ? `Syncing · ${p.done} of ${p.total} days` : "Syncing…"}
+    </Text>
   );
 }

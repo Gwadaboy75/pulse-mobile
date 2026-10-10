@@ -3,62 +3,40 @@
 // src/app/onboarding/Onboarding.tsx on the AuthShell frame: only what Google can't tell us, its Health profile has an age in
 // whole years but no birth date and no sex; height and weight come from Google data later, max HR is estimated, and the
 // time zone is the device's, one tap to change. It comes after the connect so it can fill the wait of the first sync.
-import { useEffect, useState, type ReactNode } from "react";
-import { BackHandler, Platform, ScrollView, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { store } from "@/data/store";
 import { loadDemoData, type SeedProgress } from "@/seed/load";
 import { Button } from "@/ui/Button";
-import { Ground } from "@/ui/Ground";
 import { haptic } from "@/ui/haptics";
-import { Mark, Wordmark } from "@/ui/brand";
+import { Mark } from "@/ui/brand";
 import { Text } from "@/ui/Text";
-import { connectGoogle } from "../settings/connect";
-import { profileSaved } from "./gate";
+import { useTheme } from "@/ui/theme";
+import { syncNow } from "../settings/connect";
+import { ConnectFlow } from "./Connect";
+import { Frame } from "./Frame";
+import { onboardingStart, profileSaved } from "./gate";
 import { ProfileForm, SaveButton } from "./ProfileForm";
 
-type Step = "welcome" | "explain" | "profile";
+type Step = "welcome" | "connect" | "profile";
 
 export function OnboardingScreen() {
-  const [step, setStep] = useState<Step>("welcome");
-  // Android back on the explainer returns to Welcome instead of leaving the app.
-  useEffect(() => {
-    if (step !== "explain") return;
-    const sub = BackHandler.addEventListener("hardwareBackPress", () => (setStep("welcome"), true));
-    return () => sub.remove();
-  }, [step]);
-  if (step === "welcome") return <Welcome onConnect={() => setStep("explain")} />;
-  if (step === "explain") return <Explain onConnected={() => setStep("profile")} onCancel={() => setStep("welcome")} />;
+  const [step, setStep] = useState<Step>(onboardingStart);
+  if (step === "welcome") return <Welcome onConnect={() => setStep("connect")} />;
+  if (step === "connect")
+    return (
+      <ConnectFlow
+        onCancel={() => setStep("welcome")}
+        onConnected={async () => {
+          // The first sync starts now and runs while the profile is asked.
+          void syncNow();
+          setStep("profile");
+          return null;
+        }}
+      />
+    );
   return <Profile />;
-}
-
-/** The AuthShell frame: the ground, the wordmark at the top, one 400 px column, the footer pinned to the bottom. */
-function Frame({ children, footer }: { children: ReactNode; footer?: ReactNode }) {
-  const insets = useSafeAreaInsets();
-  return (
-    <View className="flex-1 bg-background">
-      <Ground />
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-        automaticallyAdjustKeyboardInsets
-      >
-        <View className="items-center pb-2" style={{ paddingTop: Math.max(insets.top, 32) }}>
-          <Wordmark height={16} />
-        </View>
-        <View className="mx-auto w-full max-w-[400px] flex-1 px-5 pt-6">
-          <View className="flex-1">{children}</View>
-          {footer && (
-            <View className="mt-6 gap-2" style={{ paddingBottom: Math.max(insets.bottom, 24) }}>
-              {footer}
-            </View>
-          )}
-        </View>
-      </ScrollView>
-    </View>
-  );
 }
 
 /** A month of the demo story: enough for baselines and every score, and quick to build on a phone. */
@@ -74,7 +52,7 @@ function Welcome({ onConnect }: { onConnect: () => void }) {
     setError(null);
     setProgress("starting");
     try {
-      // The flag goes first: a seed that stops halfway still shows the banner that offers to start over.
+      // The flag goes first: a seed that stops halfway still shows the Sample data card that offers the way out.
       await store.settings.set("sample", true);
       await loadDemoData(store, { onProgress: setProgress, days: SAMPLE_DAYS });
       haptic.success();
@@ -123,69 +101,16 @@ function Welcome({ onConnect }: { onConnect: () => void }) {
   );
 }
 
-// What each health scope in src/google/oauth.ts SCOPES lets Pulse read, in the person's words.
-const READS: { title: string; body: string }[] = [
-  { title: "Activity and fitness", body: "Steps, workouts, calories and active minutes." },
-  { title: "Heart and body", body: "Heart rate, HRV, oxygen saturation, breathing rate, skin temperature and weight." },
-  { title: "Sleep", body: "Sleep stages and nightly timing." },
-  { title: "ECG and heart rhythm", body: "ECG readings and irregular rhythm notifications." },
-  { title: "Nutrition", body: "Food and water you log." },
-  { title: "Profile and tracker", body: "Your age, and your tracker’s battery and last sync." },
-  { title: "What Pulse writes", body: "Only what you log in Journal: food, water, weight, mindfulness, symptoms and cycle entries." },
-];
-
-function Explain({ onConnected, onCancel }: { onConnected: () => void; onCancel: () => void }) {
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const connect = async () => {
-    setPending(true);
-    setError(null);
-    const r = await connectGoogle();
-    setPending(false);
-    if (r.ok) onConnected();
-    else {
-      setError(r.error);
-      haptic.error();
-    }
-  };
-  return (
-    <Frame
-      footer={
-        <>
-          {error && (
-            <Text accessibilityRole="alert" className="mb-2 text-center text-[13px] font-medium leading-[18px] text-recovery-red-text">
-              {error}
-            </Text>
-          )}
-          <Button size="sheet" disabled={pending} onPress={connect}>
-            {pending ? "Waiting for Google…" : "Connect Google Health"}
-          </Button>
-          <Button size="sheet" variant="ghost" haptic={false} disabled={pending} onPress={onCancel}>
-            Not now
-          </Button>
-        </>
-      }
-    >
-      <Text accessibilityRole="header" className="text-[28px] font-bold leading-[34px] tracking-[-0.02em]">
-        How Pulse uses your health data
-      </Text>
-      <Text className="mb-6 mt-2 text-base leading-6 text-foreground-secondary">Pulse reads these from Google Health and keeps them on this phone. Google asks you which to share next.</Text>
-      <View className="gap-4">
-        {READS.map((r) => (
-          <View key={r.title} className="gap-0.5">
-            <Text className="text-[15px] font-semibold leading-5">{r.title}</Text>
-            <Text className="text-[13px] leading-[18px] text-foreground-secondary">{r.body}</Text>
-          </View>
-        ))}
-      </View>
-    </Frame>
-  );
-}
-
 function Profile() {
   const insets = useSafeAreaInsets();
+  const { c } = useTheme();
   return (
     <Frame>
+      {/* Baro's "Loading your Google Health data": the first sync runs behind this step, and Home fills in as it lands. */}
+      <View accessibilityLiveRegion="polite" className="mb-6 flex-row items-center gap-3 rounded-xl bg-field px-4 py-3">
+        <ActivityIndicator size="small" color={c["foreground-secondary"]} />
+        <Text className="min-w-0 flex-1 text-[13px] leading-[18px] text-foreground-secondary">Loading your Google Health data. Your days appear on Home as they arrive.</Text>
+      </View>
       <Text accessibilityRole="header" className="text-[28px] font-bold leading-[34px] tracking-[-0.02em]">
         Two things Google doesn’t share
       </Text>

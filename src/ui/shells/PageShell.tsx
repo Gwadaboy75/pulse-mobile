@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { Text } from "../Text";
 import type { DateSwitcherProps } from "./DateSwitcher";
 import { HomeHeader, type HeaderRings } from "./HomeHeader";
+import { SampleCard } from "./SampleCard";
 import { useShellSync } from "./ShellStatus";
 import { SyncStatus } from "./SyncStatus";
 import { HEADER_ROW, TitleHeader, useHeaderHeight } from "./Header";
@@ -68,6 +69,7 @@ export function PageShell({ title, dateSwitcher, actions, layout = "stack", slot
       <View className="w-full px-4 pt-2" accessibilityState={{ busy: !!loading }}>
         {loading && <Text accessibilityLiveRegion="polite" className="absolute h-px w-px opacity-0">{title.trim() ? `Loading ${title}…` : "Loading…"}</Text>}
         {actions && <View className="mb-4 flex-row justify-end gap-2">{actions}</View>}
+        <SampleCard />
         {home && slots ? (
           <View className="gap-8">
             <SentinelContext.Provider value={mark}>

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { DAY, formatDay } from "@/lib/format";
@@ -14,11 +15,13 @@ import { LogTiles } from "@/screens/journal/LogTiles";
 import { JournalSkeleton } from "@/screens/journal/skeleton";
 import { WeekCard } from "@/screens/journal/WeekCard";
 import { useScreen } from "@/screens/useScreen";
+import { store } from "@/data/store";
 import { DayStrip } from "@/ui/metrics/DayStrip";
 import { InsightCard } from "@/ui/metrics/InsightCard";
 import { useSelectedDay } from "@/ui/shells/DateSwitcher";
 import { PageShell } from "@/ui/shells/PageShell";
 import { CollapsibleSection } from "@/ui/shells/CollapsibleSection";
+import { openSheet } from "@/ui/shells/sheets";
 import { ActionLink, SectionShell } from "@/ui/shells/SectionShell";
 
 /** Journal `/journal?d=` (spec §7.11, journey 7). */
@@ -27,9 +30,10 @@ export default function Journal() {
   const [, setDay] = useSelectedDay();
   const { data, error, loading, reload } = useScreen(async (ctx) => {
     const day = parseDay(raw, todayOf(ctx)).d;
-    const [vm, log] = await Promise.all([getJournal(ctx, day), getLog(ctx, day)]);
-    return { vm, log };
+    const [vm, log, offered] = await Promise.all([getJournal(ctx, day), getLog(ctx, day), ctx.store.settings.get("journal.yesterdayOffered")]);
+    return { vm, log, offered: !!offered };
   }, [raw]);
+  useOfferYesterday(data?.vm, data?.offered);
 
   return (
     <View className="flex-1">
@@ -78,4 +82,17 @@ function Page({ vm, log, onSelect }: { vm: Awaited<ReturnType<typeof getJournal>
       </View>
     </>
   );
+}
+
+/**
+ * Baro's "Log yesterday" (docs/onboarding.md): the first time the Journal opens on today with yesterday not checked in,
+ * the check-in sheet opens on yesterday. Once only: the flag is set before the sheet opens.
+ */
+function useOfferYesterday(vm: Awaited<ReturnType<typeof getJournal>> | undefined, offered: boolean | undefined) {
+  const yesterday = vm && vm.day === vm.today ? vm.strip.find((s) => s.day === addDays(vm.today, -1)) : undefined;
+  const offer = offered === false && !!yesterday && !yesterday.done;
+  useEffect(() => {
+    if (!offer || !yesterday) return;
+    store.settings.set("journal.yesterdayOffered", true).then(() => openSheet(`/checkin?d=${yesterday.day}`), () => {});
+  }, [offer, yesterday]);
 }
