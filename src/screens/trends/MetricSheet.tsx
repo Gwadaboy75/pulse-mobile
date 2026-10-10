@@ -5,7 +5,6 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronDown, ChevronsUpDown } from "lucide-react-native";
 import { cn } from "@/ui/cn";
 import { haptic } from "@/ui/haptics";
@@ -42,12 +41,11 @@ export function MetricPicker({ current, r }: { current?: TrendMetricKey; r?: str
 export function MetricSheetBody({ current, r }: { current?: string; r?: string }) {
   const metric = metricOf(current);
   const [expanded, setExpanded] = useState<string>(metric.group);
-  const insets = useSafeAreaInsets();
   const choose = (key: TrendMetricKey) => router.dismissTo({ pathname: "/trends", params: { metric: key, ...(r ? { r } : null) } });
   return (
     <SheetScreen title="Metric" size="default">
-      {/* The web's list has its own `px-4 pb-[max(env(safe-area-inset-bottom),16px)]` inside the drawer's `px-4 pb-4`: 32 px of side margin; the sheet's foot already adds max(inset, 8). */}
-      <View className="px-4" style={{ paddingBottom: Math.max(insets.bottom, 16) - Math.max(insets.bottom, 8) }}>
+      {/* The web's list has its own `px-4` inside the drawer's `px-4`: 32 px of side margin. Its `pb-[max(env(safe-area-inset-bottom),16px)]` is the sheet's own bottom padding here (SheetScreen). */}
+      <View className="px-4">
         {GROUPS.map(({ group, metrics }, i) => {
           const on = group === expanded;
           return (

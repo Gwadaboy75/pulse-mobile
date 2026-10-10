@@ -13,11 +13,12 @@ import { push } from "../navigate";
 //   2. app/_layout.tsx          <Stack.Screen name="(sheets)/<name>" options={sheetOptions("default", c)} />
 //   3. anywhere                 openSheet("/<name>")  (closeSheet() closes the one on top).
 //
-// Pass the same size to the options and to <SheetScreen>: the options decide the detents, the component decides whether
-// its body scrolls.
+// Pass the same size to the options and to <SheetScreen>: the options decide the detents, the component sizes the content
+// to them.
 
 /**
- * default: as tall as its content (`fitToContents`, as the web's drawer grows to at most 92 % of the screen).
+ * default: as tall as its content (`fitToContents`), its body scrolling past the most it may take, as the web's drawer
+ * grows to at most 92 % of the screen; long forms (Profile, Log food) are this size too, as on the web.
  * tall: 92 % of the screen, the web's `h-[92svh]`. screen: a modal for the Journal-style full tasks (the whole phone on
  * Android, a page-sheet card below the status bar on iOS).
  */
@@ -34,7 +35,9 @@ const RADIUS = 28;
  * radius, its handle (drawn by <SheetScreen>, so the iOS system grabber is off) and its heights.
  */
 export function sheetOptions(size: SheetSize, c: Palette): Options {
-  const contentStyle = { backgroundColor: c.sheet };
+  // The frame shows below the content where iOS adds the home indicator's band to a content-height sheet: the colour the
+  // content's gradient ends on, so the sheet reads as one fill (with `sheet` the band was a lighter stripe).
+  const contentStyle = { backgroundColor: c["sheet-bottom"] };
   if (size === "screen") return { headerShown: false, presentation: "modal", contentStyle };
   return {
     headerShown: false,

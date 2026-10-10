@@ -1,12 +1,15 @@
-// The web's <input type="datetime-local"> and <input type="date"> (Log.tsx): the system's own picker, as the browser
-// shows its own. iOS: the compact SwiftUI DatePicker sits in the field. Android: the field shows the value and opens
-// the system date dialog, then the time dialog. Both come from @expo/ui's drop-in for @react-native-community/datetimepicker
-// (in Expo Go). Values are the app's wall strings: `YYYY-MM-DDTHH:mm`, or `YYYY-MM-DD` for mode "date".
+// The web's <input type="datetime-local"> and <input type="date"> (Log.tsx): a field like the other inputs that shows the
+// value as text and opens the system's picker. iOS: the picker's wheels in a centred card over a dim, as the app's
+// dialogs (InfoDialog), with Done. Android: the system date dialog, then the time dialog. Both come from @expo/ui's
+// drop-in for @react-native-community/datetimepicker (in Expo Go). Values are the app's wall strings:
+// `YYYY-MM-DDTHH:mm`, or `YYYY-MM-DD` for mode "date".
 import { useState } from "react";
-import { Platform, Pressable, View } from "react-native";
+import { Modal, Platform, Pressable, View } from "react-native";
 import { DateTimePicker } from "@expo/ui/community/datetime-picker";
 import { DAY, formatDay } from "@/lib/format";
+import { Button } from "@/ui/Button";
 import { alpha } from "@/ui/color";
+import { haptic } from "@/ui/haptics";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { dateToDay, dateToWall, wallToDate } from "./form";
@@ -26,28 +29,66 @@ const FRAME = "h-11 justify-center rounded-lg border border-input px-2.5";
 export function DateTimeField({ value, onChange, mode, max, min, label }: DateTimeFieldProps) {
   const { c, scheme } = useTheme();
   const [step, setStep] = useState<"date" | "time" | null>(null);
-  const fill = scheme === "dark" ? alpha(c.input, 0.3) : "transparent";
   const date = mode === "date";
-  const out = (d: Date) => (date ? dateToDay(d) : dateToWall(d));
   const clamp = (w: string) => (max && w > max ? max : min && w < min ? min : w);
   const maximumDate = max ? wallToDate(max) : undefined;
   const minimumDate = min ? wallToDate(min) : undefined;
-
-  if (Platform.OS === "ios") {
-    return (
-      <View accessibilityLabel={label} className={FRAME} style={{ backgroundColor: fill }}>
-        <DateTimePicker value={wallToDate(value || (date ? dateToDay(new Date()) : dateToWall(new Date())))} mode={mode} display="compact" maximumDate={maximumDate} minimumDate={minimumDate} themeVariant={scheme} onValueChange={(_e, d) => onChange(clamp(out(d)))} />
-      </View>
-    );
-  }
-
   const shown = value ? (date ? formatDay(value, DAY.full) : `${formatDay(value.slice(0, 10), DAY.full)}, ${value.slice(11, 16)}`) : date ? "Choose a day" : "Choose a time";
-  const current = wallToDate(value || dateToWall(new Date()));
+  const current = wallToDate(value || (date ? dateToDay(new Date()) : dateToWall(new Date())));
+
+  const field = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}, ${shown}`}
+      accessibilityState={{ expanded: step !== null }}
+      onPress={() => {
+        haptic.tap();
+        setStep("date");
+      }}
+      className={FRAME}
+      // The web input's focus ring (`border-ring`) while its picker is open.
+      style={{ backgroundColor: scheme === "dark" ? alpha(c.input, 0.3) : "transparent", borderColor: step ? c.ring : c.input }}
+    >
+      <Text numberOfLines={1} className={value ? "text-base tabular-nums" : "text-base text-muted-foreground"}>
+        {shown}
+      </Text>
+    </Pressable>
+  );
+
+  if (Platform.OS === "ios")
+    return (
+      <>
+        {field}
+        <Modal visible={step !== null} transparent animationType="fade" onRequestClose={() => setStep(null)}>
+          <Pressable accessibilityLabel="Close" onPress={() => setStep(null)} className="flex-1 items-center justify-center bg-dim-strong px-4">
+            {/* The card swallows taps, so only the dim closes it. */}
+            <View onStartShouldSetResponder={() => true} className="w-full max-w-[360px] items-center gap-4 rounded-3xl bg-popover p-4">
+              <DateTimePicker
+                value={current}
+                mode={mode}
+                display="spinner"
+                // The native view takes the card's width: centred and unsized, it drew its wheels but took no touches.
+                style={{ alignSelf: "stretch" }}
+                maximumDate={maximumDate}
+                minimumDate={minimumDate}
+                themeVariant={scheme}
+                onValueChange={(_e, d) => {
+                  haptic.select();
+                  onChange(clamp(date ? dateToDay(d) : dateToWall(d)));
+                }}
+              />
+              <Button size="sheet" onPress={() => setStep(null)}>
+                Done
+              </Button>
+            </View>
+          </Pressable>
+        </Modal>
+      </>
+    );
+
   return (
     <>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${shown}`} onPress={() => setStep("date")} className={FRAME} style={{ backgroundColor: fill }}>
-        <Text className={value ? "text-base tabular-nums" : "text-base text-muted-foreground"}>{shown}</Text>
-      </Pressable>
+      {field}
       {step === "date" && (
         <DateTimePicker
           value={current}

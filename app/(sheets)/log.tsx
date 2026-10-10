@@ -41,11 +41,9 @@ export default function LogSheet() {
   };
 
   const title = `Log ${KIND_LABEL[kind].toLowerCase()}`;
-  // As tall as the content, except the long forms: those take the web drawer's 92 % and scroll (the route's detents are set the same way in app/_layout.tsx).
-  const size = kind === "food" || kind === "mood" || kind === "symptoms" ? "tall" : "default";
   if (!vm)
     return (
-      <SheetScreen title={title} size={size}>
+      <SheetScreen title={title}>
         <View className="h-40" />
       </SheetScreen>
     );
@@ -75,7 +73,11 @@ export default function LogSheet() {
     void send(input);
   };
 
-  const timeField = kind !== "period" && <DateTimeField label="Time" mode="datetime" value={time} max={now} onChange={setAt} />;
+  const timeField = kind !== "period" && (
+    <Field label="Time">
+      <DateTimeField label="Time" mode="datetime" value={time} max={now} onChange={setAt} />
+    </Field>
+  );
   const field = (k: string, label: string, hint: string | undefined, o: { mode: "numeric" | "decimal" | "text"; placeholder?: string; maxLength?: number; className?: string }) => (
     <Field key={k} label={label} hint={hint} className={o.className}>
       <Input accessibilityLabel={label} inputMode={o.mode} placeholder={o.placeholder} maxLength={o.maxLength} value={form[k] as string} onChangeText={set(k)} className={o.mode === "text" ? "text-base" : "text-base tabular-nums"} returnKeyType="done" />
@@ -87,7 +89,6 @@ export default function LogSheet() {
     <SheetScreen
       title={title}
       description={blocked ? undefined : "Saved to Google Health"}
-      size={size}
       footer={
         blocked ? null : (
           <>

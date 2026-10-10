@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Dimensions, Keyboard, LayoutAnimation, Platform, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -39,16 +39,75 @@ export function SheetSection({ children }: { children: string }) {
 }
 
 /**
+ * iOS: how much of the screen the keyboard covers. A sheet's content ends at (or just above) the bottom of the screen, so
+ * this is what lifts its body and actions clear of the keyboard. React Native's KeyboardAvoidingView measured its frame
+ * inside the sheet, not on the screen, and lifted the Profile sheet 70 pt short. Android resizes the window itself.
+ */
+function useKeyboardHeight() {
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+    const sub = Keyboard.addListener("keyboardWillChangeFrame", (e) => {
+      LayoutAnimation.configureNext({ duration: Math.max(e.duration, 10), update: { duration: Math.max(e.duration, 10), type: LayoutAnimation.Types.keyboard } });
+      setHeight(Math.max(Dimensions.get("screen").height - e.endCoordinates.screenY, 0));
+    });
+    return () => sub.remove();
+  }, []);
+  return height;
+}
+
+/**
+ * The scrolling body's props that bring the focused field into view once the keyboard is up (the body has just shrunk
+ * above it), 16 pt clear of the actions, as a browser scrolls a focused input into view.
+ */
+function useRevealFocused() {
+  const ref = useRef<ScrollView>(null);
+  const view = useRef({ y: 0, height: 0 });
+  useEffect(() => {
+    const sub = Keyboard.addListener("keyboardDidShow", () => {
+      const input = TextInput.State.currentlyFocusedInput();
+      // `getInnerViewRef` (the content container) is in ScrollView.js but missing from its .d.ts.
+      const content = (ref.current as unknown as { getInnerViewRef(): View | null } | null)?.getInnerViewRef();
+      if (!input || !content) return;
+      input.measureLayout(content, (_x, y, _w, h) => {
+        const { y: top, height } = view.current;
+        if (y + h + 16 > top + height) ref.current?.scrollTo({ y: y + h + 16 - height });
+        else if (y < top) ref.current?.scrollTo({ y: Math.max(y - 16, 0) });
+      });
+    });
+    return () => sub.remove();
+  }, []);
+  return {
+    ref,
+    scrollEventThrottle: 16,
+    onLayout: (e: LayoutChangeEvent) => (view.current.height = e.nativeEvent.layout.height),
+    onScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => (view.current.y = e.nativeEvent.contentOffset.y),
+  };
+}
+
+/**
  * The content of a sheet route (spec §4.8). The frame (drag, detents, dim, corners, dismissal) is the platform's, set
  * by `sheetOptions` in app/_layout.tsx; this draws what is inside: the opaque dark gradient from `sheet` to
  * `sheet-bottom` (spec §2.6: not glass), the centred caps title with the X (at the right on a drawer, at the left on a screen), the body and pinned pill
- * actions. A route renders it once as its whole content. The keyboard lifts the body (`KeyboardAvoidingView`).
+ * actions. A route renders it once as its whole content. The keyboard lifts the body and the actions.
  */
 export function SheetScreen({ title, description, children, footer, size = "default", action, glow, done, onClose }: SheetScreenProps) {
   const { c, scheme } = useTheme();
   const insets = useSafeAreaInsets();
+  const keyboard = useKeyboardHeight();
+  const reveal = useRevealFocused();
   const fit = size === "default";
   const screen = size === "screen";
+  // A content-height sheet hugs its content up to the web drawer's `max-h-[92svh]`, here also the most iOS lets a
+  // fitToContents sheet's content take (the screen less both insets, measured), and its body scrolls beyond. When the
+  // keyboard comes up iOS raises the sheet to its full height (the screen less the top inset, measured) and leaves the
+  // content at the top, so the content takes that height and the actions stay above the keyboard, as in the taller sheets.
+  const screenHeight = Dimensions.get("screen").height;
+  const hug = fit && !keyboard;
+  // The web's bottom padding, `pb-[max(env(safe-area-inset-bottom),16px)]`, under the actions or, with none, under the body.
+  // On iOS a fitToContents sheet already adds the home indicator's band below its content (measured: 34 pt), so it adds
+  // only what that band lacks of 16 pt. Above the keyboard: 16 pt.
+  const pad = keyboard ? 16 : fit && Platform.OS === "ios" ? Math.max(16 - insets.bottom, 0) : Math.max(insets.bottom, 16);
 
   const close = (
     <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose ?? closeSheet} className="size-11 items-center justify-center rounded-full active:bg-foreground/8">
@@ -69,11 +128,23 @@ export function SheetScreen({ title, description, children, footer, size = "defa
       {screen ? action ?? <View className="w-11" /> : close}
     </View>
   );
-  const foot = footer && <View className="gap-3 px-4 pt-3" style={{ paddingBottom: Math.max(insets.bottom, 16) }}>{footer}</View>;
-  const bottom = !footer && fit ? <View style={{ height: Math.max(insets.bottom, 8) }} /> : null;
+  // The web's body is `px-4 pb-4` in a drawer and `px-4 pb-6` on a screen, then the actions; with no actions the body ends
+  // with the bottom padding itself.
+  const bodyBottom = footer ? (screen ? 24 : 16) : pad;
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={fit ? undefined : styles.fill}>
+    // `collapsable={false}` keeps the root in the native tree. Flattened, the body's ScrollView became a direct child of
+    // react-native-screens' form-sheet content wrapper beside the handle and the header, and on iOS the library then set
+    // the ScrollView's frame to the whole sheet (RNSScreen `correctScrollViewFrame`, legacy fallback), drawing the body
+    // over the header. Measured: Yoga put the ScrollView at y 88, the screen showed it at 0.
+    <View
+      collapsable={false}
+      style={
+        hug
+          ? { maxHeight: Math.min(screenHeight * 0.92, screenHeight - insets.top - insets.bottom) }
+          : [styles.fill, { paddingBottom: keyboard }, fit && { height: screenHeight - insets.top }]
+      }
+    >
       {/* The fill is painted by the sheet's own content, over the native frame's plain background. */}
       <LinearGradient
         pointerEvents="none"
@@ -86,7 +157,7 @@ export function SheetScreen({ title, description, children, footer, size = "defa
       {!screen && <View className="mt-2.5 h-1.5 w-10 self-center rounded-full" style={{ backgroundColor: alpha(c.foreground, 0.25) }} />}
       {/* A screen is `presentation: "modal"`: on iOS a page-sheet card that already starts below the status bar (React
           Navigation's own header drops the top inset for iOS modals too), so only Android's full-screen modal needs it. */}
-      <View style={[fit ? undefined : styles.fill, { paddingTop: screen ? (Platform.OS === "ios" ? 0 : insets.top) : 8 }]}>
+      <View style={[hug ? styles.shrink : styles.grow, { paddingTop: screen ? (Platform.OS === "ios" ? 0 : insets.top) : 8 }]}>
         {done ? (
           <View style={fit ? styles.doneFit : styles.fill}>
             <DoneScreen {...done} />
@@ -94,20 +165,22 @@ export function SheetScreen({ title, description, children, footer, size = "defa
         ) : (
           <>
             {header}
-            {fit ? (
-              <View className="px-4 pb-4">{children}</View>
-            ) : (
-              <ScrollView style={styles.fill} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
-                {children}
-              </ScrollView>
-            )}
-            {foot}
-            {bottom}
+            <ScrollView {...reveal} style={hug ? styles.shrink : styles.grow} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: bodyBottom }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+              {children}
+            </ScrollView>
+            {footer && <View className="gap-3 px-4 pt-3" style={{ paddingBottom: pad }}>{footer}</View>}
           </>
         )}
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({ fill: { flex: 1 }, doneFit: { height: 320 } });
+// `shrink` and `grow` spell out all three flex values: a body switched from `shrink` to `flex: 1` when the keyboard came
+// up kept its content height (measured: 464 pt where 288 were free) and pushed the actions under the keyboard.
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  shrink: { flexGrow: 0, flexShrink: 1, flexBasis: "auto" },
+  grow: { flexGrow: 1, flexShrink: 1, flexBasis: 0 },
+  doneFit: { height: 320 },
+});
