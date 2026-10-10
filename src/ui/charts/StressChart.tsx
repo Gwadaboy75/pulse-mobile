@@ -57,7 +57,9 @@ function Chart({ s, variant }: { s: StressSeries; variant: "full" | "spark" }) {
         const x1 = width - m.right;
         const y0 = m.top;
         const y1 = height - m.bottom - (full ? AXIS_H : 0);
-        const tx = linearScale([first, last], [x0, x1]);
+        // The web's XAxis domain is [first, now], but Recharts widens a number domain to cover the data
+        // (allowDataOverflow off), and the day's points run to midnight: the axis spans the whole day.
+        const tx = linearScale([first, Math.max(last, s.points.at(-1)?.t ?? last)], [x0, x1]);
         const y = linearScale([0, 3], [y1, y0]);
         const pts = s.points.map((p) => ({ x: tx(p.t), y: p.value === null ? null : y(p.value) }));
         const ticks = full ? (s.now ? [...hourTicks(first, last, 6, tz).filter((t) => last - t >= 5 * 3_600_000), s.now] : hourTicks(first, last, 4, tz)) : [];
