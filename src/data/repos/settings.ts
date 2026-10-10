@@ -19,6 +19,8 @@ export type SettingValues = {
   "notify.recovery": boolean;
   "notify.syncProblem": boolean;
   theme: "system" | "light" | "dark";
+  /** Onboarding's "Explore with sample data": the database holds the generated demo, not the person's own data. */
+  sample: boolean;
 };
 export type SettingKey = keyof SettingValues;
 /** The keys `claimDay` works on. */

@@ -44,6 +44,7 @@ import { HomeInsight } from "./HomeInsight";
 import { HomeSkeleton } from "./HomeSkeleton";
 import { CARD_BUTTON, CardButtonContent, CardButtonLink, GradientBanner, IconLink } from "./parts";
 import { PlusKey } from "./PlusMenu";
+import { SampleBanner } from "./SampleBanner";
 import { TonightPlan } from "./TonightPlan";
 import { push } from "@/ui/navigate";
 import { Press } from "@/ui/Press";
@@ -141,6 +142,7 @@ function Home({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
         main: (
           <View className="gap-8">
             <View className="-mt-2 gap-6">
+              <SampleBanner />
               {vm.phone ? (
                 // Leads where the monitor cards sit: with no band they would only say "No readings" (§11 CD2).
                 <PhoneActivity stats={vm.phone} link={{ d, today }} />

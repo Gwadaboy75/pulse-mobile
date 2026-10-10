@@ -21,6 +21,8 @@ export type SeedOptions = {
   onProgress?: (p: SeedProgress) => void;
   /** IANA zone of the demo person's days. Default: the phone's own (DEMO_PROFILE). */
   timeZone?: string;
+  /** How many of the scenario's days to write, the last ones (ending today). Default: all SEED_DAYS. */
+  days?: number;
 };
 
 /** Days generated, and days written, between two turns of the event loop. A day takes tens of ms on a phone: keep it to one. */
@@ -57,7 +59,7 @@ function timeSliced(store: Store): Store {
 
 export const NOT_EMPTY = "This app already holds data. Delete everything in Settings first, then load the demo data again.";
 
-export async function loadDemoData(store: Store, { now = Math.floor(Date.now() / 1000), onProgress = () => {}, timeZone = DEMO_PROFILE.timeZone }: SeedOptions = {}): Promise<SeedResult> {
+export async function loadDemoData(store: Store, { now = Math.floor(Date.now() / 1000), onProgress = () => {}, timeZone = DEMO_PROFILE.timeZone, days: count = SEED_DAYS }: SeedOptions = {}): Promise<SeedResult> {
   if ((await store.daily.readMetrics()).length > 0 || (await store.samples.hasHr())) throw new Error(NOT_EMPTY);
 
   await saveProfile(store, { ...DEMO_PROFILE, timeZone }, now);
@@ -77,12 +79,15 @@ export async function loadDemoData(store: Store, { now = Math.floor(Date.now() /
     }
   };
 
+  // A shorter seed keeps the scenario's dates: it is the story's last `count` days, so today is still its last day.
+  const first = SEED_DAYS - Math.min(count, SEED_DAYS);
+  const total = SEED_DAYS - first;
   const days: Day[] = [];
   await phase("generate", async () => {
-    onProgress({ phase: "generate", done: 0, total: SEED_DAYS });
-    for (let i = 0; i < SEED_DAYS; i += GENERATE_CHUNK) {
+    onProgress({ phase: "generate", done: 0, total });
+    for (let i = first; i < SEED_DAYS; i += GENERATE_CHUNK) {
       for (let k = i; k < Math.min(SEED_DAYS, i + GENERATE_CHUNK); k++) days.push(generateDay(ctx, k));
-      onProgress({ phase: "generate", done: days.length, total: SEED_DAYS });
+      onProgress({ phase: "generate", done: days.length, total });
       await yieldToUi();
     }
   });
@@ -97,7 +102,7 @@ export async function loadDemoData(store: Store, { now = Math.floor(Date.now() /
         onProgress({ phase: "write", done: Math.min(days.length, i + WRITE_CHUNK), total: days.length });
         await yieldToUi();
       }
-      rows += await seedHeartRhythm(tx, ctx.anchor, ctx.timeZone, now);
+      rows += await seedHeartRhythm(tx, ctx.anchor, ctx.timeZone, now, first);
     }),
   );
 

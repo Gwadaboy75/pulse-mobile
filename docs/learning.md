@@ -249,3 +249,7 @@ React Native runs all JavaScript on one thread, and `await` on something that is
 ## Press feedback: `Press`, a press delay and Reanimated
 
 NativeWind's `active:` classes switch a Pressable's look the instant the finger lands, with no easing, and a finger that lands on a card to scroll the page still shows the press. `src/ui/Press.tsx` replaces them: `activeScale`, `activeBg` and `activeOpacity` ease in and out over the web's 150 ms `ease-standard` on the UI thread, and `unstable_pressDelay={150}` (the delay iOS's own scroll views use) holds the press until the touch is clearly not a scroll. Measured on the simulator, swipes that start on a row after a 0, 60 or 100 ms rest: with no delay every one fired `onPressIn`; with 150 ms none did. A quick tap still plays the whole press at release. The pressed fill is a view in the `activeBg` class faded in behind the children, since React Native cannot ease a background class.
+
+## Android back inside one screen: `BackHandler`
+
+Onboarding is one route with steps held in state, so the navigator's back would leave the app from the explainer. `BackHandler.addEventListener("hardwareBackPress", ...)` returns `true` to say the press is handled, and the step goes back to Welcome. The listener exists only while the explainer is shown, so it never fights the navigator on other screens.
