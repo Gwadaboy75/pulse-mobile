@@ -44,3 +44,7 @@ example
 
 # local SQLite files from tests and scripts
 *.db
+
+# Gradle output of local Expo modules
+modules/*/android/build/
+modules/*/android/.gradle/
