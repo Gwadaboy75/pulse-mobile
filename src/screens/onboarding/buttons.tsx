@@ -1,14 +1,17 @@
-// Onboarding's two buttons. Connect is drawn like Google's own light sign-in button (white, sentence case, a thin grey
-// rim) with the Google Health mark Settings uses (GoogleFit), so the step reads as Google's. The second action is a quiet text button. Both hug their label at
+// Onboarding's two buttons. Connect is an outline pill in the shape of Google's sign-in button (sentence case, a thin
+// rim) with the Google Health mark Settings uses (GoogleFit), so the step reads as Google's. Its rim and label are theme
+// tokens (the kit's outline button), so it reads on the light and the dark ground. The second action is a quiet text button. Both hug their label at
 // 44 px tall, smaller than the app's sheet buttons: this screen asks, it does not push.
 import { ActivityIndicator, View } from "react-native";
 import { haptic } from "@/ui/haptics";
 import { Press } from "@/ui/Press";
 import { Text } from "@/ui/Text";
+import { useTheme } from "@/ui/theme";
 import { GoogleFit } from "../settings/GoogleFit";
 
-/** "Connect Google Health" in Google's light button with the Google Health mark: #fff fill, #747775 rim, #1f1f1f label (fixed colours, as Google's are). */
+/** "Connect Google Health": an outline pill with the Google Health mark, label in the foreground token. */
 export function GoogleButton({ label = "Connect Google Health", pending, onPress }: { label?: string; pending?: boolean; onPress: () => void }) {
+  const { c } = useTheme();
   return (
     <Press
       accessibilityRole="button"
@@ -19,10 +22,10 @@ export function GoogleButton({ label = "Connect Google Health", pending, onPress
         haptic.tap();
         onPress();
       }}
-      className="h-11 flex-row items-center justify-center gap-2.5 self-center rounded-full border border-[#747775] bg-white pl-4 pr-5"
+      className="h-11 flex-row items-center justify-center gap-2.5 self-center rounded-full border border-border bg-background pl-4 pr-5 dark:border-input dark:bg-input/30"
     >
-      {pending ? <ActivityIndicator size="small" color="#1f1f1f" /> : <GoogleFit size={20} />}
-      <Text className="text-[14px] font-semibold leading-5 text-[#1f1f1f]">{label}</Text>
+      {pending ? <ActivityIndicator size="small" color={c.foreground} /> : <GoogleFit size={20} />}
+      <Text className="text-[14px] font-semibold leading-5 text-foreground">{label}</Text>
     </Press>
   );
 }

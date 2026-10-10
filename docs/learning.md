@@ -279,3 +279,11 @@ done
 ## Opening: a JS overlay that takes over from the native splash
 
 `src/screens/Opening.tsx` is mounted over the app from the first render and draws the native splash's picture: the scheme's splash colour, the mark 64 tall at the window's centre (Android is edge-to-edge, so the root view is the whole window on both platforms). When the app is ready and the overlay has laid out, it calls `SplashScreen.hide()` with `setOptions({ duration: 0, fade: false })`, so the native splash goes in one frame over an identical picture. Then the mark plays one lub-dub on the UI thread and the overlay fades, 820 ms in all. With reduce motion the overlay unmounts at the hand-over instead.
+
+## A local Expo module: `modules/google-auth`
+
+Google's Android Authorization API is a Play services library with no Expo or React Native wrapper, so the app carries a small Expo module of its own in `modules/google-auth/`: an `expo-module.config.json` that names the Kotlin class, a `build.gradle` that adds `play-services-auth`, the Kotlin module, and an `index.ts` that loads it with `requireOptionalNativeModule` (null on iOS and in Expo Go). Autolinking finds folders under `modules/` by itself, and `npx expo prebuild` links it into the generated `android/` like any package, so Continuous Native Generation stays intact. Google's consent arrives as a `PendingIntent`; the module launches it through Expo's activity-result registry (`RegisterActivityContracts` with a contract whose intent carries an `IntentSenderRequest`), which is the registry's `startIntentSenderForResult` path. A change to the Kotlin needs a new development build; Fast Refresh only reloads JavaScript.
+
+## The iOS consent sheet: `openAuthSessionAsync`
+
+`expo-web-browser`'s `openAuthSessionAsync(url, redirect)` runs `ASWebAuthenticationSession`: Google's consent in a sheet over the app that closes itself when Google redirects to the app's scheme, here the iOS client's reversed client id (`ios.scheme` in `app.json`). It is not Safari and not a web view inside the app (Google refuses embedded web views). `expo-auth-session` wraps the same call; the app does the PKCE and the token requests itself in `src/google/token.ts`, which keeps them testable in Node.

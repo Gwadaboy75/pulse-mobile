@@ -17,6 +17,7 @@
         "tinted": "./assets/images/icon-tinted.png"
       },
       "bundleIdentifier": "in.portlabs.pulse",
+      "scheme": "com.googleusercontent.apps.496401660534-p8o7nb8ai81ulvk65fh3lvue7sbl3ol6",
       "supportsTablet": false
     },
     "android": {

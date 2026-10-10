@@ -202,7 +202,8 @@ function SwitchGoogleButton() {
         onConfirm={async () => {
           setOpen(false);
           const r = await connectGoogle({ switchAccount: true });
-          if (!r.ok) toast.error(r.error);
+          if (r.ok) void syncNow();
+          else if (!r.cancelled) toast.error(r.error);
         }}
       />
     </>
@@ -218,7 +219,8 @@ function ConnectButton({ label, className }: { label: string; className?: string
         // Sample data is cleared on the way in: `/connect` asks Google first, then clears it (docs/onboarding.md).
         if (await store.settings.get("sample")) return push("/connect");
         const r = await connectGoogle();
-        if (!r.ok) toast.error(r.error);
+        if (r.ok) void syncNow();
+        else if (!r.cancelled) toast.error(r.error);
       }}
     >
       {label}

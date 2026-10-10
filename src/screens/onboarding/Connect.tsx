@@ -1,6 +1,7 @@
 // Connecting Google Health (docs/onboarding.md): the explainer that comes before Google's consent, then the screen that
-// waits behind it while Google's sheet is up. Used by onboarding's Connect and by `/connect` (leaving sample data).
-// `connectGoogle()` is still a stub, so today it comes back with "isn't available in this build yet" on the explainer.
+// waits behind it while Google's sheet is up, and "Reconnect Google Health" when the person closes Google's consent. Used by
+// onboarding's Connect and by `/connect` (leaving sample data). Android shows Google's own account chooser and consent
+// screens over the app; iOS shows Google's consent in the in-app sign-in sheet. Neither leaves the app.
 import { useEffect, useState } from "react";
 import { ActivityIndicator, BackHandler, View } from "react-native";
 import { Activity, Footprints, HeartPulse, Moon, Utensils, Watch, type LucideIcon } from "lucide-react-native";
@@ -31,6 +32,7 @@ const READS: { icon: LucideIcon; title: string }[] = [
  */
 export function ConnectFlow({ sample, onConnected, onCancel }: { sample?: boolean; onConnected: () => Promise<string | null>; onCancel: () => void }) {
   const [waiting, setWaiting] = useState(false);
+  const [cancelled, setCancelled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { c } = useTheme();
   // Android back is "Not now"; while Google's sheet is up there is nothing to go back to.
@@ -45,6 +47,7 @@ export function ConnectFlow({ sample, onConnected, onCancel }: { sample?: boolea
     const r = await connectGoogle();
     const failed = r.ok ? await onConnected() : r.error;
     setWaiting(false);
+    setCancelled(!r.ok && !!r.cancelled);
     if (failed) {
       setError(failed);
       haptic.error();
@@ -63,6 +66,28 @@ export function ConnectFlow({ sample, onConnected, onCancel }: { sample?: boolea
             </Text>
             <Text className="max-w-[300px] text-center text-[15px] leading-[22px] text-foreground-secondary">Choose what Pulse can read in Google’s window. You come back here when you’re done.</Text>
           </View>
+        </View>
+      </Frame>
+    );
+
+  if (cancelled)
+    // Google's consent was closed without an answer: the way back in, and the way out.
+    return (
+      <Frame
+        footer={
+          <>
+            <GoogleButton onPress={connect} />
+            <TextButton label="Not now" onPress={onCancel} />
+          </>
+        }
+      >
+        <View className="items-center gap-2">
+          <Text accessibilityRole="header" className="text-center text-[22px] font-semibold leading-7 tracking-[-0.01em]">
+            Reconnect Google Health
+          </Text>
+          <Text className="max-w-[300px] text-center text-[15px] leading-[22px] text-foreground-secondary">
+            Google Health is asking for access. Choose what Pulse can read to continue.
+          </Text>
         </View>
       </Frame>
     );
