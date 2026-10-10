@@ -1,9 +1,11 @@
-import { Pressable, View } from "react-native";
+import { Pressable, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { useAnimatedStyle, useDerivedValue, type DerivedValue } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
-import { UserRound } from "lucide-react-native";
+import { CircleUserRound } from "lucide-react-native";
 import { BAND_WORD, recoveryBand } from "@/lib/bands";
 import { formatValue } from "@/lib/format";
+import { groundColorAt } from "../Ground";
 import { Icon } from "../Icon";
 import { MiniRing, type MiniRingVariant } from "../metrics/MiniRing";
 import { Text } from "../Text";
@@ -66,6 +68,11 @@ export function HomeHeader({ rings, progress, right, streak }: { rings?: HeaderR
   const expanded = useDerivedValue(() => RING_ROW * progress.value);
   // The ring row is invisible until the dials have scrolled away, and takes no taps until then either.
   const row = useAnimatedStyle(() => ({ opacity: progress.value, transform: [{ translateY: 6 * (1 - progress.value) }], pointerEvents: progress.value > 0.5 ? "auto" : "none" }));
+  const { c } = useTheme();
+  const top = useSafeAreaInsets().top;
+  // The web's --u scales the avatar and streak pill as one, stepping down on narrow phones (spec §11 M4, M6).
+  const width = useWindowDimensions().width;
+  const u = width >= 400 ? 0.76 : width >= 356 ? 0.7 : 0.64;
   return (
     <HeaderFrame expanded={expanded} extra={RING_ROW}>
       {/* As tall as both rows, so the ring row is inside its parent's bounds (Android only delivers touches there); the empty part passes taps through. */}
@@ -73,14 +80,29 @@ export function HomeHeader({ rings, progress, right, streak }: { rings?: HeaderR
         {/* Equal side tracks keep the pill centred; each is at least its content. */}
         <View className="h-11 flex-row items-center gap-2">
           <View className="flex-1 flex-row items-center">
-            <Pressable accessibilityRole="link" accessibilityLabel="Settings" onPress={() => push("/settings")} className="size-[34px] items-center justify-center rounded-full bg-secondary active:scale-[0.96]" style={{ zIndex: 1 }}>
-              <Icon icon={UserRound} size={20} tone="foreground-secondary" strokeWidth={1.5} />
+            {/* The avatar: the outline person glyph on a disc of the page ground (its 3 px ring cuts the streak pill where the
+                reference app's does), over the pill's left end (the web's Avatar and Streak). */}
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Settings"
+              onPress={() => push("/settings")}
+              className="items-center justify-center rounded-full active:scale-[0.96]"
+              style={{ zIndex: 1, width: 46 * u, height: 46 * u, padding: 3 * u, marginLeft: -3 * u, backgroundColor: groundColorAt(c, top + HEADER_ROW / 2) }}
+            >
+              <Icon icon={CircleUserRound} size={40 * u} tone="foreground" strokeWidth={1.5} />
             </Pressable>
-            {/* Starts under the avatar so the avatar sits on the pill's left end (spec §11 M6). Past days show no streak. */}
+            {/* Past days show no streak. */}
             {!!streak && d === today && (
-              <View accessible accessibilityLabel={`${streak}-day streak`} className="-ml-[19px] h-[27px] flex-row items-center gap-2 rounded-full bg-foreground/[0.045] pl-6 pr-2.5">
-                <StreakFlame height={15} />
-                <Text className="font-numeric text-[13px] font-bold leading-none tabular-nums">{streak}</Text>
+              <View
+                accessible
+                accessibilityLabel={`${streak}-day streak`}
+                className="flex-row items-center rounded-full bg-foreground/[0.045]"
+                style={{ marginLeft: -19 * u, height: 36 * u, gap: 10 * u, paddingLeft: 32 * u, paddingRight: 12 * u }}
+              >
+                <StreakFlame height={20 * u} />
+                <Text className="font-numeric font-bold tabular-nums" style={{ fontSize: 17 * u, lineHeight: 17 * u }}>
+                  {streak}
+                </Text>
               </View>
             )}
           </View>

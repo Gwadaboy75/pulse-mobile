@@ -75,7 +75,7 @@ function Chart({ hr, variant }: { hr: HrSeries; variant: "day" | "activity" }) {
         const yTicks = ticksIn(domain[0], domain[1], 4);
         const tickTimes = workout ? [workout.start, workout.end] : variant === "day" ? hourTicks(first, last, 6, tz) : clockTicks(first, last, last - first <= 3_600_000 ? 15 : last - first <= 3 * 3_600_000 ? 30 : 60, tz);
         // A workout's two ends always show (interval 0); else the web's interval="preserveStartEnd" minTickGap={24}.
-        const shownTicks = workout ? tickTimes.map((t) => ({ t, x: tx(t) })) : preserveStartEnd(tickTimes.map((t) => ({ x: tx(t), size: tickTextWidth(clock(t, tz)) })), x0, x1, 24).map((k) => ({ t: tickTimes[k.index], x: k.x }));
+        const shownTicks = workout ? tickTimes.map((t) => ({ t, x: tx(t) })) : preserveStartEnd(tickTimes.map((t) => ({ x: tx(t), size: tickTextWidth(clock(t, tz)) })), 0, width, 24).map((k) => ({ t: tickTimes[k.index], x: k.x }));
         const mk = (key: "hot" | "cool") => rows.map((r) => ({ x: tx(r.t), y: r[key] === null ? null : y(r[key]!) }));
         const strips = variant === "day" ? zoneStrips(hr.zones, domain, y, x1) : [];
         const valid = rows.filter((r) => r.bpm !== null);

@@ -59,7 +59,7 @@ function Chart({ e }: { e: EnergySeries }) {
         const pts = e.points.map((p) => ({ x: tx(p.t), y: p.value === null ? null : y(p.value) }));
         const hours = hourTicks(first, last, 6, tz);
         // The web's interval="preserveStartEnd" minTickGap={24}.
-        const ticks = preserveStartEnd(hours.map((t) => ({ x: tx(t), size: tickTextWidth(clock(t, tz)) })), x0, x1, 24).map((k) => ({ t: hours[k.index], x: k.x }));
+        const ticks = preserveStartEnd(hours.map((t) => ({ x: tx(t), size: tickTextWidth(clock(t, tz)) })), 0, width, 24).map((k) => ({ t: hours[k.index], x: k.x }));
         const valid = e.points.filter((p) => p.value !== null);
         const ai = x === null ? -1 : nearestIndex(valid.map((p) => tx(p.t)), x);
         const a = ai >= 0 ? valid[ai] : null;

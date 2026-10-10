@@ -1,5 +1,6 @@
 // Reports `/reports/[period]` (web: (app)/reports/[period]/page.tsx, loading.tsx; spec §7.13, journey 8): `YYYY-Www` or
 // `YYYY-MM`.
+import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
@@ -97,13 +98,23 @@ function KindToggle({ kind, week, month }: { kind: "week" | "month"; week: strin
 
 function Dials({ vm }: { vm: ReportVM }) {
   const word = vm.kind === "week" ? "last week" : "last month";
+  // The web's row is as wide as its columns' contents laid end to end (the hero shrinks to fit), then shares that
+  // width equally (flex-1 basis-0), so a long label ("AVG RECOVERY") wraps in its column. A first pass measures the
+  // natural width; the second lays the equal columns out in it. Remeasured when the dials change.
+  const sig = vm.dials.map((d) => `${d.label}${d.metric.value}${d.delta}`).join("|");
+  const [fit, setFit] = useState<{ sig: string; width: number } | null>(null);
+  const width = fit?.sig === sig ? fit.width : null;
   return (
-    <View className="w-full flex-row items-start justify-center gap-5">
+    <View
+      className="flex-row items-start justify-center gap-5"
+      style={width ? { width } : { alignSelf: "center" }}
+      onLayout={width ? undefined : (e) => setFit({ sig, width: Math.ceil(e.nativeEvent.layout.width) })}
+    >
       {vm.dials.map((dl) => {
         const f = DIAL_FORMAT[dl.key];
         const tone = dl.delta === null || dl.key === "strain" || Math.round(dl.delta * 10) === 0 ? "text-muted-foreground" : dl.delta > 0 ? "text-optimal-text" : "text-warning-text";
         return (
-          <View key={dl.key} className="min-w-0 flex-1 basis-0 items-center gap-1.5">
+          <View key={dl.key} className={cn("items-center gap-1.5", width ? "min-w-0 flex-1 basis-0" : undefined)}>
             <ScoreDial variant={dl.key} size="md" value={dl.metric.value} reason={dl.metric.reason} label={dl.label} />
             {dl.delta !== null && (
               <Text className={cn(CAPTION, "text-center tabular-nums", tone)}>

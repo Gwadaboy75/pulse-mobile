@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arcPath, areaPath, equidistantPreserveStart, evenTicks, linePath, linearScale, nearestIndex, preserveStartEnd, segments, tickTextWidth, ticksIn } from "./geometry";
+import { arcPath, areaPath, barWidth, equidistantPreserveStart, evenTicks, linePath, linearScale, nearestIndex, preserveStartEnd, segments, tickTextWidth, ticksIn } from "./geometry";
 
 describe("scales", () => {
   it("maps a domain onto a reversed range", () => {
@@ -88,5 +88,13 @@ describe("tick thinning (Recharts)", () => {
   it("equidistantPreserveStart takes every k-th tick from the first", () => {
     const hours = [0, 40, 80, 120, 160, 200, 240].map((x) => ({ x, size: 33 }));
     expect(equidistantPreserveStart(hours, 0, 260, 24)).toEqual([0, 2, 4, 6]);
+  });
+});
+
+describe("barWidth (Recharts)", () => {
+  it("leaves 10 % of the band each side, rounds, and caps at maxBarSize", () => {
+    expect(barWidth(10.6)).toBe(8);
+    expect(barWidth(50, 0.1, 28)).toBe(28);
+    expect(barWidth(40, 0.18)).toBe(26);
   });
 });

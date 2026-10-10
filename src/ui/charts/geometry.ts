@@ -15,6 +15,15 @@ export function linearScale(domain: [number, number], range: [number, number]): 
 }
 
 /** Evenly spaced centres for `n` category columns across [x0, x1] (Recharts' band scale): column width, centres. */
+/**
+ * A bar's width in its band, as Recharts sizes a single bar series: the band less `gap` (barCategoryGap, 10 % by
+ * default) on each side, rounded to whole pixels above 1, capped at `max` (maxBarSize).
+ */
+export function barWidth(band: number, gap = 0.1, max = Infinity) {
+  const size = band - 2 * band * gap;
+  return Math.min(size > 1 ? Math.round(size) : size, max);
+}
+
 export function bandCenters(n: number, x0: number, x1: number, gapRatio = 0.1) {
   const step = (x1 - x0) / Math.max(1, n);
   return { step, centers: Array.from({ length: n }, (_, i) => x0 + step * (i + 0.5)), gap: step * gapRatio };
@@ -201,9 +210,11 @@ export const tickTextWidth = (text: string, fontSize = 12) => text.length * 0.55
 const fits = (x: number, size: number, lo: number, hi: number) => x - size / 2 >= lo && x + size / 2 <= hi;
 
 /**
- * Recharts' interval="preserveStartEnd" (getTicksStart): the last tick is kept, pulled inside the plot's right edge;
- * then from the first (pulled inside the left edge) each tick is kept when its text clears the one kept before it by
- * `gap` and the last one too. Returns the kept indices with the x to draw them at.
+ * Recharts' interval="preserveStartEnd" (getTicksStart): the last tick is kept, pulled inside `end` if its text runs
+ * past it; then from the first (pulled inside `start` likewise) each tick is kept when its text clears the one kept
+ * before it by `gap` and the last one too. Returns the kept indices with the x to draw them at. `start` and `end` are
+ * the chart's own edges (0 and its width), not the plot's: the web's axis labels may overhang the plot (00:00 centred
+ * on the plot's left edge).
  */
 export function preserveStartEnd(ticks: AxisTick[], start: number, end: number, gap: number): { index: number; x: number }[] {
   const n = ticks.length;
