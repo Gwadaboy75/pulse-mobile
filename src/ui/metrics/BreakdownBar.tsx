@@ -31,7 +31,8 @@ export function BreakdownBar({ title, unit, items }: { title: string; unit: "day
         {items.map((i) => (
           <View key={i.key} className="flex-row items-center gap-2.5">
             <View className="size-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: css(partColor(i.key)) }} />
-            <Text className="min-w-[28px] font-numeric text-[15px] font-bold leading-5 tabular-nums">{amount(i.value)}</Text>
+            {/* The web's min-w-[3.5ch]: 3.5 × the 0 of Barlow Bold at 15 px (0.57 em) = 30 px. */}
+            <Text className="min-w-[30px] font-numeric text-[15px] font-bold leading-5 tabular-nums">{amount(i.value)}</Text>
             <Text className="min-w-0 shrink text-[15px] leading-5 text-foreground-secondary">
               {i.label}
               {i.detail && <Text className="text-muted-foreground"> ({i.detail})</Text>}
