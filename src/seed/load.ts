@@ -5,6 +5,7 @@
 import { DEFAULT_JOURNAL_TAGS } from "../journalTags";
 import type { Repos, Store } from "../data/repos";
 import { recompute } from "../pipeline";
+import { watchBreaths } from "../pipeline/data";
 import { getProfile, saveProfile } from "../profile";
 import { dataChanged } from "../screens/useScreen";
 import { addDays, localDay } from "../time";
@@ -107,10 +108,18 @@ export async function loadDemoData(store: Store, { now = Math.floor(Date.now() /
   );
 
   await phase("score", async () => {
-    onProgress({ phase: "score", done: 0, total: 1 });
+    // The pipeline breathes once per day in stage 1 and twice per day in stage 2: about three breaths a fresh day.
+    const total = 3 * days.length;
+    let done = 0;
+    onProgress({ phase: "score", done, total });
     await yieldToUi();
-    await recompute(timeSliced(store), { timeZone: profile.timeZone, profile });
-    onProgress({ phase: "score", done: 1, total: 1 });
+    watchBreaths(() => onProgress({ phase: "score", done: (done = Math.min(done + 1, total)), total }));
+    try {
+      await recompute(timeSliced(store), { timeZone: profile.timeZone, profile });
+    } finally {
+      watchBreaths(null);
+    }
+    onProgress({ phase: "score", done: total, total });
   });
   dataChanged();
   return { days: days.length, rows, ms };

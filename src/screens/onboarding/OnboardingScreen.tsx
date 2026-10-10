@@ -5,7 +5,6 @@
 // time zone is the device's, one tap to change. It comes after the connect so it can fill the wait of the first sync.
 import { useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { store } from "@/data/store";
 import { loadDemoData, type SeedProgress } from "@/seed/load";
 import { haptic } from "@/ui/haptics";
@@ -45,6 +44,9 @@ export function OnboardingScreen() {
 const SAMPLE_DAYS = 30;
 
 const PHASE_LABEL: Record<SeedProgress["phase"], string> = { generate: "Generating days", write: "Saving", score: "Scoring" };
+/** One bar for the whole build: where each phase starts and how much of the bar it fills (scoring is the long one). */
+const PHASE_SPAN: Record<SeedProgress["phase"], [number, number]> = { generate: [0, 0.15], write: [0.15, 0.25], score: [0.4, 0.6] };
+const overall = (p: SeedProgress | null) => (p ? PHASE_SPAN[p.phase][0] + PHASE_SPAN[p.phase][1] * (p.total ? p.done / p.total : 0) : 0);
 
 function Welcome({ onConnect }: { onConnect: () => void }) {
   const [progress, setProgress] = useState<SeedProgress | "starting" | null>(null);
@@ -74,8 +76,8 @@ function Welcome({ onConnect }: { onConnect: () => void }) {
       footer={
         progress ? (
           <View accessibilityLiveRegion="polite" className="h-[132px] items-center justify-center gap-3 px-6">
-            <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: p?.total ?? 1, now: p?.done ?? 0 }} className="h-2 w-full overflow-hidden rounded-full bg-fill-pressed">
-              <View className="h-full rounded-full bg-primary" style={{ width: `${p && p.total ? Math.round((p.done / p.total) * 100) : 0}%` }} />
+            <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(overall(p) * 100) }} className="h-2 w-full overflow-hidden rounded-full bg-fill-pressed">
+              <View className="h-full rounded-full bg-primary" style={{ width: `${Math.round(overall(p) * 100)}%` }} />
             </View>
             <Text className="text-[13px] leading-[18px] text-foreground-secondary">{p ? PHASE_LABEL[p.phase] : "Building sample data"}…</Text>
           </View>
@@ -96,7 +98,7 @@ function Welcome({ onConnect }: { onConnect: () => void }) {
         )
       }
     >
-      <View className="flex-1 items-center justify-center gap-8 pb-4">
+      <View className="items-center gap-8">
         <HeartbeatMark />
         <View className="items-center gap-2">
           <Text accessibilityRole="header" className="text-center text-[24px] font-bold leading-[30px] tracking-[-0.02em]">
@@ -110,7 +112,6 @@ function Welcome({ onConnect }: { onConnect: () => void }) {
 }
 
 function Profile() {
-  const insets = useSafeAreaInsets();
   const { c } = useTheme();
   return (
     <Frame>
@@ -132,7 +133,7 @@ function Profile() {
           profileSaved();
         }}
         footer={({ pending, submit }) => (
-          <View className="mt-2" style={{ paddingBottom: Math.max(insets.bottom, 24) }}>
+          <View className="mt-4">
             <SaveButton pending={pending} label="Save and continue" onPress={submit} />
           </View>
         )}

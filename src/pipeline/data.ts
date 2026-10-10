@@ -89,7 +89,13 @@ export const touching = <T extends { startTs: number; endTs: number }>(xs: T[], 
 // this once per day; after 8 ms of work it yields a turn to the event loop, so frames, gestures and progress keep
 // running. It changes no value (the F3 and F4 parity tests run through it).
 let lastBreath = Date.now();
+let onBreath: (() => void) | null = null;
+/** Also not in pulse: called on every breath (once per day of work), so a long recompute can show progress (src/seed/load.ts). */
+export function watchBreaths(fn: (() => void) | null) {
+  onBreath = fn;
+}
 export async function breathe() {
+  onBreath?.();
   if (Date.now() - lastBreath < 8) return;
   await new Promise((r) => setTimeout(r, 0));
   lastBreath = Date.now();

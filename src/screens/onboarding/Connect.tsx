@@ -55,7 +55,7 @@ export function ConnectFlow({ sample, onConnected, onCancel }: { sample?: boolea
     return (
       // Behind Google's consent sheet: what the person sees if they look past it, or come back before answering.
       <Frame>
-        <View accessibilityLiveRegion="polite" className="flex-1 items-center justify-center gap-5 pb-16">
+        <View accessibilityLiveRegion="polite" className="items-center gap-5">
           <ActivityIndicator size="large" color={c["foreground-secondary"]} />
           <View className="items-center gap-2">
             <Text accessibilityRole="header" className="text-center text-[22px] font-semibold leading-7 tracking-[-0.01em]">

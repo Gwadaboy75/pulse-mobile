@@ -19,6 +19,8 @@ const OUT_MS = 0.14 * BEAT_MS;
 const BACK_MS = (0.32 - 0.14) * BEAT_MS;
 const REST_MS = BEAT_MS - OUT_MS - BACK_MS;
 const MOVE = 1.1;
+/** Room around the mark for the move. */
+const PAD = 1.5;
 /** The glow peaks at 18 % of the beat: opacity 0.32 → 0.55, scale 1 → 1.06 (beat-glow). */
 const GLOW_PEAK_MS = 0.18 * BEAT_MS;
 
@@ -64,7 +66,8 @@ export function HeartbeatMark() {
             <Circle cx={BOX / 2} cy={BOX / 2} r={BOX / 2} fill="url(#glow)" />
           </Svg>
         </Animated.View>
-        <Svg viewBox="4.5 4.5 15 15" width={MARK} height={MARK} style={{ overflow: "visible" }}>
+        {/* The beats move past the mark's 15-unit box; Android clips an SVG at its bounds, so the box grows by the move. */}
+        <Svg viewBox={`${4.5 - PAD} ${4.5 - PAD} ${15 + 2 * PAD} ${15 + 2 * PAD}`} width={(MARK * (15 + 2 * PAD)) / 15} height={(MARK * (15 + 2 * PAD)) / 15}>
           <AnimatedRect x={6.9} width={4.2} height={11} rx={2.1} fill={c.optimal} animatedProps={upProps} />
           <AnimatedRect x={12.9} width={4.2} height={11} rx={2.1} fill={c["strain-text"]} animatedProps={downProps} />
         </Svg>

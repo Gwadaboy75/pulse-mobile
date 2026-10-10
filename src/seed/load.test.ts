@@ -59,6 +59,8 @@ describe("loadDemoData", () => {
       expect(ps.at(-1)).toMatchObject({ done: ps[0].total, total: ps[0].total });
     }
     expect(progress.filter((p) => p.phase === "generate").at(-1)!.total).toBe(SEED_DAYS);
+    // Scoring moves while it runs (a step per pipeline breath), not only at its start and end.
+    expect(new Set(progress.filter((p) => p.phase === "score").map((p) => p.done)).size).toBeGreaterThan(SEED_DAYS);
   });
 
   it("returns the days, rows written and the time each phase took, and tells the screens", () => {
