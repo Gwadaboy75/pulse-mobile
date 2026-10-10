@@ -10,7 +10,8 @@ import { store } from "@/data/store";
 import { loadDemoData, type SeedProgress } from "@/seed/load";
 import { Button } from "@/ui/Button";
 import { haptic } from "@/ui/haptics";
-import { Mark } from "@/ui/brand";
+import { Icon } from "@/ui/Icon";
+import { Lock } from "lucide-react-native";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { syncNow } from "../settings/connect";
@@ -18,6 +19,7 @@ import { ConnectFlow } from "./Connect";
 import { Frame } from "./Frame";
 import { onboardingStart, profileSaved } from "./gate";
 import { ProfileForm, SaveButton } from "./ProfileForm";
+import { WelcomeRings } from "./WelcomeRings";
 
 type Step = "welcome" | "connect" | "profile";
 
@@ -70,7 +72,7 @@ function Welcome({ onConnect }: { onConnect: () => void }) {
     <Frame
       footer={
         progress ? (
-          <View accessibilityLiveRegion="polite" className="h-[120px] items-center justify-center gap-3">
+          <View accessibilityLiveRegion="polite" className="h-[150px] items-center justify-center gap-3 px-6">
             <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: p?.total ?? 1, now: p?.done ?? 0 }} className="h-2 w-full overflow-hidden rounded-full bg-foreground/10">
               <View className="h-full rounded-full bg-primary" style={{ width: `${p && p.total ? Math.round((p.done / p.total) * 100) : 0}%` }} />
             </View>
@@ -78,24 +80,35 @@ function Welcome({ onConnect }: { onConnect: () => void }) {
           </View>
         ) : (
           <>
+            {error && (
+              <Text accessibilityRole="alert" className="mb-2 text-center text-[13px] font-medium leading-[18px] text-recovery-red-text">
+                {error}
+              </Text>
+            )}
             <Button size="sheet" onPress={onConnect}>
               Connect Google Health
             </Button>
             <Button size="sheet" variant="ghost" haptic={false} onPress={explore}>
               Explore with sample data
             </Button>
-            {error && (
-              <Text accessibilityRole="alert" className="text-center text-[13px] font-medium leading-[18px] text-recovery-red-text">
-                {error}
-              </Text>
-            )}
-            <Text className="mt-2 text-center text-[13px] leading-[18px] text-muted-foreground">Your data syncs from Google Health to this phone. Pulse has no server and no account.</Text>
+            <View className="mt-3 flex-row items-center justify-center gap-1.5">
+              <Icon icon={Lock} size={13} tone="muted-foreground" strokeWidth={2} />
+              <Text className="text-[13px] leading-[18px] text-muted-foreground">Stays on this phone. No account, no server.</Text>
+            </View>
           </>
         )
       }
     >
-      <View className="flex-1 items-center justify-center">
-        <Mark size={88} />
+      <View className="flex-1 justify-center gap-10 pb-4">
+        <WelcomeRings />
+        <View className="items-center gap-3">
+          <Text accessibilityRole="header" className="text-center text-[30px] font-bold leading-[36px] tracking-[-0.02em]">
+            Your Fitbit, scored every morning
+          </Text>
+          <Text className="max-w-[320px] text-center text-[15px] leading-[22px] text-foreground-secondary">
+            Sleep, Recovery and Strain from your Google Health data, worked out on this phone.
+          </Text>
+        </View>
       </View>
     </Frame>
   );
@@ -107,9 +120,9 @@ function Profile() {
   return (
     <Frame>
       {/* Baro's "Loading your Google Health data": the first sync runs behind this step, and Home fills in as it lands. */}
-      <View accessibilityLiveRegion="polite" className="mb-6 flex-row items-center gap-3 rounded-xl bg-field px-4 py-3">
-        <ActivityIndicator size="small" color={c["foreground-secondary"]} />
-        <Text className="min-w-0 flex-1 text-[13px] leading-[18px] text-foreground-secondary">Loading your Google Health data. Your days appear on Home as they arrive.</Text>
+      <View accessibilityLiveRegion="polite" className="mb-8 flex-row items-center gap-2.5">
+        <ActivityIndicator size="small" color={c["muted-foreground"]} />
+        <Text className="min-w-0 flex-1 text-[13px] leading-[18px] text-muted-foreground">Loading your Google Health data in the background</Text>
       </View>
       <Text accessibilityRole="header" className="text-[28px] font-bold leading-[34px] tracking-[-0.02em]">
         Two things Google doesn’t share
