@@ -258,7 +258,8 @@ export function ScoreDial(props: ScoreDialProps) {
   const below = !lg && (
     <View className="items-center gap-1.5">
       <View className="flex-row items-center gap-0.5">
-        <Text className={cn(size === "sm" ? "text-xs font-medium leading-4 text-foreground-secondary" : DIAL_LABEL, "text-center")}>{r.label}</Text>
+        {/* shrink: a phone's text in a row overflows instead of wrapping; the web's inline-flex label wraps in a narrow column ("AVG / RECOVERY" in a report). */}
+        <Text className={cn(size === "sm" ? "text-xs font-medium leading-4 text-foreground-secondary" : DIAL_LABEL, "shrink text-center")}>{r.label}</Text>
         {href && <Icon icon={ChevronRight} size={12} tone="foreground" strokeWidth={2.5} />}
       </View>
       {!loading && hasTags && tagNode}
