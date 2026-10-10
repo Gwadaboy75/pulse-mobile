@@ -124,20 +124,69 @@ export function nearestIndex(xs: readonly number[], x: number): number {
   return lo > 0 && Math.abs(xs[lo - 1] - x) <= Math.abs(xs[lo] - x) ? lo - 1 : lo;
 }
 
-/** "Nice" ticks: about `count` evenly spaced values at a round step, covering [lo, hi] (what Recharts' auto domain does with tickCount). */
+/**
+ * "Nice" ticks covering [lo, hi]: Recharts' getNiceTickValues (its default "auto" step, decimals allowed), which the
+ * web's axes run with `tickCount`. The step is the rough step rounded up to 0.05 of its power of ten (0.1 for steps
+ * from 1 to 10), the ticks pass through 0 when the range spans it, else through a multiple of the step near the middle,
+ * and the step grows until `count` ticks cover the range. VO2 max 42.3 to 47.6 gives 42, 45, 48.
+ */
 export function evenTicks(lo: number, hi: number, count: number): number[] {
-  if (count < 2 || hi <= lo) return [lo];
-  const raw = (hi - lo) / (count - 1);
-  const mag = 10 ** Math.floor(Math.log10(raw));
-  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) ?? raw;
-  const out: number[] = [];
-  for (let v = Math.floor(lo / step) * step; v < Math.ceil(hi / step) * step + step / 2; v += step) out.push(+v.toFixed(10));
-  return out;
+  if (lo > hi) [lo, hi] = [hi, lo];
+  const n = Math.max(count, 2);
+  return lo === hi ? singleTicks(lo, n) : niceTicks(lo, hi, n, 0);
 }
 
-/** `evenTicks` kept inside [lo, hi]: what a numeric axis with a fixed domain prints (Recharts' tickCount on [40, 180] gives 50, 100, 150). */
+const exact = (v: number) => +v.toFixed(10);
+const digitCount = (v: number) => (v === 0 ? 1 : Math.floor(Math.log10(Math.abs(v))) + 1);
+
+/** Recharts' getAdaptiveStep: the rough step rounded up to 0.05 of its power of ten (0.1 from 1 to 10), plus `correction` of those. */
+function adaptiveStep(rough: number, correction: number): number {
+  const digits = digitCount(rough);
+  const unit = 10 ** digits;
+  const scale = digits !== 1 ? 0.05 : 0.1;
+  return exact((Math.ceil(exact(rough / unit / scale)) + correction) * scale * unit);
+}
+
+function niceTicks(lo: number, hi: number, count: number, correction: number): number[] {
+  const step = adaptiveStep((hi - lo) / (count - 1), correction);
+  const mid = (lo + hi) / 2;
+  const middle = lo <= 0 && hi >= 0 ? 0 : exact(mid - exact(mid % step));
+  let below = Math.ceil(exact((middle - lo) / step));
+  let up = Math.ceil(exact((hi - middle) / step));
+  const have = below + up + 1;
+  if (have > count) return niceTicks(lo, hi, count, correction + 1);
+  if (have < count) {
+    if (hi > 0) up += count - have;
+    else below += count - have;
+  }
+  return Array.from({ length: below + up + 1 }, (_, i) => exact(middle + (i - below) * step));
+}
+
+/** Recharts' getTickOfSingleValue: one value, ticks a round step apart around it. */
+function singleTicks(v: number, count: number): number[] {
+  let step = 1;
+  let middle = v;
+  if (!Number.isInteger(v)) {
+    if (Math.abs(v) < 1) {
+      step = 10 ** (digitCount(v) - 1);
+      middle = exact(Math.floor(v / step) * step);
+    } else middle = Math.floor(v);
+  } else if (v === 0) middle = Math.floor((count - 1) / 2);
+  const half = Math.floor((count - 1) / 2);
+  return Array.from({ length: count }, (_, i) => exact(middle + (i - half) * step));
+}
+
+/**
+ * Ticks on a fixed numeric domain: Recharts' getTickValuesFixedDomain, which the web's axes use when the domain is
+ * given as numbers. From `lo` by the adaptive step, then `hi` itself (Recharts' tickCount 4 on [40, 180]: 40, 90, 140, 180).
+ */
 export function ticksIn(lo: number, hi: number, count: number): number[] {
-  return evenTicks(lo, hi, count).filter((t) => t >= lo && t <= hi);
+  if (lo > hi) [lo, hi] = [hi, lo];
+  if (lo === hi) return [lo];
+  const step = adaptiveStep((hi - lo) / (Math.max(count, 2) - 1), 0);
+  const out: number[] = [];
+  for (let v = lo; v < hi; v = exact(v + step)) out.push(v);
+  return [...out, hi];
 }
 
 /** Drops ticks closer than `gap` px to the one kept before (Recharts' minTickGap with preserveStartEnd: the first and last stay). */

@@ -15,7 +15,7 @@ import { SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
 import { ARC_FROM, ARC_SWEEP } from "./MiniRing";
-import { MetricTags, type TagKind } from "./primitives";
+import { capTrim, MetricTags, type TagKind } from "./primitives";
 
 export type DialSize = "sm" | "md" | "lg";
 export type DialVariant = "recovery" | "strain" | "sleep" | "stat" | "gauge";
@@ -66,6 +66,8 @@ const COMPACT = { d: 64, ring: 5, value: 40, tracking: 0 } as const;
 const INSET = 2;
 
 const DIAL_LABEL = "text-xs font-bold uppercase leading-4 tracking-[0.1em]";
+/** The web's TRIM on the 12 px labels under the value (the band word, the caption, the label). */
+const LABEL_TRIM = capTrim(12);
 const STATUS_LIT = { poor: "bg-warning", sufficient: "bg-foreground-secondary", optimal: "bg-optimal" } as const;
 
 type Resolved = { label: string; max: number; color: string; unit?: string; text: string; word?: { text: string; className: string } };
@@ -218,17 +220,17 @@ export function ScoreDial(props: ScoreDialProps) {
         ) : (
           <Text
             className={cn("font-numeric font-bold tabular-nums", empty && "text-muted-foreground", compact && gauge && r.word?.className)}
-            style={{ fontSize: valueSize, lineHeight: valueSize, letterSpacing: s.tracking * valueSize }}
+            style={{ fontSize: valueSize, ...capTrim(valueSize, "numeric"), letterSpacing: s.tracking * valueSize }}
           >
             {r.text}
             {r.unit && !empty && <Text style={{ fontSize: valueSize * 0.55 }}>{r.unit}</Text>}
           </Text>
         )}
-        {gauge && !compact && r.word && <Text className={cn(DIAL_LABEL, r.word.className)} style={{ marginTop: 8 * cqi }}>{r.word.text}</Text>}
-        {gauge && !compact && props.caption && <Text className="text-xs font-medium text-foreground-secondary" style={{ marginTop: 5 * cqi }}>{props.caption}</Text>}
+        {gauge && !compact && r.word && <Text className={cn(DIAL_LABEL, r.word.className)} style={{ ...LABEL_TRIM, marginTop: 8 * cqi + LABEL_TRIM.marginTop }}>{r.word.text}</Text>}
+        {gauge && !compact && props.caption && <Text className="text-xs font-medium text-foreground-secondary" style={{ ...LABEL_TRIM, marginTop: 5 * cqi + LABEL_TRIM.marginTop }}>{props.caption}</Text>}
         {lg && !gauge && (
           <>
-            <Text className={cn(DIAL_LABEL, "max-w-36 text-center")} style={{ marginTop: 9 * cqi }}>{r.label}</Text>
+            <Text className={cn(DIAL_LABEL, "max-w-36 text-center")} style={{ ...LABEL_TRIM, marginTop: 9 * cqi + LABEL_TRIM.marginTop }}>{r.label}</Text>
             {/* No band word under the large ring: the colour carries it on screen, as in the reference app, and the dial's accessible name still says it (spec §11 R34). */}
             {props.status && !empty && !loading && (
               <View className="flex-row gap-1" style={{ marginTop: 8 * cqi }}>

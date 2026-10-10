@@ -8,6 +8,10 @@ import { Icon } from "../Icon";
 import { ACTIVITY_ICON, type ActivityKind } from "../icons";
 import { Skeleton, SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
+import { capTrim } from "./primitives";
+
+/** The chip's 20 px value, cap-trimmed as the web's CAP_TRIM. */
+const VALUE_TRIM = capTrim(20, "numeric");
 
 export type { ActivityKind };
 export { ACTIVITY_ICON };
@@ -102,7 +106,7 @@ export function ActivityCard({ name, kind, strain, start, end, href, timeZone, d
       chip={
         <>
           <Icon icon={glyph} size={16} tone="foreground" strokeWidth={1.75} />
-          <Text className={cn("font-numeric text-xl font-bold leading-none tabular-nums", noStrain && "text-foreground-secondary")}>{value}</Text>
+          <Text className={cn("font-numeric text-xl font-bold tabular-nums", noStrain && "text-foreground-secondary")} style={VALUE_TRIM}>{value}</Text>
         </>
       }
       name={name}
