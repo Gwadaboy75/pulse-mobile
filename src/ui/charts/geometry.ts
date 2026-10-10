@@ -201,9 +201,11 @@ export const tickTextWidth = (text: string, fontSize = 12) => text.length * 0.55
 const fits = (x: number, size: number, lo: number, hi: number) => x - size / 2 >= lo && x + size / 2 <= hi;
 
 /**
- * Recharts' interval="preserveStartEnd" (getTicksStart): the last tick is kept, pulled inside the plot's right edge;
- * then from the first (pulled inside the left edge) each tick is kept when its text clears the one kept before it by
- * `gap` and the last one too. Returns the kept indices with the x to draw them at.
+ * Recharts' interval="preserveStartEnd" (getTicksStart): the last tick is kept, pulled inside `end` if its text runs
+ * past it; then from the first (pulled inside `start` likewise) each tick is kept when its text clears the one kept
+ * before it by `gap` and the last one too. Returns the kept indices with the x to draw them at. `start` and `end` are
+ * the chart's own edges (0 and its width), not the plot's: the web's axis labels may overhang the plot (00:00 centred
+ * on the plot's left edge).
  */
 export function preserveStartEnd(ticks: AxisTick[], start: number, end: number, gap: number): { index: number; x: number }[] {
   const n = ticks.length;

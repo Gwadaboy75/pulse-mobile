@@ -64,7 +64,7 @@ function Chart({ s, variant }: { s: StressSeries; variant: "full" | "spark" }) {
         const pts = s.points.map((p) => ({ x: tx(p.t), y: p.value === null ? null : y(p.value) }));
         const ticks = full ? (s.now ? [...hourTicks(first, last, 6, tz).filter((t) => last - t >= 5 * 3_600_000), s.now] : hourTicks(first, last, 4, tz)) : [];
         // With a "now" every tick shows (interval 0); else the web's interval="equidistantPreserveStart" minTickGap={24}.
-        const shown = s.now ? ticks : equidistantPreserveStart(ticks.map((t) => ({ x: tx(t), size: tickTextWidth(clock(t, tz)) })), x0, x1, 24).map((i) => ticks[i]);
+        const shown = s.now ? ticks : equidistantPreserveStart(ticks.map((t) => ({ x: tx(t), size: tickTextWidth(clock(t, tz)) })), 0, width, 24).map((i) => ticks[i]);
         const valid = s.points.filter((p) => p.value !== null);
         const ai = full && x !== null ? nearestIndex(valid.map((p) => tx(p.t)), x) : -1;
         const a = ai >= 0 ? valid[ai] : null;

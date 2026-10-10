@@ -168,7 +168,7 @@ function Trend({ points, p }: { points: TrendPoint[]; p: TrendChartProps }) {
             const ticks =
               range === "w"
                 ? candidates.map((i) => ({ index: i, x: xs[i] }))
-                : preserveStartEnd(candidates.map((i) => ({ x: xs[i], size: tickTextWidth(rows[i].date) })), x0, x1, 8).map((k) => ({ index: candidates[k.index], x: k.x }));
+                : preserveStartEnd(candidates.map((i) => ({ x: xs[i], size: tickTextWidth(rows[i].date) })), 0, width, 8).map((k) => ({ index: candidates[k.index], x: k.x }));
             const tickFormat = (d: string) => formatDay(d, range === "w" ? { weekday: "narrow" } : range === "m" ? DAY.monthDay : { month: "short" });
 
             const lineDraw = line ? linePath(rows.map((r, i) => ({ x: xs[i], y: r.value === null ? null : y(r.value) })), p.line ? "linear" : "monotone") : "";
