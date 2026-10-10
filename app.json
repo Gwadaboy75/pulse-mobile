@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Pulse",
-    "slug": "pulse-mobile",
+    "slug": "pulse",
     "platforms": [
       "ios",
       "android"
@@ -43,6 +43,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8901b7ae-3c84-4057-9ef2-613ec7c4343e"
+      }
+    },
+    "owner": "adityajindals-team"
   }
 }
