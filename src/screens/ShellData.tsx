@@ -24,8 +24,9 @@ export function ShellData({ children }: { children: ReactNode }) {
     ctxOf(store)
       .then(async (ctx) => {
         // The header's sync status and streak (getShellStatus), read with the calendar.
-        const status = await getShellStatus(ctx);
-        return { today: todayOf(ctx), firstDay: await firstDay(ctx), timeZone: ctx.timeZone, sync: { sync: status.sync, connection: status.connection, streak: status.streak, timeZone: ctx.timeZone } };
+        const [status, sample] = await Promise.all([getShellStatus(ctx), ctx.store.settings.get("sample")]);
+        const sync: ShellSync = { sync: status.sync, connection: status.connection, streak: status.streak, timeZone: ctx.timeZone, importProgress: status.importProgress, sample: !!sample };
+        return { today: todayOf(ctx), firstDay: await firstDay(ctx), timeZone: ctx.timeZone, sync };
       })
       .then(
         (d) => live && setData(d),

@@ -20,6 +20,7 @@ import { Text } from "@/ui/Text";
 import { connectGoogle, forgetGoogleTokens, syncNow } from "./connect";
 import { BODY, ConfirmDialog, ProgressBar, ROW_LABEL, ROW_RULE } from "./controls";
 import { GoogleFit } from "./GoogleFit";
+import { push } from "@/ui/navigate";
 import { toast } from "@/ui/Toast";
 
 /** Where a Google account without a Google Health profile sets one up (pulse src/lib/google.ts). */
@@ -213,6 +214,8 @@ function ConnectButton({ label, className }: { label: string; className?: string
     <Button
       className={className}
       onPress={async () => {
+        // Sample data is cleared on the way in: `/connect` asks Google first, then clears it (docs/onboarding.md).
+        if (await store.settings.get("sample")) return push("/connect");
         const r = await connectGoogle();
         if (!r.ok) toast.error(r.error);
       }}

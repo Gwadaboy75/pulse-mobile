@@ -40,6 +40,10 @@ export type ShellSync = {
   connection: string;
   streak: { days: number; asOf: string } | null;
   timeZone?: string;
+  /** The first import's days so far, while it runs (connection "importing"): Home's "Syncing" line. */
+  importProgress?: { done: number; total: number };
+  /** The database holds onboarding's sample data: the tab roots show the Sample data card (docs/onboarding.md). */
+  sample?: boolean;
 };
 
 const SyncContext = createContext<ShellSync | null>(null);

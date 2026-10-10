@@ -253,3 +253,7 @@ NativeWind's `active:` classes switch a Pressable's look the instant the finger 
 ## Dropdown menus: `MenuPanel` and two window readings
 
 The web's dropdowns (Radix) open 8 px below their trigger, aligned to it, and flip above only when there is no room below. `src/ui/Menu.tsx` does the same in a transparent `<Modal>`: `useMenu` measures the trigger with `measureInWindow`, and the panel measures the modal's own root the same way and is placed at the difference (`placeMenu` in `src/ui/menuPlace.ts`, with tests). On Android, React Native's `measureInWindow` leaves out the status bar when its edge-to-edge flag is off (`RootViewUtil.getViewportOffset`), while a `statusBarTranslucent` modal starts under the status bar, so a panel placed from the trigger's reading alone lands too high; the same offset in both readings cancels out.
+
+## Android back inside one screen: `BackHandler`
+
+Onboarding is one route with steps held in state, so the navigator's back would leave the app from the explainer. `BackHandler.addEventListener("hardwareBackPress", ...)` returns `true` to say the press is handled, and the step goes back to Welcome. The listener exists only while the explainer is shown, so it never fights the navigator on other screens.

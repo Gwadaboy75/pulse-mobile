@@ -83,3 +83,16 @@ describe("loadDemoData", () => {
     expect(await f.store.samples.hasHr()).toBe(false);
   }, 120_000);
 });
+
+describe("loadDemoData with days", () => {
+  it("writes the story's last 30 days ending today, every one scored, nothing before the first", async () => {
+    const s = testDb();
+    const r = await loadDemoData(s.store, { now: NOW, timeZone: TZ, days: 30 });
+    const days = (await s.store.daily.readMetrics()).map((m) => m.day);
+    expect(r.days).toBe(30);
+    expect([days.length, days[0], days.at(-1)]).toEqual([30, addDays(TODAY, -29), TODAY]);
+    const scored = new Set((await s.store.scores.readDays("0000-01-01", "9999-12-31")).map((x) => x.day));
+    expect(days.filter((d) => !scored.has(d))).toEqual([]);
+    expect((s.sqlite.prepare("select min(day) d from health_records").get() as { d: string }).d >= days[0]).toBe(true);
+  }, 120_000);
+});

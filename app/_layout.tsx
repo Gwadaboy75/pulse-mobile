@@ -88,6 +88,7 @@ function Screens({ hasProfile }: { hasProfile: boolean }) {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="activities" />
           <Stack.Screen name="activity/[id]" />
+          <Stack.Screen name="connect" options={{ gestureEnabled: false }} />
           <Stack.Screen name="health/fitness" />
           <Stack.Screen name="health/healthspan" />
           <Stack.Screen name="health/heart-rate" />

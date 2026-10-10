@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View, useWindowDimensions } from "react-native";
 import { router, useLocalSearchParams, usePathname } from "expo-router";
 import { ChevronLeft, ChevronRight } from "lucide-react-native";
-import { pillLabel, rangeLabel } from "@/lib/format";
+import { dayLabel, rangeLabel } from "@/lib/format";
 import { parseDay, stepDay, weekOf } from "@/lib/url";
 import { cn } from "../cn";
 import { haptic } from "../haptics";
@@ -62,7 +62,8 @@ export function DateSwitcher({ mode, calendar, placement = "body", narrow: narro
   const step = week ? 7 : 1;
   const by = (n: number) => setDay(stepDay(d, n, today, firstDay));
 
-  const label = week ? rangeLabel(weekStart, weekEnd) : pillLabel(d, today);
+  // dayLabel, not pulse's pillLabel: the owner wants "THU, OCT 1", without pillLabel's periods. Back to pillLabel once pulse drops them.
+  const label = week ? rangeLabel(weekStart, weekEnd) : dayLabel(d, today);
   const bare = placement === "header";
   const stepClass = bare ? "size-9" : narrow ? "size-6" : "size-7";
 

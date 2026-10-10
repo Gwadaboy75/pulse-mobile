@@ -12,9 +12,10 @@ const RECORDS = [
   { i: SEED_DAYS - 21, h: 7.9, kind: "ecg", data: { result: "NORMAL_SINUS_RHYTHM", avgBpm: 66 } },
 ] as const;
 
-/** Inserts the records that have happened by `now` (unix seconds); returns the rows written. */
-export async function seedHeartRhythm(store: Repos, anchor: string, timeZone: string, now: number): Promise<number> {
+/** Inserts the records that have happened by `now` (unix seconds) on day index `first` or later; returns the rows written. */
+export async function seedHeartRhythm(store: Repos, anchor: string, timeZone: string, now: number, first = 0): Promise<number> {
   const rows = RECORDS.flatMap((r) => {
+    if (r.i < first) return [];
     const ts = localMidnight(addDays(anchor, r.i), timeZone) + Math.round(r.h * 60) * 60;
     if (ts > now) return [];
     // A notification covers the windows it analysed: about two hours here.
