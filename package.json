@@ -50,6 +50,7 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@babel/plugin-transform-react-jsx": "7.29.7",
     "@types/better-sqlite3": "^9.6.0",
     "@types/react": "~19.2.2",
     "babel-plugin-inline-import": "^3.0.0",
