@@ -1,8 +1,10 @@
 // The coach's stored state: consent, provider and model, the key's last four characters (the key itself is in the
 // secure store) and the chats. Replaces the database parts of pulse src/server/coach/store.ts and push.ts's brief
 // claim. Every write is diff-only where it can repeat.
+import { and, desc, eq, isNull, lt, or, sql } from "drizzle-orm";
+import { coachChats, coachSettings } from "../schema";
 import type { Db } from "../types";
-import { todo } from "./todo";
+import { anyDiffers, excluded } from "./sql";
 
 export type CoachSettingsRow = {
   consentAt: number | null;
@@ -58,20 +60,89 @@ export interface CoachRepo {
   exportChats(): Promise<{ id: string; title: string; createdAt: number; updatedAt: number; messages: ChatMessages }[]>;
 }
 
-export function coachRepo(_db: Db): CoachRepo {
+export function coachRepo(db: Db): CoachRepo {
+  const c = coachSettings;
+  const ch = coachChats;
+  const read = () => db.select().from(c).where(eq(c.id, 1)).all()[0] ?? null;
+  /**
+   * Writes the given fields (and `updatedAt`) unless the row already holds them: `updatedAt` alone never counts, so a
+   * repeat call writes nothing (pulse bumped `updated_at` each time; nothing reads it for that).
+   */
+  const patch = (values: Partial<Omit<CoachSettingsRow, "updatedAt">>, now: number) => {
+    const held = read();
+    if (held && (Object.keys(values) as (keyof typeof values)[]).every((k) => held[k] === values[k])) return;
+    const row = { ...values, updatedAt: now };
+    db.insert(c).values({ id: 1, ...row }).onConflictDoUpdate({ target: c.id, set: row }).run();
+  };
+  const chatBy = (id: string) => db.select({ messages: ch.messages }).from(ch).where(eq(ch.id, id)).all()[0];
+
   return {
-    getSettings: async () => todo("coachRepo.getSettings"),
-    setConsent: async () => todo("coachRepo.setConsent"),
-    setPreferences: async () => todo("coachRepo.setPreferences"),
-    saveProvider: async () => todo("coachRepo.saveProvider"),
-    removeProvider: async () => todo("coachRepo.removeProvider"),
-    claimBriefDay: async () => todo("coachRepo.claimBriefDay"),
-    listChats: async () => todo("coachRepo.listChats"),
-    loadChat: async () => todo("coachRepo.loadChat"),
-    saveChat: async () => todo("coachRepo.saveChat"),
-    claimChat: async () => todo("coachRepo.claimChat"),
-    deleteChat: async () => todo("coachRepo.deleteChat"),
-    deleteAllChats: async () => todo("coachRepo.deleteAllChats"),
-    exportChats: async () => todo("coachRepo.exportChats"),
+    async getSettings() {
+      return read();
+    },
+    async setConsent(on, now) {
+      // Already consented: keep the time of the first consent.
+      patch({ consentAt: on ? (read()?.consentAt ?? now) : null }, now);
+    },
+    async setPreferences(p, now) {
+      patch({ ...("instructions" in p && { customInstructions: p.instructions }), ...("briefMinute" in p && { briefMinute: p.briefMinute }) }, now);
+    },
+    async saveProvider(provider, model, keyLast4, now) {
+      patch({ provider, model, keyLast4 }, now);
+    },
+    async removeProvider(now) {
+      if (read()) patch({ provider: null, model: null, keyLast4: null }, now);
+    },
+    async claimBriefDay(day) {
+      const claimed = db
+        .update(c)
+        .set({ lastBriefDay: day })
+        .where(and(eq(c.id, 1), or(isNull(c.lastBriefDay), lt(c.lastBriefDay, day))))
+        .returning({ id: c.id })
+        .all();
+      return claimed.length > 0;
+    },
+
+    async listChats(before) {
+      const rows = db
+        .select({ id: ch.id, title: ch.title, updatedAt: ch.updatedAt })
+        .from(ch)
+        .where(before && or(lt(ch.updatedAt, before.updatedAt), and(eq(ch.updatedAt, before.updatedAt), lt(ch.id, before.id))))
+        .orderBy(desc(ch.updatedAt), desc(ch.id))
+        .limit(CHAT_PAGE + 1)
+        .all();
+      const chats = rows.slice(0, CHAT_PAGE);
+      const last = chats.at(-1);
+      return { chats, next: rows.length > CHAT_PAGE && last ? { updatedAt: last.updatedAt, id: last.id } : null };
+    },
+    async loadChat(id) {
+      return (chatBy(id)?.messages as ChatMessages | undefined) ?? null;
+    },
+    async saveChat(id, title, messages, now) {
+      // The title follows the first question, so editing it renames the chat. Unchanged title and messages: not written.
+      db.insert(ch)
+        .values({ id, title, messages, createdAt: now, updatedAt: now })
+        .onConflictDoUpdate({ target: ch.id, set: { title: excluded(ch.title), messages: excluded(ch.messages), updatedAt: excluded(ch.updatedAt) }, setWhere: anyDiffers([ch.title, ch.messages]) })
+        .run();
+    },
+    async claimChat(id, before, after, now) {
+      // Compared as the JSON text the caller stored (a plain `=` on text; the column's own encoder would quote it again).
+      const rows = db
+        .update(ch)
+        .set({ messages: after, updatedAt: now })
+        .where(and(eq(ch.id, id), sql`${ch.messages} = ${JSON.stringify(before)}`))
+        .returning({ id: ch.id })
+        .all();
+      return rows.length === 1;
+    },
+    async deleteChat(id) {
+      db.delete(ch).where(eq(ch.id, id)).run();
+    },
+    async deleteAllChats() {
+      db.delete(ch).run();
+    },
+    async exportChats() {
+      return db.select().from(ch).orderBy(desc(ch.updatedAt), desc(ch.id)).all() as { id: string; title: string; createdAt: number; updatedAt: number; messages: ChatMessages }[];
+    },
   };
 }

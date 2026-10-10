@@ -1,7 +1,9 @@
 // Per-minute series per day (intraday_series): kinds "hr", "still_hr", "load", "stress", "energy_bank". Replaces the
 // series parts of pulse pipeline/data.ts, stage2.ts and queries/common.ts. Every write is diff-only.
+import { and, between, eq, gt, inArray, lt, or } from "drizzle-orm";
+import { intradaySeries } from "../schema";
 import type { Db } from "../types";
-import { todo } from "./todo";
+import { anyDiffers, atomic, chunks, excluded } from "./sql";
 
 /** `data` is one value per minute of the local day, null for a gap. */
 export type SeriesRow = { day: string; kind: string; data: (number | null)[] };
@@ -21,13 +23,37 @@ export interface SeriesRepo {
   clearSynced(): Promise<void>;
 }
 
-export function seriesRepo(_db: Db): SeriesRepo {
+export function seriesRepo(db: Db): SeriesRepo {
+  const t = intradaySeries;
   return {
-    upsertSeries: async () => todo("seriesRepo.upsertSeries"),
-    loadSeries: async () => todo("seriesRepo.loadSeries"),
-    readSeries: async () => todo("seriesRepo.readSeries"),
-    deleteSeries: async () => todo("seriesRepo.deleteSeries"),
-    deleteOutside: async () => todo("seriesRepo.deleteOutside"),
-    clearSynced: async () => todo("seriesRepo.clearSynced"),
+    async upsertSeries(rows) {
+      atomic(db, () => {
+        for (const part of chunks(rows, 100)) {
+          db.insert(t)
+            .values(part)
+            .onConflictDoUpdate({ target: [t.day, t.kind], set: { data: excluded(t.data) }, setWhere: anyDiffers([t.data]) })
+            .run();
+        }
+      });
+    },
+    async loadSeries(day, kind) {
+      const [r] = db.select({ data: t.data }).from(t).where(and(eq(t.day, day), eq(t.kind, kind))).all();
+      return r?.data ?? null;
+    },
+    async readSeries(kinds, from, to) {
+      if (!kinds.length) return [];
+      return db.select().from(t).where(and(inArray(t.kind, kinds), between(t.day, from, to))).all();
+    },
+    async deleteSeries(kind, days) {
+      atomic(db, () => {
+        for (const part of chunks(days, 500)) db.delete(t).where(and(eq(t.kind, kind), inArray(t.day, part))).run();
+      });
+    },
+    async deleteOutside(first, last) {
+      db.delete(t).where(or(lt(t.day, first), gt(t.day, last))).run();
+    },
+    async clearSynced() {
+      db.delete(t).run();
+    },
   };
 }

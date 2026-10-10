@@ -3,8 +3,10 @@
 // of oauth_tokens, push_subscriptions' once-a-day claims, sync_state access in sources/google/sync.ts, queries/settings.ts,
 // log.ts and actions/dashboard.ts. Secrets (Google tokens, the coach key) are in the secure store, never here.
 // There is no Google account identity (email, name, picture) anywhere: the app asks for Health scopes only.
+import { and, asc, eq, gt, isNotNull, sql } from "drizzle-orm";
+import { dashboardMetrics, settings, syncState } from "../schema";
 import type { Db } from "../types";
-import { todo } from "./todo";
+import { atomic, excluded, upsertChanged } from "./sql";
 
 /** The keys in the `settings` table and the JSON each holds. */
 export type SettingValues = {
@@ -68,19 +70,62 @@ export interface SettingsRepo {
   clearSynced(): Promise<void>;
 }
 
-export function settingsRepo(_db: Db): SettingsRepo {
+export function settingsRepo(db: Db): SettingsRepo {
+  const s = settings;
+  const st = syncState;
+  const syncCols = { type: st.type, syncedThrough: st.syncedThrough, backfillDaysDone: st.backfillDaysDone, backfillDaysTotal: st.backfillDaysTotal, lastAttemptAt: st.lastAttemptAt, lastSuccessAt: st.lastSuccessAt, lastError: st.lastError };
   return {
-    get: async () => todo("settingsRepo.get"),
-    set: async () => todo("settingsRepo.set"),
-    remove: async () => todo("settingsRepo.remove"),
-    claimDay: async () => todo("settingsRepo.claimDay"),
-    readSyncState: async () => todo("settingsRepo.readSyncState"),
-    getSyncState: async () => todo("settingsRepo.getSyncState"),
-    setSyncState: async () => todo("settingsRepo.setSyncState"),
-    clearSyncErrors: async () => todo("settingsRepo.clearSyncErrors"),
-    rewindSyncCursor: async () => todo("settingsRepo.rewindSyncCursor"),
-    dashboardKeys: async () => todo("settingsRepo.dashboardKeys"),
-    saveDashboard: async () => todo("settingsRepo.saveDashboard"),
-    clearSynced: async () => todo("settingsRepo.clearSynced"),
+    async get(key) {
+      const [r] = db.select({ value: s.value }).from(s).where(eq(s.key, key)).all();
+      return r ? JSON.parse(r.value) : null;
+    },
+    async set(key, value) {
+      upsertChanged(db, s, ["key"], [{ key, value: JSON.stringify(value) }]);
+    },
+    async remove(key) {
+      db.delete(s).where(eq(s.key, key)).run();
+    },
+    async claimDay(key, day) {
+      // One statement, so two runs cannot both win: the row is written only when unset or holding an earlier day.
+      const won = db
+        .insert(s)
+        .values({ key, value: JSON.stringify(day) })
+        .onConflictDoUpdate({ target: s.key, set: { value: excluded(s.value) }, setWhere: sql`json_extract(${s.value}, '$') < ${day}` })
+        .returning({ key: s.key })
+        .all();
+      return won.length > 0;
+    },
+
+    async readSyncState() {
+      return db.select(syncCols).from(st).all();
+    },
+    async getSyncState(type) {
+      return db.select(syncCols).from(st).where(eq(st.type, type)).all()[0] ?? null;
+    },
+    async setSyncState(type, patch) {
+      upsertChanged(db, st, ["type"], [{ type, ...patch }]);
+    },
+    async clearSyncErrors() {
+      db.update(st).set({ lastError: null }).where(isNotNull(st.lastError)).run();
+    },
+    async rewindSyncCursor(type, at) {
+      db.update(st).set({ syncedThrough: at }).where(and(eq(st.type, type), isNotNull(st.syncedThrough), gt(st.syncedThrough, at))).run();
+    },
+
+    async dashboardKeys() {
+      return db.select({ key: dashboardMetrics.key }).from(dashboardMetrics).orderBy(asc(dashboardMetrics.position)).all().map((r) => r.key);
+    },
+    async saveDashboard(keys) {
+      atomic(db, () => {
+        const held = db.select({ key: dashboardMetrics.key }).from(dashboardMetrics).orderBy(asc(dashboardMetrics.position)).all().map((r) => r.key);
+        if (held.length === keys.length && held.every((k, i) => k === keys[i])) return;
+        db.delete(dashboardMetrics).run();
+        if (keys.length) db.insert(dashboardMetrics).values(keys.map((key, position) => ({ key, position }))).run();
+      });
+    },
+
+    async clearSynced() {
+      db.delete(st).run();
+    },
   };
 }
