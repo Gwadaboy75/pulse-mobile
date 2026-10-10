@@ -18,7 +18,7 @@ import { CAPTION } from "@/ui/metrics/primitives";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { Text } from "@/ui/Text";
 import { connectGoogle, forgetGoogleTokens, syncNow } from "./connect";
-import { BODY, ConfirmDialog, Divider, ProgressBar, ROW_LABEL } from "./controls";
+import { BODY, ConfirmDialog, ProgressBar, ROW_LABEL, ROW_RULE } from "./controls";
 import { GoogleFit } from "./GoogleFit";
 import { toast } from "@/ui/Toast";
 
@@ -80,18 +80,15 @@ function DataTypes({ rows, now }: { rows: SettingsVM["sync"]; now: number }) {
       {open && (
         <View className="border-t border-border">
           {rows.map((r, i) => (
-            <View key={r.key}>
-              {i > 0 && <Divider />}
-              <View accessible accessibilityLabel={`${r.label}, ${r.lastSuccessAt ? ago(r.lastSuccessAt, now) : "never"}, ${STATUS_WORD[r.status]}`} className="min-h-12 flex-row items-center gap-3 py-2">
-                <View className="min-w-0 flex-1">
-                  <Text numberOfLines={1} className="text-[15px] leading-[22px]">
-                    {r.label}
-                  </Text>
-                  {r.status === "error" && r.error && <Text className={cn(CAPTION, "text-recovery-red-text")}>{r.error}</Text>}
-                </View>
-                <Text className={cn(CAPTION, "shrink-0 font-numeric tabular-nums")}>{r.lastSuccessAt ? ago(r.lastSuccessAt, now) : "Never"}</Text>
-                <SyncIcon status={r.status} />
+            <View key={r.key} accessible accessibilityLabel={`${r.label}, ${r.lastSuccessAt ? ago(r.lastSuccessAt, now) : "never"}, ${STATUS_WORD[r.status]}`} className={cn("min-h-12 flex-row items-center gap-3 py-2", i > 0 && ROW_RULE)}>
+              <View className="min-w-0 flex-1">
+                <Text numberOfLines={1} className="text-[15px] leading-[22px]">
+                  {r.label}
+                </Text>
+                {r.status === "error" && r.error && <Text className={cn(CAPTION, "text-recovery-red-text")}>{r.error}</Text>}
               </View>
+              <Text className={cn(CAPTION, "shrink-0 font-numeric tabular-nums")}>{r.lastSuccessAt ? ago(r.lastSuccessAt, now) : "Never"}</Text>
+              <SyncIcon status={r.status} />
             </View>
           ))}
         </View>

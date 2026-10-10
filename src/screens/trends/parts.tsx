@@ -1,6 +1,7 @@
 // Shared by the Trends, Metric detail and Reports screens (web: trends/parts.tsx and the loading shapes).
 import { type ReactNode } from "react";
 import { Pressable, View } from "react-native";
+import Animated, { useAnimatedStyle, withTiming } from "react-native-reanimated";
 import { router } from "expo-router";
 import { CircleAlert } from "lucide-react-native";
 import { RANGES, type TrendRange } from "@/lib/url";
@@ -43,6 +44,12 @@ export function RangedTrendChart({ range, ...p }: Omit<TrendChartProps, "ranges"
       <TrendChart key={range} {...p} ranges={RANGES} fixedRange={range} />
     </View>
   );
+}
+
+/** A chevron that turns half a way over 200 ms when `on` (the web's `transition-transform duration-200` with `rotate-180`). */
+export function Turn({ on, children }: { on: boolean; children: ReactNode }) {
+  const style = useAnimatedStyle(() => ({ transform: [{ rotate: withTiming(on ? "180deg" : "0deg", { duration: 200 }) }] }), [on]);
+  return <Animated.View style={style}>{children}</Animated.View>;
 }
 
 /** A whole-card button: the card material, pressing in (the web's CARD_LINK on a button). */

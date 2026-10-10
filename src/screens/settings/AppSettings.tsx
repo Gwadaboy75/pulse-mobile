@@ -11,7 +11,8 @@ import { store } from "@/data/store";
 import type { AppPrefs } from "@/queries/settings";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { Text } from "@/ui/Text";
-import { Divider, HINT, RadioSegments, ROW, ROW_LABEL, Switch } from "./controls";
+import { cn } from "@/ui/cn";
+import { HINT, RadioSegments, ROW, ROW_LABEL, ROW_RULE, Switch } from "./controls";
 
 const THEMES = [
   { value: "system", label: "System", icon: Monitor },
@@ -37,10 +38,10 @@ function ThemePicker({ initial }: { initial: Theme }) {
   );
 }
 
-function NotifyRow({ label, hint, settingKey, initial }: { label: string; hint: string; settingKey: NotifyKey; initial: boolean }) {
+function NotifyRow({ label, hint, settingKey, initial, rule }: { label: string; hint: string; settingKey: NotifyKey; initial: boolean; rule?: boolean }) {
   const [on, setOn] = useState(initial);
   return (
-    <View className={ROW}>
+    <View className={cn(ROW, rule && ROW_RULE)}>
       <View className="min-w-0 flex-1">
         <Text className={ROW_LABEL}>{label}</Text>
         <Text className={HINT}>{hint}</Text>
@@ -67,8 +68,7 @@ export function AppSettings({ prefs }: { prefs: AppPrefs }) {
       <SectionShell variant="card" title="App">
         <View>
           <NotifyRow label="Recovery ready" hint="Once a day, when your Recovery is scored." settingKey="notify.recovery" initial={prefs.notifyRecovery} />
-          <Divider />
-          <NotifyRow label="Pulse can’t sync" hint="Once a day, if Pulse can’t sync." settingKey="notify.syncProblem" initial={prefs.notifySyncProblem} />
+          <NotifyRow rule label="Pulse can’t sync" hint="Once a day, if Pulse can’t sync." settingKey="notify.syncProblem" initial={prefs.notifySyncProblem} />
         </View>
       </SectionShell>
     </>

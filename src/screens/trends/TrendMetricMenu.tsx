@@ -10,7 +10,7 @@ import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
-import { CardButton } from "./parts";
+import { CardButton, Turn } from "./parts";
 
 export type TrendMetricOption = { key: string; label: string; icon?: LucideIcon };
 
@@ -26,12 +26,12 @@ export function TrendMetricMenu({ current, options, onSelect }: { current: strin
   return (
     <>
       <View ref={trigger} collapsable={false}>
-        <CardButton accessibilityLabel={`${on.label}. Change metric`} onPress={open} className="min-h-14 w-full flex-row items-center gap-3 rounded-xl px-4">
+        <CardButton accessibilityLabel={`${on.label}. Change metric`} onPress={open} className="min-h-14 w-full flex-row items-center gap-3 rounded-xl px-4 active:scale-[0.99]">
           <View accessibilityElementsHidden className="size-6 items-center justify-center">{on.icon && <Icon icon={on.icon} size={20} tone="muted-foreground" strokeWidth={1.75} />}</View>
           <Text numberOfLines={1} className="min-w-0 flex-1 text-[15px] font-bold uppercase leading-5 tracking-[0.08em]">{on.label}</Text>
-          <View style={box ? { transform: [{ rotate: "180deg" }] } : undefined}>
+          <Turn on={!!box}>
             <Icon icon={ChevronDown} size={20} tone="foreground" strokeWidth={2.25} />
-          </View>
+          </Turn>
         </CardButton>
       </View>
       <Modal visible={!!box} transparent animationType="fade" statusBarTranslucent onRequestClose={close}>

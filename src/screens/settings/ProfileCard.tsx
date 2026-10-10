@@ -8,7 +8,8 @@ import { CAPTION } from "@/ui/metrics/primitives";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { openSheet } from "@/ui/shells/sheets";
 import { Text } from "@/ui/Text";
-import { Divider, ROW, ROW_LABEL, ROW_VALUE, SmallButton } from "./controls";
+import { cn } from "@/ui/cn";
+import { ROW, ROW_LABEL, ROW_RULE, ROW_VALUE, SmallButton } from "./controls";
 
 export function ProfileCard({ profile }: { profile: SettingsVM["profile"] }) {
   const rows: [string, string][] = [
@@ -23,12 +24,9 @@ export function ProfileCard({ profile }: { profile: SettingsVM["profile"] }) {
     <SectionShell variant="card" title="Profile" action={<SmallButton icon={Pencil} label="Edit" accessibilityLabel="Edit profile" onPress={() => openSheet("/profile")} className="-my-2" />}>
       <View>
         {rows.map(([k, v], i) => (
-          <View key={k}>
-            {i > 0 && <Divider />}
-            <View className={ROW}>
-              <Text className={ROW_LABEL}>{k}</Text>
-              <Text className={ROW_VALUE}>{v}</Text>
-            </View>
+          <View key={k} className={cn(ROW, i > 0 && ROW_RULE)}>
+            <Text className={ROW_LABEL}>{k}</Text>
+            <Text className={ROW_VALUE}>{v}</Text>
           </View>
         ))}
       </View>
