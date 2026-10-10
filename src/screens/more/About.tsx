@@ -31,7 +31,7 @@ export function About({ version, scoringVersion }: { version: string; scoringVer
           <Text className="text-[13px] font-bold uppercase tracking-[0.1em] text-secondary-foreground">Source code</Text>
           <Icon icon={ArrowUpRight} size={16} tone="secondary-foreground" />
         </Button>
-        <Button variant="outline-pill" className="flex-1 rounded-xl" accessibilityLabel="Report a bug, opens outside the app" onPress={() => Linking.openURL(`${REPO_URL}/issues`)}>
+        <Button variant="outline" className="flex-1" accessibilityLabel="Report a bug, opens outside the app" onPress={() => Linking.openURL(`${REPO_URL}/issues`)}>
           <Text className="text-[13px] font-bold uppercase tracking-[0.1em]">Report a bug</Text>
           <Icon icon={ArrowUpRight} size={16} tone="foreground" />
         </Button>

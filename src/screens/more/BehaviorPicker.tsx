@@ -81,7 +81,7 @@ export function BehaviorPicker({ tags, initial, selected, onChange }: { tags: Be
                   haptic.select();
                   setTab(t.key);
                 }}
-                className="h-11 justify-center px-2.5"
+                className="h-11 justify-center px-2"
               >
                 <Text className={cn("text-xs font-bold uppercase leading-4 tracking-[0.1em]", on ? "text-foreground" : "text-muted-foreground")}>{t.label}</Text>
                 <View className={cn("absolute inset-x-2.5 bottom-1.5 h-0.5 rounded-full bg-foreground", !on && "opacity-0")} />

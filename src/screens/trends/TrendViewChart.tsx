@@ -15,8 +15,10 @@ import { buildModel, clockOf, colorOf, type Model, type TrendViewChartProps } fr
 export type { TrendViewChartProps };
 
 const MAX_BAR = 28;
-/** The web's axis tick margin: ticks sit 8 px from the plot. */
-const TICK_GAP = 8;
+/** Recharts places a tick at its tick size (6) plus the web's `tickMargin` (8) from the plot: 14 px for the Y labels' right edge. */
+const TICK_GAP = 14;
+/** The X labels' top below the plot: the SVG text starts 14 px down with its first line's baseline 0.71em lower, so a 15 px line box sits about 3 px higher. */
+const X_TICK_TOP = 11;
 
 /** A bar with its top corners rounded (the web's `radius={[3, 3, 0, 0]}`). */
 const barPath = (x: number, top: number, w: number, bottom: number, r: number) => {
@@ -154,7 +156,7 @@ function Plot({ p, m, width, height }: { p: TrendViewChartProps; m: Model; width
       {m.xTicks.map((k) => {
         const t = tick(k);
         return (
-          <ChartLabel key={k} x={xs[keys.indexOf(k)]} y={y1 + TICK_GAP} top lines={2} w={56} className={t.on ? "font-bold leading-[15px] text-foreground" : "leading-[15px]"}>
+          <ChartLabel key={k} x={xs[keys.indexOf(k)]} y={y1 + X_TICK_TOP} top lines={2} w={56} className={t.on ? "font-bold leading-[15px] text-foreground" : "leading-[15px]"}>
             {t.text}
           </ChartLabel>
         );
@@ -170,7 +172,7 @@ function Plot({ p, m, width, height }: { p: TrendViewChartProps; m: Model; width
           </ChartLabel>
         )))}
       {/* A line's labels: W over every point, M on the last one only. */}
-      {p.chart === "line" && !m.faint && p.range === "w" && rows.map((r, i) => (r.value === null ? null : <ChartLabel key={r.key} x={xs[i]} y={y(r.value) - 18} className="font-bold" color={single} halo={halo}>{r.text}</ChartLabel>))}
+      {p.chart === "line" && !m.faint && p.range === "w" && rows.map((r, i) => (r.value === null ? null : <ChartLabel key={r.key} x={xs[i]} y={y(r.value) - 14} className="font-bold" color={single} halo={halo}>{r.text}</ChartLabel>))}
       {p.chart === "line" && !m.faint && p.range === "m" && m.last >= 0 && (
         <ChartLabel x={lastX + 9} y={y(rows[m.last].value!) - 14} anchor="start" className="font-bold" color={single} halo={halo}>{rows[m.last].text}</ChartLabel>
       )}

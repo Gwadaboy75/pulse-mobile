@@ -143,7 +143,7 @@ function Hero({ vm }: { vm: MetricDetailVM }) {
               {vm.soFar && <MetricTags extra={["so_far"]} />}
               {/* A running total against whole days would always read "below": today shows the average alone. */}
               {t && diff !== null && !vm.soFar && (
-                <StatusChip tone={t.tone === "good" ? "optimal" : t.tone === "bad" ? "warning" : "neutral"} delta={t.dir} className="mt-1">
+                <StatusChip tone={t.tone === "good" ? "optimal" : t.tone === "bad" ? "warning" : "neutral"} delta={t.dir} className="mt-1 self-center">
                   {t.dir === "flat" ? "In line with your 30-day average" : `${formatValue(vm.format, Math.abs(diff))}${unitText(vm.unit)} ${t.dir === "up" ? "above" : "below"} your 30-day average`}
                 </StatusChip>
               )}
