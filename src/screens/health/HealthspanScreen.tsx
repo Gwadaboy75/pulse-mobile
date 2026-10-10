@@ -13,6 +13,7 @@ import { TickScale, TickScaleSkeleton } from "@/ui/metrics/TickScale";
 import { DetailShell } from "@/ui/shells/DetailShell";
 import { EmptyState } from "@/ui/shells/EmptyState";
 import { SectionShell } from "@/ui/shells/SectionShell";
+import { useNarrow } from "@/ui/shells/layout";
 import { SkeletonText } from "@/ui/Skeleton";
 import { Text } from "@/ui/Text";
 import { AgeOrb } from "./AgeOrb";
@@ -137,6 +138,8 @@ function Contributors({ title, n }: { title: string; n: number }) {
  * history, then the Sleep (2), Strain (4) and Fitness (3) contributors.
  */
 function HealthspanLoading() {
+  // The orb's own cap (AgeOrb): never wider than the page column.
+  const orb = Math.min(300, useNarrow().width - 32);
   return (
     <DetailShell
       loading
@@ -145,7 +148,7 @@ function HealthspanLoading() {
       ground="healthspan"
       hero={
         <View accessibilityElementsHidden className="items-center gap-3">
-          <View className="size-[300px] items-center justify-center rounded-full border-2 border-dial-track">
+          <View className="items-center justify-center rounded-full border-2 border-dial-track" style={{ width: orb, height: orb }}>
             <SkeletonText lh={56} fs={56} className="w-[116px]" />
           </View>
           <SkeletonText className="w-24" />

@@ -101,14 +101,15 @@ function Dials({ vm }: { vm: ReportVM }) {
   const word = vm.kind === "week" ? "last week" : "last month";
   // The web's row is as wide as its columns' contents laid end to end (the hero shrinks to fit), then shares that
   // width equally (flex-1 basis-0), so a long label ("AVG RECOVERY") wraps in its column. A first pass measures the
-  // natural width; the second lays the equal columns out in it. Remeasured when the dials change.
+  // natural width; the second lays the equal columns out in it. Remeasured when the dials change. Never wider than the
+  // hero (maxWidth): on a narrow phone the web's w-full row is the container, and the labels and captions wrap.
   const sig = vm.dials.map((d) => `${d.label}${d.metric.value}${d.delta}`).join("|");
   const [fit, setFit] = useState<{ sig: string; width: number } | null>(null);
   const width = fit?.sig === sig ? fit.width : null;
   return (
     <View
       className="flex-row items-start justify-center gap-5"
-      style={width ? { width } : { alignSelf: "center" }}
+      style={width ? { width, maxWidth: "100%" } : { alignSelf: "center", maxWidth: "100%" }}
       onLayout={width ? undefined : (e) => setFit({ sig, width: Math.ceil(e.nativeEvent.layout.width) })}
     >
       {vm.dials.map((dl) => {
