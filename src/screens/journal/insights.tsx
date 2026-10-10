@@ -27,7 +27,12 @@ export const parseMetric = (raw: string | string[] | undefined): ImpactMetricKey
 
 /** Recovery / HRV / Sleep, kept in `m` by replacing the param (spec §7.12). */
 export function MetricToggle({ metric }: { metric: ImpactMetricKey }) {
-  return <Segmented label="Outcome" value={metric} options={METRICS} onChange={(v) => router.setParams({ m: v === "recovery" ? "" : v })} textClassName="text-[13px] font-bold uppercase tracking-[0.1em]" />;
+  // The web's ToggleGroup is w-fit: it hugs its three segments, where a column would stretch it.
+  return (
+    <View className="self-start">
+      <Segmented label="Outcome" value={metric} options={METRICS} onChange={(v) => router.setParams({ m: v === "recovery" ? "" : v })} textClassName="text-[13px] font-bold uppercase tracking-[0.1em]" />
+    </View>
+  );
 }
 
 /** The impact list; a row opens its detail sheet (/journal/impact). */
