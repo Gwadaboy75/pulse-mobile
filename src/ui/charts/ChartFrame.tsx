@@ -108,7 +108,8 @@ const TEXT_W = 72;
 /**
  * Chart text at a point. `anchor` is the SVG text-anchor (start: the text begins at x; end: it ends at x; middle:
  * centred on x); `y` is the text's vertical centre unless `baseline` says the top. Classes style the label (default: an
- * axis tick, 12 px Barlow medium, muted).
+ * axis tick, 12 px Barlow medium, muted). `color` is spread in only when given: NativeWind merges the inline style over
+ * the class styles with Object.assign, so `color: undefined` would erase the class colour and leave React Native's black.
  */
 export function ChartLabel({ x, y, children, anchor = "middle", className, w = TEXT_W, color, top, halo, lines = 1 }: { x: number; y: number; children: ReactNode; anchor?: "start" | "middle" | "end"; className?: string; w?: number; color?: string; top?: boolean; lines?: number; /** A card-coloured outline under the text, so a line crossing it never strikes through the digits (the web's LABEL_HALO). */ halo?: string }) {
   const left = anchor === "middle" ? x - w / 2 : anchor === "end" ? x - w : x;
@@ -117,7 +118,7 @@ export function ChartLabel({ x, y, children, anchor = "middle", className, w = T
       pointerEvents="none"
       numberOfLines={lines}
       className={cn("font-numeric text-xs font-medium leading-4 tabular-nums text-muted-foreground", className)}
-      style={{ position: "absolute", left, top: top ? y : y - LH / 2, width: w, textAlign: anchor === "middle" ? "center" : anchor === "end" ? "right" : "left", color, ...(halo ? { textShadowColor: halo, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } } : null) }}
+      style={{ position: "absolute", left, top: top ? y : y - LH / 2, width: w, textAlign: anchor === "middle" ? "center" : anchor === "end" ? "right" : "left", ...(color ? { color } : null), ...(halo ? { textShadowColor: halo, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } } : null) }}
     >
       {children}
     </Text>
