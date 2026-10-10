@@ -46,6 +46,10 @@ export function HeaderFrame({ children, rows = HEADER_ROW, expanded, extra = 0, 
   const low = groundColorAt(c, solid + extra, flat);
   const band = useAnimatedStyle(() => ({ opacity: extra ? Math.min(1, (expanded?.value ?? 0) / extra) : 0 }));
   const fade = useAnimatedStyle(() => ({ transform: [{ translateY: expanded?.value ?? 0 }] }));
+  // The fade starts from the ground at its own height: `edge` at rest, `low` once the band is out (the web masks the
+  // ground itself, so it always matches). The two cross-fade as the band opens.
+  const lowFade = useAnimatedStyle(() => ({ opacity: extra ? Math.min(1, (expanded?.value ?? 0) / extra) : 1 }));
+  const edgeFade = useAnimatedStyle(() => ({ opacity: extra ? 1 - Math.min(1, (expanded?.value ?? 0) / extra) : 0 }));
   return (
     <View pointerEvents="box-none" className="absolute inset-x-0 top-0 z-20">
       <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, height: solid, overflow: "hidden" }}>
@@ -57,7 +61,14 @@ export function HeaderFrame({ children, rows = HEADER_ROW, expanded, extra = 0, 
         </Animated.View>
       )}
       <Animated.View pointerEvents="none" style={[{ position: "absolute", top: solid, left: 0, right: 0, height: HEADER_FADE }, fade]}>
-        <NativeGradient colors={[low, alpha(low, 0)]} style={StyleSheet.absoluteFill} />
+        {extra > 0 && (
+          <Animated.View style={[StyleSheet.absoluteFill, edgeFade]}>
+            <NativeGradient colors={[edge, alpha(edge, 0)]} style={StyleSheet.absoluteFill} />
+          </Animated.View>
+        )}
+        <Animated.View style={[StyleSheet.absoluteFill, lowFade]}>
+          <NativeGradient colors={[low, alpha(low, 0)]} style={StyleSheet.absoluteFill} />
+        </Animated.View>
       </Animated.View>
       <View pointerEvents="box-none" style={{ paddingTop: top }} onLayout={onHeight && ((e) => onHeight(e.nativeEvent.layout.height))}>
         {children}
