@@ -1,7 +1,5 @@
-// More, Settings and the shell's status (spec §7.14, §4.2). Ported from pulse src/server/queries/settings.ts: reads go
-// through the repositories; there is no demo mode, no user id and no worker (the phone syncs itself, and the background
-// stream says whether a run is going: `getShellStatus`'s `syncing` argument).
 import { missingScopes } from "../google/oauth";
+import { CORE_SYNC_TYPES, importProgress } from "../google/progress";
 import { SCORING_VERSION } from "../pipeline";
 import { addDays, wholeYears } from "../time";
 import { latestReport } from "./home";
@@ -32,16 +30,6 @@ const GROUPS: { key: string; label: string; types: string[] }[] = [
   { key: "vitals", label: "Glucose and core temperature", types: ["blood-glucose", "core-body-temperature"] },
   { key: "rhythm", label: "ECG and irregular rhythm", types: ["electrocardiogram", "irregular-rhythm-notification"] },
 ];
-
-/**
- * Shown-only types (extra metrics, records, height) and the Google inputs Pulse falls back from (zones, personal
- * ranges). Optional for the shell: one that fails (a scope granted only on the next consent, a type the account never
- * has) shows in Settings, but never turns the sync dot red or holds the import banner open.
- */
-const OPTIONAL_TYPES = new Set(GROUPS.filter((g) => ["zones", "activity", "nutrition", "vitals", "rhythm"].includes(g.key)).flatMap((g) => g.types).concat("height"));
-
-/** Types every Google account syncs: the shell's sync dot and the import banner follow these alone. */
-const CORE_TYPES = new Set(GROUPS.flatMap((g) => g.types).filter((t) => !OPTIONAL_TYPES.has(t)));
 
 type SyncRow = {
   type: string;
@@ -83,14 +71,6 @@ export function syncErrorText(raw: string): string {
     PERMISSION_DENIED: "Permission missing",
   };
   return text[code] ?? (/^http_5\d\d$/.test(code) ? "Google is having trouble, retrying" : `Failed (${code})`);
-}
-
-/** The core types' backfill only: an optional type that keeps failing (or a retired job's leftover row) never holds it at 0. */
-function importProgress(all: SyncRow[]) {
-  const rows = all.filter((r) => CORE_TYPES.has(r.type));
-  const pending = rows.filter((r) => r.backfillDaysTotal != null && (r.backfillDaysDone ?? 0) < r.backfillDaysTotal);
-  if (!pending.length) return null;
-  return { done: Math.min(...pending.map((r) => r.backfillDaysDone ?? 0)), total: Math.max(...pending.map((r) => r.backfillDaysTotal!)) };
 }
 
 /** Settings `/settings`: data source, auth, per-type sync status, backfill progress and the profile. */
@@ -164,7 +144,7 @@ export async function hasCoachChats(ctx: QueryCtx): Promise<boolean> {
 const STREAK_TODAY_MIN = 6 * 60;
 
 /**
- * Consecutive worn days (spec §4.3, I4): the reference app's "continuous data" streak. A day is worn when it has any
+ * Consecutive worn days: the reference app's "continuous data" streak. A day is worn when it has any
  * heart rate, the same rule that keeps `band_not_worn` off its Strain. Null when the streak is 0.
  */
 export async function getWearStreak(ctx: QueryCtx): Promise<{ days: number; asOf: string } | null> {
@@ -195,7 +175,7 @@ export async function getShellStatus(ctx: QueryCtx, syncing = false): Promise<Sh
   // The device check is account state (connection below), not a sync that succeeded or failed.
   // Core types only: an optional type, or a retired job's leftover row (rhr/hrv personal ranges), never turns the dot red.
   const auth = await authState(ctx, all);
-  const rows = all.filter((r) => CORE_TYPES.has(r.type));
+  const rows = all.filter((r) => CORE_SYNC_TYPES.has(r.type));
   const successes = rows.map((r) => r.lastSuccessAt).filter((s): s is number => s != null);
   const lastSuccessAt = successes.length ? Math.max(...successes) * 1000 : null;
   const stale = lastSuccessAt == null || ctx.now * 1000 - lastSuccessAt > STALE_MS;

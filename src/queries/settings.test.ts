@@ -1,7 +1,6 @@
-// Ported from pulse src/server/queries/settings.test.ts onto the F2 database (`seededCtx`): the sync rows and the grant
-// are `settings` repository rows and there is no demo mode.
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { SCOPES } from "../google/oauth";
+import { BACKFILL_DAYS, CORE_SYNC_TYPES } from "../google/progress";
 import type { SyncStateRow } from "../data/repos/settings";
 import { type QueryCtx, todayOf } from "./common";
 import { getAppPrefs, getMore, getSettings, getShellStatus, getWearStreak, getYourData, hasCoachChats, syncErrorText } from "./settings";
@@ -43,7 +42,7 @@ describe("sync errors", () => {
   });
 
   it("a retired job's leftover error row and an optional type's failure never turn the sync dot red or hold the import", async () => {
-    await put([{ type: "heart-rate", backfillDaysDone: 180, backfillDaysTotal: 180, lastSuccessAt: ctx.now }]);
+    await put([...CORE_SYNC_TYPES].map((type) => ({ type, backfillDaysDone: BACKFILL_DAYS, backfillDaysTotal: BACKFILL_DAYS, lastSuccessAt: ctx.now })));
     await put([{ type: "rhr-personal-range", backfillDaysDone: 0, backfillDaysTotal: 180, lastError: "[google] daily-resting-heart-rate dailyRollUp: UNSUPPORTED_DATA_TYPE_ACTION" }]);
     await put([{ type: "electrocardiogram", backfillDaysDone: 0, backfillDaysTotal: 180, lastError: "[google] electrocardiogram: INVALID_DATA_POINT_FILTER" }]);
     const shell = await getShellStatus(ctx);
@@ -69,8 +68,36 @@ describe("sync errors", () => {
 
   it("a working grant mid-import shows progress and readable row errors", async () => {
     await put([{ type: "heart-rate", backfillDaysDone: 30, backfillDaysTotal: 180, lastError: "[google] heart-rate: http_503 (HTTP 503)" }]);
-    expect(await getShellStatus(ctx)).toMatchObject({ connection: "importing", importProgress: { done: 30, total: 180 } });
+    expect(await getShellStatus(ctx)).toMatchObject({ connection: "importing", importProgress: { done: 2, total: BACKFILL_DAYS } });
     expect((await getSettings(ctx)).sync.find((r) => r.key === "heart-rate")?.error).toBe("Google is having trouble, retrying");
+  });
+});
+
+describe("whole import progress", () => {
+  it("keeps completed types and unstarted types in one stable total", async () => {
+    const total = BACKFILL_DAYS;
+    await put([{ type: "sleep", backfillDaysDone: 30, backfillDaysTotal: BACKFILL_DAYS }]);
+    expect((await getSettings(ctx)).import).toEqual({ done: 2, total });
+    await put([{ type: "sleep", backfillDaysDone: BACKFILL_DAYS, lastSuccessAt: ctx.now }]);
+    expect((await getSettings(ctx)).import).toEqual({ done: 12, total });
+    await put([{ type: "heart-rate", backfillDaysDone: 1, backfillDaysTotal: BACKFILL_DAYS }]);
+    expect((await getSettings(ctx)).import).toEqual({ done: 12, total });
+    expect((await getShellStatus(ctx)).importProgress).toEqual({ done: 12, total });
+  });
+
+  it("starts at zero, resumes partial jobs, and closes only when every core type finishes", async () => {
+    expect((await getSettings(ctx)).import).toBeNull();
+    await put([...CORE_SYNC_TYPES].map((type) => ({ type, backfillDaysDone: 0, backfillDaysTotal: BACKFILL_DAYS })));
+    expect((await getSettings(ctx)).import).toEqual({ done: 0, total: BACKFILL_DAYS });
+    await put([...CORE_SYNC_TYPES].map((type) => ({ type, backfillDaysDone: BACKFILL_DAYS, lastSuccessAt: ctx.now })));
+    await put([{ type: "heart-rate", backfillDaysDone: 72 }]);
+    expect((await getSettings(ctx)).import).toEqual({ done: 172, total: BACKFILL_DAYS });
+    await put([{ type: "heart-rate", lastError: "[google] heart-rate: http_503 (HTTP 503)" }]);
+    expect((await getSettings(ctx)).import).toEqual({ done: 172, total: BACKFILL_DAYS });
+    expect((await getShellStatus(ctx)).sync.state).toBe("error");
+    await put([{ type: "heart-rate", backfillDaysDone: BACKFILL_DAYS, lastError: null }]);
+    expect((await getSettings(ctx)).import).toBeNull();
+    expect((await getShellStatus(ctx)).importProgress).toBeUndefined();
   });
 });
 
