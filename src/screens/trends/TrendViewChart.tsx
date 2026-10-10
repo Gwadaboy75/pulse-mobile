@@ -6,7 +6,7 @@ import { Group, Path, RoundedRect, DashPathEffect } from "@shopify/react-native-
 import { DATA_COLORS, deltaTone, partColor, recoveryColor, type GoodDirection } from "@/lib/bands";
 import { formatDay, formatValue, hmm } from "@/lib/format";
 import { ChartFigure, ChartLabel, GridLines, HollowDot, Pill, PlotCanvas, wholeTick } from "@/ui/charts/ChartFrame";
-import { areaPath, bandCenters, linePath, linearScale } from "@/ui/charts/geometry";
+import { areaPath, bandCenters, barWidth, linePath, linearScale } from "@/ui/charts/geometry";
 import { FadeFill } from "@/ui/charts/paint";
 import type { Palette } from "@/ui/palette";
 import { useTheme } from "@/ui/theme";
@@ -239,5 +239,5 @@ function geometry(m: Model, chart: TrendViewChartProps["chart"], segments: Trend
     const [a, b] = [x0 + step * idx[0], x0 + step * (idx.at(-1)! + 1)];
     return [{ month: s.month, value: s.value, change: s.change, x1: a, x2: b, mid: (a + b) / 2, cy: y(s.value), tone: s.change === null || s.change === 0 ? ("neutral" as const) : deltaTone(direction, s.change, 0).tone }];
   });
-  return { x0, x1, y0, y1, y, xs, step, bw: Math.min(MAX_BAR, step * 0.9), floor: y(Math.max(0, m.domain[0])), draws, segs };
+  return { x0, x1, y0, y1, y, xs, step, bw: barWidth(step, 0.1, MAX_BAR), floor: y(Math.max(0, m.domain[0])), draws, segs };
 }

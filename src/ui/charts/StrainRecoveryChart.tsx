@@ -5,7 +5,7 @@ import { alpha } from "../color";
 import { Skeleton } from "../Skeleton";
 import { useTheme } from "../theme";
 import { ChartFigure, ChartLabel, GridLines, HollowDot, PlotCanvas } from "./ChartFrame";
-import { bandCenters, linePath, linearScale } from "./geometry";
+import { bandCenters, barWidth, linePath, linearScale } from "./geometry";
 import { StrokePath } from "./paint";
 
 export type StrainRecoveryPoint = { day: string; strain: number | null; recovery: number | null };
@@ -74,7 +74,7 @@ export function StrainRecoveryChart({ points, today }: { points: StrainRecoveryP
         const y0 = margin.top;
         const y1 = height - margin.bottom - 40;
         const { step, centers } = bandCenters(rows.length, x0, x1, 0.18);
-        const bw = step * (1 - 0.18);
+        const bw = barWidth(step, 0.18);
         const ys = linearScale([0, 21], [y1, y0]);
         const yr = linearScale([0, 100], [y1, y0]);
         const rec = rows.map((r, i) => ({ x: centers[i], y: r.recovery === null ? null : yr(r.recovery) }));

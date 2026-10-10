@@ -5,7 +5,7 @@ import { formatValue, type FormatKey } from "@/lib/format";
 import { alpha } from "../color";
 import { Skeleton } from "../Skeleton";
 import { useTheme } from "../theme";
-import { bandCenters, linearScale, nearestIndex, ticksIn } from "./geometry";
+import { bandCenters, barWidth, linearScale, nearestIndex, ticksIn } from "./geometry";
 import { ChartFigure, ChartLabel, DashedLine, GridLines, labelGutter, Pill, PlotCanvas, ScrubLayer, ScrubTick, TooltipCard, TooltipLine } from "./ChartFrame";
 
 export type Column = {
@@ -56,7 +56,7 @@ export function ColumnChart({ summary, data, format, unit, tickEvery = 1, refere
         const top = max || 1;
         const y = linearScale([0, top], [y1, y0]);
         const { step, centers } = bandCenters(data.length, x0, x1, 0.1);
-        const bw = Math.min(MAX_BAR, step * 0.9);
+        const bw = barWidth(step, 0.1, MAX_BAR);
         const active = x === null ? -1 : nearestIndex(centers, x);
         const a = data[active];
         return (

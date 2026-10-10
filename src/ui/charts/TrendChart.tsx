@@ -17,7 +17,7 @@ import { EmptyState } from "../shells/EmptyState";
 import { MetricState } from "../shells/MetricState";
 import { useOptionalShellCalendar } from "../shells/ShellStatus";
 import { ChartFigure, ChartLabel, DashedLine, GlowDot, GridLines, labelGutter, Pill, PlotCanvas, ScrubLayer, ScrubTick, wholeTick, xTickY, yTickX } from "./ChartFrame";
-import { areaPath, bandCenters, evenTicks, linePath, linearScale, nearestIndex, preserveStartEnd, tickTextWidth } from "./geometry";
+import { areaPath, bandCenters, barWidth, evenTicks, linePath, linearScale, nearestIndex, preserveStartEnd, tickTextWidth } from "./geometry";
 import { bandPaint, FadeFill, StrokePath } from "./paint";
 
 export type TrendPoint = {
@@ -156,7 +156,7 @@ function Trend({ points, p }: { points: TrendPoint[]; p: TrendChartProps }) {
             // X: a line runs edge to edge (a point scale); bars sit in category bands.
             const band = bandCenters(rows.length, x0, x1, 0.1);
             const xs = line ? rows.map((_, i) => (rows.length === 1 ? (x0 + x1) / 2 : x0 + (i * (x1 - x0)) / (rows.length - 1))) : band.centers;
-            const bw = Math.min(MAX_BAR, band.step * 0.9);
+            const bw = barWidth(band.step, 0.1, MAX_BAR);
             const candidates =
               range === "w"
                 ? rows.map((_, i) => i)

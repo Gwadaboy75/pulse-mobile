@@ -15,6 +15,15 @@ export function linearScale(domain: [number, number], range: [number, number]): 
 }
 
 /** Evenly spaced centres for `n` category columns across [x0, x1] (Recharts' band scale): column width, centres. */
+/**
+ * A bar's width in its band, as Recharts sizes a single bar series: the band less `gap` (barCategoryGap, 10 % by
+ * default) on each side, rounded to whole pixels above 1, capped at `max` (maxBarSize).
+ */
+export function barWidth(band: number, gap = 0.1, max = Infinity) {
+  const size = band - 2 * band * gap;
+  return Math.min(size > 1 ? Math.round(size) : size, max);
+}
+
 export function bandCenters(n: number, x0: number, x1: number, gapRatio = 0.1) {
   const step = (x1 - x0) / Math.max(1, n);
   return { step, centers: Array.from({ length: n }, (_, i) => x0 + step * (i + 0.5)), gap: step * gapRatio };
