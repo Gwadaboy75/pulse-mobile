@@ -72,3 +72,8 @@ project in Expo Go instead. On iPhone, the App Store's Expo Go stops at SDK 54, 
 
 SQLite turns foreign keys off for every new connection. `src/data/db.ts` runs `PRAGMA foreign_keys = ON` right after
 opening the database, so deleting a sleep session also deletes its segments.
+
+## SHA-1 and text order on Hermes
+
+Hermes has no `node:crypto`, so the pipeline's stage-1 and journal-impact keys use `sha1` from `@noble/hashes/legacy.js` (pure JS, same hex; `src/pipeline/data.test.ts` checks it against Node).
+`localeCompare` follows the platform's collation (Hermes differs from V8), so the pipeline sorts ids with `byteCompare` (the database's "C" order); the same test proves both orders agree on every fixture id. `src/core` still calls `localeCompare` on days and tags (reports.ts:103, journalImpact.ts:133): a fix belongs in pulse first.
