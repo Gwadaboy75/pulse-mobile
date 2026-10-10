@@ -1,7 +1,8 @@
 // The person's profile (one row). Replaces the database parts of pulse src/server/profile.ts. Resolving max HR
 // (Tanaka) and the Google height fallback (`dailyRepo.googleHeight`) stays in the port's `getProfile`.
+import { eq } from "drizzle-orm";
+import { profile } from "../schema";
 import type { Db } from "../types";
-import { todo } from "./todo";
 
 /** The stored row. `maxHr` null means estimate it from age. */
 export type ProfileRow = {
@@ -29,10 +30,24 @@ export interface ProfileRepo {
   saveProfile(input: ProfileInput, now: number): Promise<boolean>;
 }
 
-export function profileRepo(_db: Db): ProfileRepo {
+export function profileRepo(db: Db): ProfileRepo {
+  const p = profile;
+  const read = () => db.select({ birthDate: p.birthDate, sex: p.sex, maxHr: p.maxHr, heightCm: p.heightCm, timeZone: p.timeZone, updatedAt: p.updatedAt }).from(p).where(eq(p.id, 1)).all()[0] ?? null;
   return {
-    getProfileRow: async () => todo("profileRepo.getProfileRow"),
-    userTimeZone: async () => todo("profileRepo.userTimeZone"),
-    saveProfile: async () => todo("profileRepo.saveProfile"),
+    async getProfileRow() {
+      return read();
+    },
+    async userTimeZone() {
+      return db.select({ tz: p.timeZone }).from(p).where(eq(p.id, 1)).all()[0]?.tz ?? null;
+    },
+    async saveProfile(input, now) {
+      const before = read();
+      if (before && before.birthDate === input.birthDate && before.sex === input.sex && before.maxHr === input.maxHr && before.heightCm === input.heightCm && before.timeZone === input.timeZone) {
+        return false;
+      }
+      const row = { ...input, updatedAt: now };
+      db.insert(p).values({ id: 1, ...row }).onConflictDoUpdate({ target: p.id, set: row }).run();
+      return true;
+    },
   };
 }

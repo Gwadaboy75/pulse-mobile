@@ -28,9 +28,4 @@ describe("schema", () => {
     expectTypeOf<ReturnType<typeof drizzleExpo<typeof schema>>>().toExtend<Db>();
     expect(Object.keys(createRepos(node))).toEqual(["samples", "series", "scores", "daily", "sessions", "journal", "log", "profile", "settings", "coach"]);
   });
-
-  it("stubs throw until implemented", async () => {
-    const repos = createRepos(drizzle(new Database(":memory:"), { schema }));
-    await expect(repos.samples.readHr(0, 1)).rejects.toThrow("not implemented: samplesRepo.readHr");
-  });
 });

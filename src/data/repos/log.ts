@@ -2,8 +2,11 @@
 // other apps. Replaces the database parts of pulse src/server/log.ts. The Google write path, `describeEntry` and the
 // import/prune orchestration stay in the port; this repository stores and reads. A few reads join daily_values and
 // sync_state (read-only here; those tables belong to `daily` and `settings`).
+import { and, asc, eq, gte, inArray, lt, lte, or, sql } from "drizzle-orm";
+import { addDays } from "../../time";
+import { dailyValues, loggedEntries, syncState } from "../schema";
 import type { Db } from "../types";
-import { todo } from "./todo";
+import { atomic, chunks, jsonText } from "./sql";
 
 /** `source`: "pulse" logged in Pulse, "google" logged in another app and brought home by the sync. `data` depends on `type` (src/lib/log.ts). */
 export type LoggedEntryRow = {
@@ -55,18 +58,92 @@ export interface LogRepo {
   foodOn(day: string): Promise<Food | null>;
 }
 
-export function logRepo(_db: Db): LogRepo {
+export function logRepo(db: Db): LogRepo {
+  const l = loggedEntries;
+  const v = dailyValues;
+  const read = (id: string) => db.select().from(l).where(eq(l.id, id)).all()[0] as LoggedEntryRow | undefined;
+
+  /** Pulse-logged entries of `types` not yet in Google's roll-up: created after that type's last successful sync (0 when never). */
+  const pending = (types: string[], where: ReturnType<typeof and>) => {
+    const synced = new Map(db.select({ type: syncState.type, at: syncState.lastSuccessAt }).from(syncState).where(inArray(syncState.type, types)).all().map((r) => [r.type, r.at ?? 0]));
+    return (db.select().from(l).where(and(where, eq(l.source, "pulse"), inArray(l.type, types))).all() as LoggedEntryRow[]).filter((r) => r.createdAt > (synced.get(r.type) ?? 0));
+  };
+  const num = (data: unknown, k: string) => {
+    const x = Number((data as Record<string, unknown> | null)?.[k]);
+    return Number.isFinite(x) ? x : 0;
+  };
+  const sum = (rows: LoggedEntryRow[], k: string) => rows.reduce((a, r) => a + num(r.data, k), 0);
+
   return {
-    insertEntry: async () => todo("logRepo.insertEntry"),
-    entryById: async () => todo("logRepo.entryById"),
-    updateEntry: async () => todo("logRepo.updateEntry"),
-    deleteEntry: async () => todo("logRepo.deleteEntry"),
-    deleteEntries: async () => todo("logRepo.deleteEntries"),
-    heldEntries: async () => todo("logRepo.heldEntries"),
-    entriesOnDay: async () => todo("logRepo.entriesOnDay"),
-    entriesOn: async () => todo("logRepo.entriesOn"),
-    waterOn: async () => todo("logRepo.waterOn"),
-    totalsBetween: async () => todo("logRepo.totalsBetween"),
-    foodOn: async () => todo("logRepo.foodOn"),
+    async insertEntry(entry) {
+      db.insert(l).values({ ...entry, source: entry.source ?? "pulse", app: entry.app ?? null }).run();
+    },
+    async entryById(id) {
+      return read(id) ?? null;
+    },
+    async updateEntry(id, patch) {
+      const held = read(id);
+      if (!held) return;
+      const set: LoggedEntryPatch = {};
+      if (patch.ts !== undefined && patch.ts !== held.ts) set.ts = patch.ts;
+      if (patch.day !== undefined && patch.day !== held.day) set.day = patch.day;
+      if (patch.app !== undefined && patch.app !== held.app) set.app = patch.app;
+      if (patch.googleName !== undefined && patch.googleName !== held.googleName) set.googleName = patch.googleName;
+      if (patch.data !== undefined && jsonText(patch.data) !== jsonText(held.data)) set.data = patch.data;
+      if (Object.keys(set).length) db.update(l).set(set).where(eq(l.id, id)).run();
+    },
+    async deleteEntry(id) {
+      db.delete(l).where(eq(l.id, id)).run();
+    },
+    async deleteEntries(ids) {
+      atomic(db, () => {
+        for (const part of chunks(ids, 500)) db.delete(l).where(inArray(l.id, part)).run();
+      });
+    },
+    async heldEntries(type, from, to) {
+      return db.select().from(l).where(and(eq(l.type, type), gte(l.ts, from), lt(l.ts, to))).all() as LoggedEntryRow[];
+    },
+    async entriesOnDay(day) {
+      return db
+        .select()
+        .from(l)
+        .where(or(eq(l.day, day), and(eq(l.type, "menstrual-period"), sql`json_extract(${l.data}, '$.start') <= ${day}`, sql`json_extract(${l.data}, '$.end') >= ${day}`)))
+        .orderBy(asc(l.ts), asc(l.createdAt))
+        .all() as LoggedEntryRow[];
+    },
+    async entriesOn(type, day) {
+      return db.select().from(l).where(and(eq(l.type, type), eq(l.day, day))).orderBy(asc(l.ts), asc(l.createdAt)).all() as LoggedEntryRow[];
+    },
+
+    async waterOn(day) {
+      const [r] = db.select({ value: v.value }).from(v).where(and(eq(v.day, day), eq(v.key, "water"))).all();
+      return (r?.value ?? 0) + sum(pending(["hydration-log"], eq(l.day, day)), "ml");
+    },
+
+    async totalsBetween(from, to) {
+      const synced = db
+        .select({ day: v.day, key: v.key, value: v.value })
+        .from(v)
+        .where(and(gte(v.day, from), lte(v.day, to), inArray(v.key, ["water", "calories_in"])))
+        .all();
+      const mine = pending(["hydration-log", "nutrition-log"], and(gte(l.day, from), lte(l.day, to)));
+      const out: DayTotals[] = [];
+      for (let day = from; day <= to; day = addDays(day, 1)) {
+        const value = (key: string) => synced.find((x) => x.day === day && x.key === key)?.value ?? null;
+        const entries = (type: string) => mine.filter((x) => x.day === day && x.type === type);
+        const total = (s: number | null, es: LoggedEntryRow[], k: string) => (s === null && !es.length ? null : Math.round((s ?? 0) + sum(es, k)));
+        out.push({ day, water: total(value("water"), entries("hydration-log"), "ml"), kcal: total(value("calories_in"), entries("nutrition-log"), "kcal") });
+      }
+      return out;
+    },
+
+    async foodOn(day) {
+      const rows = db.select({ key: v.key, value: v.value }).from(v).where(and(eq(v.day, day), inArray(v.key, ["calories_in", "protein", "carbs", "fat"]))).all();
+      const mine = pending(["nutrition-log"], eq(l.day, day));
+      if (!rows.length && !mine.length) return null;
+      const synced = (key: string) => rows.find((r) => r.key === key)?.value ?? 0;
+      const add = (a: number, b: number) => Math.round((a + b) * 10) / 10;
+      return { kcal: Math.round(synced("calories_in") + sum(mine, "kcal")), protein: add(synced("protein"), sum(mine, "protein")), carbs: add(synced("carbs"), sum(mine, "carbs")), fat: add(synced("fat"), sum(mine, "fat")) };
+    },
   };
 }

@@ -80,3 +80,19 @@ The Google client uses the global `fetch`, as Node does, but React Native's `Abo
 ## Ids without `node:crypto`
 
 Pulse made log-entry ids with node's `randomUUID`. Hermes has `crypto.randomUUID` only when a polyfill adds it, so `src/google/log.ts` uses it when present and otherwise builds a version 4 shaped id from `Math.random`. The ids are local keys, not secrets; callers can inject a better `newId`.
+
+## Repositories run on a synchronous drizzle database
+
+The repositories take one `Db` type (drizzle's synchronous SQLite database). `expo-sqlite` runs under it in the app and `better-sqlite3` in Node tests, so the same code is tested in Node and shipped to the phone. Each method is `async` to keep the interface the pipeline already expects, but its SQL runs synchronously: that makes a multi-statement method atomic inside the one JS thread. `src/data/testing.ts` opens an in-memory database with the migrations applied.
+
+## One connection, a queue and savepoints
+
+React Native has one SQLite connection, and drizzle's `db.transaction` cannot take an async callback on it. `Store.transaction` sends `BEGIN IMMEDIATE`, awaits your callback, then `COMMIT` or `ROLLBACK`, and starts the next transaction only when the last has ended. Methods that need several statements to land together use a `SAVEPOINT` instead, which works alone and nested inside a transaction.
+
+## Sample BLOBs
+
+A day of heart rate is about 37,000 samples. Pulse kept them as Postgres arrays; here they are two BLOBs: second offsets as delta-encoded varints (a gap under 128 s is one byte) and bpm as one byte each, about 74 KB a day. Steps per minute can exceed 255, so their values are varints too. A `BLOB` is a `Uint8Array` in React Native (there is no Node `Buffer`).
+
+## "Write nothing when unchanged" without `IS DISTINCT FROM`
+
+SQLite has no `IS DISTINCT FROM`, but `IS NOT` compares null-safely. A repeat sync uses `INSERT ... ON CONFLICT DO UPDATE ... WHERE col IS NOT excluded.col`, so an unchanged row is not written (SQLite's `total_changes()` stays put, which the tests assert). JSON columns are compared as their text.

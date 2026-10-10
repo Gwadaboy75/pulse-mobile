@@ -1,8 +1,10 @@
 // Google's daily rows: daily_metrics (the scored daily values), daily_values (shown-only roll-ups, plus 'latest'
 // height) and health_records (ECG, irregular rhythm). Replaces the daily parts of pulse pipeline/data.ts,
 // queries/common.ts, queries/{health,log}.ts, profile.ts and sources/google/sync.ts. Every write is diff-only.
+import { and, asc, desc, eq, gte, isNotNull, lte } from "drizzle-orm";
+import { dailyMetrics, dailyValues, healthRecords } from "../schema";
 import type { Db } from "../types";
-import { todo } from "./todo";
+import { atomic, upsertChanged } from "./sql";
 
 /** A whole daily_metrics row. */
 export type DailyMetricsRow = {
@@ -88,19 +90,82 @@ export interface DailyRepo {
   clearSynced(): Promise<void>;
 }
 
-export function dailyRepo(_db: Db): DailyRepo {
+export function dailyRepo(db: Db): DailyRepo {
+  const m = dailyMetrics;
+  const v = dailyValues;
+  const h = healthRecords;
   return {
-    readMetrics: async () => todo("dailyRepo.readMetrics"),
-    readMetricsBetween: async () => todo("dailyRepo.readMetricsBetween"),
-    readValuesBetween: async () => todo("dailyRepo.readValuesBetween"),
-    upsertDailyMetrics: async () => todo("dailyRepo.upsertDailyMetrics"),
-    upsertDailyValues: async () => todo("dailyRepo.upsertDailyValues"),
-    upsertHealthRecords: async () => todo("dailyRepo.upsertHealthRecords"),
-    googleHeight: async () => todo("dailyRepo.googleHeight"),
-    valueReadings: async () => todo("dailyRepo.valueReadings"),
-    metricReadings: async () => todo("dailyRepo.metricReadings"),
-    recentWeights: async () => todo("dailyRepo.recentWeights"),
-    healthRecordsUpTo: async () => todo("dailyRepo.healthRecordsUpTo"),
-    clearSynced: async () => todo("dailyRepo.clearSynced"),
+    async readMetrics() {
+      return db
+        .select({
+          day: m.day, hrvMs: m.hrvMs, rhrBpm: m.rhrBpm, respBpm: m.respBpm, nightlyTempC: m.nightlyTempC, spo2Pct: m.spo2Pct,
+          vo2maxDaily: m.vo2maxDaily, vo2maxRun: m.vo2maxRun, steps: m.steps, calories: m.calories, weightKg: m.weightKg,
+          bodyFatPct: m.bodyFatPct, hrZones: m.hrZones, lightModerateMin: m.lightModerateMin, vigorousPeakMin: m.vigorousPeakMin,
+          tempBaselineC: m.tempBaselineC, tempSdC: m.tempSdC, rhrRangeLow: m.rhrRangeLow, rhrRangeHigh: m.rhrRangeHigh,
+          hrvRangeLow: m.hrvRangeLow, hrvRangeHigh: m.hrvRangeHigh,
+        })
+        .from(m)
+        .orderBy(asc(m.day))
+        .all();
+    },
+    async readMetricsBetween(from, to) {
+      return db
+        .select({
+          day: m.day, hrvMs: m.hrvMs, rhrBpm: m.rhrBpm, respBpm: m.respBpm, nightlyTempC: m.nightlyTempC, spo2Pct: m.spo2Pct,
+          vo2maxDaily: m.vo2maxDaily, vo2maxRun: m.vo2maxRun, steps: m.steps, calories: m.calories, weightKg: m.weightKg,
+          bodyFatPct: m.bodyFatPct, lightModerateMin: m.lightModerateMin, vigorousPeakMin: m.vigorousPeakMin, tempSdC: m.tempSdC,
+        })
+        .from(m)
+        .where(and(gte(m.day, from), lte(m.day, to)))
+        .all();
+    },
+    // daily_values.day is text ('latest' sorts after every date, so the range already excludes it).
+    async readValuesBetween(from, to) {
+      return db.select({ day: v.day, key: v.key, value: v.value }).from(v).where(and(gte(v.day, from), lte(v.day, to))).all();
+    },
+
+    async upsertDailyMetrics(rows) {
+      return atomic(db, () => upsertChanged(db, m, ["day"], rows)).map((r) => r.day as string);
+    },
+    async upsertDailyValues(rows) {
+      return atomic(db, () => upsertChanged(db, v, ["day", "key"], rows)).length;
+    },
+    async upsertHealthRecords(rows) {
+      return atomic(db, () => upsertChanged(db, h, ["id"], rows)).length;
+    },
+
+    async googleHeight() {
+      const [r] = db.select({ v: v.value }).from(v).where(and(eq(v.day, "latest"), eq(v.key, "height_cm"))).all();
+      return r?.v ?? null;
+    },
+    async valueReadings(key) {
+      return db.select({ day: v.day, value: v.value }).from(v).where(eq(v.key, key)).orderBy(desc(v.day)).all();
+    },
+    async metricReadings(column) {
+      const col = m[column];
+      const rows = db.select({ day: m.day, value: col }).from(m).where(isNotNull(col)).orderBy(desc(m.day)).all();
+      return rows as { day: string; value: number }[];
+    },
+    async recentWeights(from, to, limit) {
+      const rows = db
+        .select({ day: m.day, kg: m.weightKg })
+        .from(m)
+        .where(and(gte(m.day, from), lte(m.day, to), isNotNull(m.weightKg)))
+        .orderBy(desc(m.day))
+        .limit(limit)
+        .all();
+      return rows as { day: string; kg: number }[];
+    },
+    async healthRecordsUpTo(day) {
+      return db.select().from(h).where(lte(h.day, day)).orderBy(desc(h.ts)).all();
+    },
+
+    async clearSynced() {
+      atomic(db, () => {
+        db.delete(m).run();
+        db.delete(v).run();
+        db.delete(h).run();
+      });
+    },
   };
 }
