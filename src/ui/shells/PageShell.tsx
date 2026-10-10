@@ -63,7 +63,7 @@ export function PageShell({ title, dateSwitcher, actions, layout = "stack", slot
   // The sync status sits at the right of every tab root's header, the streak beside Home's avatar (the web's TopBar and HomeHeader).
   const streak = useShellSync()?.streak?.days;
   const right = headerRight ?? <SyncStatus />;
-  const header = home ? <HomeHeader rings={rings} progress={progress} right={right} streak={streak} /> : <TitleHeader title={title} dateSwitcher={dateSwitcher} right={right} />;
+  const header = home ? <HomeHeader rings={rings} progress={progress} right={headerRight} streak={streak} /> : <TitleHeader title={title} dateSwitcher={dateSwitcher} right={right} />;
   return (
     <ScreenScroll header={header} top={top} onScroll={onScroll} onRefresh={onRefresh}>
       <View className="w-full px-4 pt-2" accessibilityState={{ busy: !!loading }}>

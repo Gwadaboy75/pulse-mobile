@@ -1,4 +1,4 @@
-import { useWindowDimensions, View } from "react-native";
+import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { useAnimatedStyle, useDerivedValue, type DerivedValue } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
@@ -13,6 +13,9 @@ import { useTheme } from "../theme";
 import { DateSwitcher, useSelectedDay } from "./DateSwitcher";
 import { HEADER_ROW, HeaderFrame } from "./Header";
 import { useShellCalendar } from "./ShellStatus";
+import { useNarrow } from "./layout";
+import { SyncStatus } from "./SyncStatus";
+import { cn } from "../cn";
 import { push } from "../navigate";
 import { Press } from "../Press";
 
@@ -72,14 +75,17 @@ export function HomeHeader({ rings, progress, right, streak }: { rings?: HeaderR
   const { c } = useTheme();
   const top = useSafeAreaInsets().top;
   // The web's --u scales the avatar and streak pill as one, stepping down on narrow phones (spec §11 M4, M6).
-  const width = useWindowDimensions().width;
-  const u = width >= 400 ? 0.76 : width >= 356 ? 0.7 : 0.64;
+  const { lt356, lt380, lt400 } = useNarrow();
+  const u = !lt400 ? 0.76 : !lt356 ? 0.7 : 0.64;
+  const streakShown = !!streak && d === today;
   return (
     <HeaderFrame expanded={expanded} extra={RING_ROW}>
       {/* As tall as both rows, so the ring row is inside its parent's bounds (Android only delivers touches there); the empty part passes taps through. */}
       <View pointerEvents="box-none" style={{ height: HEADER_ROW + RING_ROW }} className="px-4">
-        {/* Equal side tracks keep the pill centred; each is at least its content. */}
-        <View className="h-11 flex-row items-center gap-2">
+        {/* Equal side tracks keep the pill centred. Below 400 px the gaps tighten; below 380 px, on days without the streak
+            (past days, whose labels run to "Mon, Sep 28"), the sync text gives way so the pill still fits centred (the web's
+            max-[380px] rule, spec §11 M4). */}
+        <View className={cn("h-11 flex-row items-center", lt400 ? "gap-1" : "gap-2")}>
           <View className="flex-1 flex-row items-center">
             {/* The avatar: the outline person glyph on a disc of the page ground (its 3 px ring cuts the streak pill where the
                 reference app's does), over the pill's left end (the web's Avatar and Streak). */}
@@ -94,7 +100,7 @@ export function HomeHeader({ rings, progress, right, streak }: { rings?: HeaderR
               <Icon icon={CircleUserRound} size={40 * u} tone="foreground" strokeWidth={1.5} />
             </Press>
             {/* Past days show no streak. */}
-            {!!streak && d === today && (
+            {streakShown && (
               <View
                 accessible
                 accessibilityLabel={`${streak}-day streak`}
@@ -109,7 +115,7 @@ export function HomeHeader({ rings, progress, right, streak }: { rings?: HeaderR
             )}
           </View>
           <DateSwitcher mode="day" narrow />
-          <View className="flex-1 flex-row items-center justify-end">{right}</View>
+          <View className="flex-1 flex-row items-center justify-end">{right ?? <SyncStatus hideText={lt380 && !streakShown} />}</View>
         </View>
         <Animated.View style={[row, { position: "absolute", left: 0, right: 0, top: HEADER_ROW, height: RING_ROW, flexDirection: "row", paddingHorizontal: 16 }]}>
           {RING_ORDER.map(({ key, label }) => {
@@ -117,10 +123,11 @@ export function HomeHeader({ rings, progress, right, streak }: { rings?: HeaderR
             const value = ring?.value ?? null;
             return (
               <View key={key} className="flex-1 items-center">
-                <Press activeScale={0.96} accessibilityRole="link" accessibilityLabel={ringLabel(key, label, value)} onPress={() => push(ring?.href ?? `/${key}`)} className="h-10 flex-row items-center justify-center gap-2 rounded-full px-2">
+                <Press activeScale={0.96} accessibilityRole="link" accessibilityLabel={ringLabel(key, label, value)} onPress={() => push(ring?.href ?? `/${key}`)} className={cn("h-10 flex-row items-center justify-center rounded-full px-2", lt380 ? "gap-1.5" : "gap-2")}>
                   <MiniRing variant={key} value={value} />
-                  {/* 11 px, the reference app's ring-row label (spec §11 F5). */}
-                  <Text className="text-[11px] font-bold uppercase leading-4 tracking-[0.1em]">{label}</Text>
+                  {/* 11 px, the reference app's ring-row label (spec §11 F5). One word: it never wraps; at 320 px "Recovery"
+                      overflows its third by 5 px a side into the neighbours' slack, as the web's column outgrows 1fr. */}
+                  <Text className="whitespace-nowrap text-[11px] font-bold uppercase leading-4 tracking-[0.1em]">{label}</Text>
                 </Press>
               </View>
             );

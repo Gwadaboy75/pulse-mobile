@@ -113,8 +113,9 @@ function Rows({ night, selected, onSelect, restorative }: { night: SleepStagesNi
       <View className="flex-row items-baseline justify-between gap-2">
         {tab === "breakdown" ? (
           // Baseline-aligned like the web's span, the swatch centred: the group's baseline is then the label's, so it
-          // lines up with "Duration 6:59" (a row's baseline is its first baseline-aligned child's).
-          <View className="flex-row items-baseline gap-2">
+          // lines up with "Duration 6:59" (a row's baseline is its first baseline-aligned child's). It shrinks (the label
+          // wraps) where "Duration 6:59" cannot: at 320 px the row is 9 px short.
+          <View className="shrink flex-row items-baseline gap-2">
             <View className={cn("h-4 w-3.5 self-center", RANGE_BOX)} />
             <Text className={cn(LABEL, "text-foreground-secondary")}>Typical range</Text>
           </View>

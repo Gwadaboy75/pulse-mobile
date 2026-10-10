@@ -102,7 +102,8 @@ function IllnessAlert() {
   const { c } = useTheme();
   return (
     <Card ring={alpha(c["recovery-red"], 0.6)} className="flex-row gap-3 px-4 py-3">
-      <View accessibilityRole="alert" className="flex-row gap-3">
+      {/* min-w-0 flex-1: the card's width, so the sentence wraps in it (an auto-width row would size it to its content). */}
+      <View accessibilityRole="alert" className="min-w-0 flex-1 flex-row gap-3">
         <View className="mt-px">
           <Icon icon={CircleAlert} size={20} tone="recovery-red-text" strokeWidth={1.75} />
         </View>

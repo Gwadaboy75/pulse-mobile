@@ -24,15 +24,16 @@ export function TonightPlan({ plan, timeZone }: { plan: SleepPlanVM; timeZone: s
   const [width, setWidth] = useState(0);
   const chosen = plan.plans.find((p) => p.key === key) ?? plan.plans[0];
   const bed = clock(chosen.bedtimeAt, timeZone);
-  const time = `font-numeric font-bold leading-none tabular-nums ${timeSize(width)}`;
+  const time = `whitespace-nowrap font-numeric font-bold leading-none tabular-nums ${timeSize(width)}`;
   return (
     <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} className="flex-1 gap-4">
       {/* The reference app's "(sunset) 11:20 - - - - (alarm) 8:30" [latest-home-top-1]: two time blocks joined by a dashed rule. */}
       {/* The web's grid is [auto 1fr auto]: each outer column is as wide as the wider of its time block and its label, so
           "Recommended bedtime" takes room from the dashed rule (about 30 px on a phone). The middle column holds a hidden
-          time-high spacer so the rule sits at the times' height. */}
+          time-high spacer so the rule sits at the times' height. Short of room, the grid gives the right column its full
+          width first and the left one shrinks toward "RECOMMENDED" (the label wraps): so the left shrinks, the right does not. */}
       <View className="my-auto flex-row gap-x-3">
-        <View className="gap-1.5">
+        <View className="shrink gap-1.5">
           <View className="flex-row items-center gap-2">
             <Icon icon={Sunset} size={24} tone="foreground-secondary" strokeWidth={1.5} />
             <Text accessibilityLiveRegion="polite" className={time}>{bed}</Text>

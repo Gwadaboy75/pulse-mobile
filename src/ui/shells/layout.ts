@@ -1,3 +1,4 @@
+import { useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /** The tab bar and the round check-in action are 62 px tall (spec §4.2). */
@@ -15,4 +16,13 @@ export function useTabBarBottom() {
 /** The room a scrolling screen leaves at its foot so its last content clears the floating bar (the web's `main` padding-bottom). */
 export function useBottomClearance() {
   return TAB_BAR_HEIGHT + useTabBarBottom() + 24;
+}
+
+/**
+ * The web's phone breakpoints, read off the window width: `max-[380px]:` is `lt380`, `min-[400px]:` is `!lt400`
+ * (Tailwind 4: max-[N] is width < N, min-[N] is width >= N). Use these, not raw widths, so the two apps step together.
+ */
+export function useNarrow() {
+  const { width } = useWindowDimensions();
+  return { width, lt356: width < 356, lt380: width < 380, lt400: width < 400 };
 }

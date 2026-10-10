@@ -32,6 +32,7 @@ import { reasonCopy, type ReasonCode } from "@/lib/reasons";
 import { alpha, parseColor } from "@/ui/color";
 import type { TokenName } from "@/ui/palette";
 import { MetricTags } from "@/ui/metrics/primitives";
+import { useNarrow } from "@/ui/shells/layout";
 import { ReasonPlaceholder } from "@/ui/metrics/ReasonPlaceholder";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
@@ -44,7 +45,7 @@ export type AgeOrbProps = {
   /** Pulse Age minus chronological age; positive is older. */
   deltaYears: number | null;
   provisional?: boolean;
-  /** Box size in px (default 300, compact 108). Below 160 it drops the delta line (Health hub, collapsed header). */
+  /** Box size in px (default 300, compact 108), capped to the page column. Below 160 it drops the delta line (Health hub, collapsed header). */
   size?: number;
   reason?: ReasonCode | null;
   /** The sticky header's mini orb: same colours, the age and label inside, one settled frame (no loop, no touch). */
@@ -414,7 +415,8 @@ const enter = (delay: number) => new Keyframe({ 0: { opacity: 0, transform: [{ t
  * Pulse Age is. Particles gather in on mount, drift at idle, and pull inward and swirl while pressed.
  */
 export function AgeOrb({ age, deltaYears, provisional = false, size: sizeProp, reason, compact = false }: AgeOrbProps) {
-  const size = sizeProp ?? (compact ? 108 : 300);
+  // Never wider than the page column: the 300 px orb would cross the 16 px gutters on a 320 px phone.
+  const size = Math.min(sizeProp ?? (compact ? 108 : 300), useNarrow().width - 32);
   const { c } = useTheme();
   const reduced = useReducedMotion();
 

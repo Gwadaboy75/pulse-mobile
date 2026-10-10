@@ -19,6 +19,11 @@ describe("readFont", () => {
     expect(readFont("line-clamp-2", base).lines).toBe(2);
     expect(readFont("text-sm", base).lines).toBeUndefined();
   });
+  it("shrinks like a CSS flex item unless the classes say otherwise", () => {
+    expect(readFont("text-sm", base).shrink).toBe(1);
+    expect(readFont("text-sm whitespace-nowrap", base)).toMatchObject({ shrink: 0, rest: "text-sm" });
+    for (const c of ["shrink-0", "shrink", "flex-1", "min-w-0 flex-1", "flex-none"]) expect(readFont(c, base).shrink).toBeUndefined();
+  });
   it("maps Barlow's regular to its 500 face, as the web loads it", () => {
     expect(FACES.numeric.regular).toBe("Barlow_500Medium");
   });

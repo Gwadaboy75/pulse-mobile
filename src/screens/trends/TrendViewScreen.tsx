@@ -117,7 +117,7 @@ function Headline({ vm }: { vm: TrendViewVM }) {
     <View className="flex-row items-start gap-x-3">
       <View className="min-w-0 flex-1">
         <Text className={cn(LABEL, "text-muted-foreground")}>{vm.caption}</Text>
-        <ValueUnit value={formatValue(vm.format, vm.value)} unit={vm.format === "duration" ? "hr" : vm.unit} className="font-numeric text-[34px] font-bold leading-10" />
+        <ValueUnit value={formatValue(vm.format, vm.value)} unit={vm.format === "duration" ? "hr" : vm.unit} className="font-numeric text-[34px] font-bold leading-10" fit />
         {vm.change !== null && (
           <StatusChip tone={vm.tone === "good" ? "optimal" : vm.tone === "bad" ? "warning" : "neutral"} delta={vm.change > 0 ? "up" : vm.change < 0 ? "down" : "flat"} className="mt-1">
             {Math.abs(vm.change)}% {priorLabel(vm.range)}
@@ -131,7 +131,7 @@ function Headline({ vm }: { vm: TrendViewVM }) {
         </View>
         <View accessibilityRole="toolbar" accessibilityLabel="Period" className="flex-row items-center gap-1">
           <PeriodStep dir="prev" enabled={vm.canPrev} onPress={() => go({ p: vm.offset + 1 })} className={arrow} color={c.foreground} dim={c["muted-foreground"]} />
-          <Text className="font-numeric text-[13px] font-bold uppercase leading-4 tracking-[0.06em] tabular-nums">{vm.period}</Text>
+          <Text className="whitespace-nowrap font-numeric text-[13px] font-bold uppercase leading-4 tracking-[0.06em] tabular-nums">{vm.period}</Text>
           <PeriodStep dir="next" enabled={vm.offset > 0} onPress={() => go({ p: vm.offset - 1 })} className={arrow} color={c.foreground} dim={c["muted-foreground"]} />
         </View>
       </View>

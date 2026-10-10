@@ -71,7 +71,7 @@ function DataTypes({ rows, now }: { rows: SettingsVM["sync"]; now: number }) {
         className="min-h-13 flex-row items-center justify-between gap-3 rounded-md py-2"
       >
         <Text className={ROW_LABEL}>Data types</Text>
-        <View className="flex-row items-center gap-2">
+        <View className="shrink flex-row items-center gap-2">
           <Text className={cn("text-[13px] leading-[18px]", failing ? "text-recovery-red-text" : behind ? "text-warning-text" : "text-muted-foreground")}>{summary}</Text>
           <Animated.View style={chevron}>
             <Icon icon={ChevronDown} size={16} tone="muted-foreground" strokeWidth={2} />
