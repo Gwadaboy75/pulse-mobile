@@ -101,7 +101,7 @@ export function ScreenScroll({ header, top, onScroll, bottomPad, healthspan, onR
     }
   };
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1 bg-background" style={{ backgroundColor: c.background }}>
       {/* What the check-in button's glass blurs on Android (iOS blurs what is behind it by itself). */}
       <BlurTargetView ref={blurTarget} style={StyleSheet.absoluteFill}>
         <Ground healthspan={!!healthspan} />

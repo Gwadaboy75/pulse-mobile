@@ -337,3 +337,13 @@ flowchart LR
 - **Left as is.** Skia (`librnskia.so`, 10.8 MB, 4.4 MB compressed) is the largest library; it ships one prebuilt
   build and has no smaller variant. Expo Router's native stack imports `expo-symbols`, which bundles the 0.9 MB Material
   Symbols font on Android. `@expo/ui` brings Jetpack Compose for the one date field.
+
+## Android screen transitions
+
+The native stack uses `slide_from_right` on Android. Each incoming screen paints an opaque token background.
+Screen queries wait for the native opening `transitionEnd` event, instead of a guessed timeout, and hidden screens
+wait until focused to reload. Sync progress has its own signal, so its 4-second poll updates status instead of
+rerunning every screen query. Development logs measure transition duration, JS callback gaps and query load time;
+`dumpsys gfxinfo` measures native frame deadlines. JS callback gaps alone do not measure native animation frames.
+
+Docs: [SDK 57](https://docs.expo.dev/versions/v57.0.0/), [Stack](https://docs.expo.dev/router/advanced/stack/).

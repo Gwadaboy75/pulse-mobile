@@ -7,7 +7,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as SystemUI from "expo-system-ui";
 import { StatusBar } from "expo-status-bar";
-import { Text, View } from "react-native";
+import { Platform, Text, View } from "react-native";
 import { Barlow_500Medium } from "@expo-google-fonts/barlow/500Medium";
 import { Barlow_600SemiBold } from "@expo-google-fonts/barlow/600SemiBold";
 import { Barlow_700Bold } from "@expo-google-fonts/barlow/700Bold";
@@ -78,9 +78,7 @@ function Screens({ hasProfile }: { hasProfile: boolean }) {
   return (
     <ThemeProvider value={theme}>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
-      {/* The native stack: detail screens push with the platform's transition, iOS swipe-back from the left edge and the
-          Android back gesture work on every route that is not a root. The headers are the shells' own, so the native one is off. */}
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.background } }}>
+      <Stack screenOptions={{ headerShown: false, animation: Platform.OS === "android" ? "slide_from_right" : "default", contentStyle: { backgroundColor: c.background } }}>
         {/* First run: without a profile the person lands on onboarding and the tabs are out of reach; saving the profile
             flips the guards, and the navigator moves to the tabs (Stack.Protected). Declared first so each is the first screen. */}
         <Stack.Protected guard={!hasProfile}>
