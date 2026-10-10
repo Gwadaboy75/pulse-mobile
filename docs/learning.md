@@ -279,3 +279,29 @@ and Metro bundles every one (Expo's tree shaking would drop them, but it is stil
 index's own export lines as the name map, so aliases resolve and an unknown name fails the bundle. The copied
 `src/lib/reasons.ts` imports the web package, `lucide-react`; the same plugin points it at the native icons. The Android
 bundle drops from 8.6 MB to 6.6 MB.
+
+## App icon and splash: PNGs rendered from `assets/brand`
+
+The icons and the splash image are SVG sources in `assets/brand`, the web's mark geometry (pulse `public/icons/icon-maskable.svg`), rendered once to 1024 px PNGs in `assets/images` with `rsvg-convert` (Homebrew librsvg) and committed:
+
+```sh
+for n in icon icon-tinted android-icon-foreground android-icon-monochrome splash-icon; do
+  rsvg-convert -w 1024 -h 1024 assets/brand/$n.svg -o assets/images/$n.png
+done
+```
+
+- **iOS** takes `ios.icon` as PNG variants: `light` (the web's full-bleed tile on #0f1113, opaque, the system masks it) and `tinted` (white bars on black, which the system tints). With no `dark` variant iOS shows the light icon in dark mode, which is already dark.
+- **Android** adaptive icons draw a 108 dp layer and show its central 72 dp. The foreground's viewBox `-6 -6 36 36` maps the web's 24-unit tile onto those 72 dp, so the mark has the iOS icon's proportions (45 dp tall) and stays well inside the 66 dp safe circle. The background is `backgroundColor` #0f1113; `monochromeImage` (white bars) feeds Android 13+ themed icons.
+- **Splash.** `expo-splash-screen` centres a square `imageWidth` box (64 pt on iOS, 64 dp inside Android 12's 288 dp icon canvas) on the whole window. `splash-icon.svg` has the mark's own viewBox `4.5 4.5 15 15`, so the mark fills the box's height. The ground is #101518 in dark mode and #f6f8f9 in light, the web's launch screens.
+
+## Opening: a JS overlay that takes over from the native splash
+
+`src/screens/Opening.tsx` is mounted over the app from the first render and draws the native splash's picture: the scheme's splash colour, the mark 64 tall at the window's centre (Android is edge-to-edge, so the root view is the whole window on both platforms). When the app is ready and the overlay has laid out, it calls `SplashScreen.hide()` with `setOptions({ duration: 0, fade: false })`, so the native splash goes in one frame over an identical picture. Then the mark plays one lub-dub on the UI thread and the overlay fades, 820 ms in all. With reduce motion the overlay unmounts at the hand-over instead.
+
+## A local Expo module: `modules/google-auth`
+
+Google's Android Authorization API is a Play services library with no Expo or React Native wrapper, so the app carries a small Expo module of its own in `modules/google-auth/`: an `expo-module.config.json` that names the Kotlin class, a `build.gradle` that adds `play-services-auth`, the Kotlin module, and an `index.ts` that loads it with `requireOptionalNativeModule` (null on iOS and in Expo Go). Autolinking finds folders under `modules/` by itself, and `npx expo prebuild` links it into the generated `android/` like any package, so Continuous Native Generation stays intact. Google's consent arrives as a `PendingIntent`; the module launches it through Expo's activity-result registry (`RegisterActivityContracts` with a contract whose intent carries an `IntentSenderRequest`), which is the registry's `startIntentSenderForResult` path. A change to the Kotlin needs a new development build; Fast Refresh only reloads JavaScript.
+
+## The iOS consent sheet: `openAuthSessionAsync`
+
+`expo-web-browser`'s `openAuthSessionAsync(url, redirect)` runs `ASWebAuthenticationSession`: Google's consent in a sheet over the app that closes itself when Google redirects to the app's scheme, here the iOS client's reversed client id (`ios.scheme` in `app.json`). It is not Safari and not a web view inside the app (Google refuses embedded web views). `expo-auth-session` wraps the same call; the app does the PKCE and the token requests itself in `src/google/token.ts`, which keeps them testable in Node.

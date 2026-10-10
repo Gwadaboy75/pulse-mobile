@@ -112,13 +112,11 @@ the UI kit. `docs/screens-check.md` lists what to compare per screen.
 6. **Performance on the phone is unmeasured.** The pipeline now yields every 8 ms (`breathe()` in
    `src/pipeline/data.ts`); in Node a 180-day recompute went from one 1.7 s block to a longest block of about 28 ms.
    Load demo data on the phone and read the timings; judge smoothness on a release build, not Expo Go.
-7. **Google connect is not built.** Google no longer allows custom URI schemes for Android OAuth clients, so the plan's
-   browser redirect cannot work on Android. Recommended: Google's Android `AuthorizationClient` (silent fresh tokens,
-   no secret, no server). The owner asked how Baro does it; Baro documents only that it has no server and calls Google
-   from the phone. Everything waits on this: real data, log writes, live heart rate, Settings' Connect and Sync now.
-   Stubs: `src/google/token.ts` (`TokenSource`), `src/screens/settings/connect.ts`, `src/screens/health/live.ts`,
-   `tokenSource()` in `src/actions/log.ts`. The owner still has to create the OAuth clients (`docs/google-console.md`)
-   and send the client ids.
+7. **Google connect is built, not yet tested on a phone.** Android uses Google's Authorization API through the local
+   Expo module `modules/google-auth` (account sheet and consent over the app, no browser); iOS uses code + PKCE in the
+   in-app auth sheet. The client ids are in `src/google/clients.ts` (project pulse-fit-510502; the Android client is
+   bound to the EAS keystore's SHA-1). Flow and device test steps: `docs/google-console.md` and `docs/onboarding.md`.
+   It works only in a build signed with the EAS keystore (`eas build`, or `eas build --local`), not in Expo Go.
 8. **Smaller known items:** the `/dev` routes ship their fixtures (bundle about 16 MB) and must be stripped from release
    builds; two copied pulse tests are excluded (they import pulse server code); pulse's core still uses `localeCompare`
    in `reports.ts` and `journalImpact.ts` (same order on the fixtures, may differ on Hermes; fix in pulse first); the

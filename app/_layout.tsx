@@ -18,14 +18,17 @@ import { Figtree_700Bold } from "@expo-google-fonts/figtree/700Bold";
 
 import { db } from "@/data/db";
 import migrations from "@/data/migrations/migrations";
+import { Opening } from "@/screens/Opening";
 import { ShellData } from "@/screens/ShellData";
 import { useProfileGate } from "@/screens/onboarding/gate";
 import { AppProviders } from "@/ui/providers";
 import { sheetOptions, type SheetSize } from "@/ui/shells/sheets";
 import { useTheme } from "@/ui/theme";
 
-// Keep the splash screen up until the fonts and the database are ready, so no screen paints in the wrong font.
+// Keep the splash screen up until the fonts and the database are ready, so no screen paints in the wrong font. It then
+// goes without a fade: the opening (src/screens/Opening.tsx) is the same picture underneath and does the motion.
 SplashScreen.preventAutoHideAsync().catch(() => {});
+SplashScreen.setOptions({ duration: 0, fade: false });
 
 export default function RootLayout() {
   // Fonts: Figtree for text, Barlow for numerals, as the web (pulse src/app/layout.tsx). Each weight is its own file
@@ -38,25 +41,26 @@ export default function RootLayout() {
   // A font that fails to load must not strand the app on the splash screen: the text falls back to the system font.
   const fontsDone = fonts || !!fontError;
   const ready = (success || !!error) && fontsDone && (!success || hasProfile !== null);
-  useEffect(() => {
-    if (ready) SplashScreen.hideAsync().catch(() => {});
-  }, [ready]);
 
-  if (error) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background p-6">
-        <Text className="text-destructive">Database migration failed: {error.message}</Text>
-      </View>
-    );
-  }
-  if (!success || !fontsDone || hasProfile === null) return null;
   return (
-    <AppProviders>
-      {/* The calendar's today, first day, zone and month loader, read once for every date switcher. */}
-      <ShellData>
-        <Screens hasProfile={hasProfile} />
-      </ShellData>
-    </AppProviders>
+    <>
+      {error ? (
+        <View className="flex-1 items-center justify-center bg-background p-6">
+          <Text className="text-destructive">Database migration failed: {error.message}</Text>
+        </View>
+      ) : (
+        ready && (
+          <AppProviders>
+            {/* The calendar's today, first day, zone and month loader, read once for every date switcher. */}
+            <ShellData>
+              <Screens hasProfile={!!hasProfile} />
+            </ShellData>
+          </AppProviders>
+        )
+      )}
+      {/* Over everything from the first render; it hides the native splash once the app below can paint. */}
+      <Opening ready={ready} />
+    </>
   );
 }
 
