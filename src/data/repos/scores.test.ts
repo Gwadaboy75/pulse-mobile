@@ -1,18 +1,20 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { testDb, writesOf } from "../testing";
-import type { Stage2Write } from "./scores";
+import type { ReportJson as Report, Stage1Write, Stage2Write } from "./scores";
 
 let t: ReturnType<typeof testDb>;
 beforeEach(() => {
   t = testDb();
 });
-const stage1 = (day: string, key = "k1", sessionRhrBpm: number | null = 52) => ({ day, strain: { key, effort: 12.5, hrCount: 900, hrMinutesAm: 100, hrMinutesPm: 200 }, activities: [{ id: "a" }], sessionRhrBpm });
-const stage2 = (day: string, over: Partial<Stage2Write> = {}): Stage2Write => ({
+const stage1 = (day: string, key = "k1", sessionRhrBpm: number | null = 52) =>
+  ({ day, strain: { key, effort: 12.5, hrCount: 900, hrMinutesAm: 100, hrMinutesPm: 200 }, activities: [{ id: "a" }], sessionRhrBpm }) as unknown as Stage1Write;
+// Opaque stand-ins for the JSON columns: the repository stores and compares them as text, whatever their shape.
+const stage2 = (day: string, over: Record<string, unknown> = {}): Stage2Write => ({
   day, scoringVersion: 7,
   recovery: { value: 71.5, reason: null }, sleep: { s: 1 }, trainingLoad: { l: 1 }, strainTarget: { t: 1 }, sleepPlanner: { p: 1 },
   energyBank: { e: 1 }, stress: { s: 1 }, healthMonitor: { h: 1 }, healthspan: { h: 1 }, fitness: { f: 1 }, journalImpact: { key: "x", impacts: [] },
   ...over,
-});
+} as unknown as Stage2Write);
 
 describe("scores: stage 1", () => {
   it("writes strain, activities and session RHR with version 0, and reads them back", async () => {
@@ -103,7 +105,7 @@ describe("scores: reads", () => {
 
   it("wearDays: heart-rate count and minutes per day, newest first", async () => {
     expect(await t.store.scores.wearDays("2026-10-02")).toEqual([{ day: "2026-10-02", hrCount: 900, hrMinutes: 300 }, { day: "2026-10-01", hrCount: 900, hrMinutes: 300 }]);
-    await t.store.scores.writeStage1([{ day: "2026-10-04", strain: { key: "k" }, activities: [], sessionRhrBpm: null }]);
+    await t.store.scores.writeStage1([{ day: "2026-10-04", strain: { key: "k" }, activities: [], sessionRhrBpm: null } as unknown as Stage1Write]);
     expect((await t.store.scores.wearDays("2026-10-04"))[0]).toEqual({ day: "2026-10-04", hrCount: 0, hrMinutes: 0 });
   });
 
@@ -165,7 +167,7 @@ describe("scores: checkpoint and dirty days", () => {
 });
 
 describe("scores: reports", () => {
-  const report = (days: number, kind: "week" | "month") => ({ kind, days, partial: false });
+  const report = (days: number, kind: "week" | "month") => ({ kind, days, partial: false }) as unknown as Report;
   beforeEach(async () => {
     await t.store.scores.writeReports([
       { period: "2026-W38", data: report(7, "week") }, { period: "2026-W39", data: report(0, "week") }, { period: "2026-W40", data: report(5, "week") },
