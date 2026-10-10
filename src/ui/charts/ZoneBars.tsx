@@ -68,7 +68,7 @@ function Rows({ zones, note, noteLink }: { zones: ZoneRow[]; note?: string; note
   return (
     <View>
       <View accessibilityElementsHidden className="mb-2 flex-row items-baseline justify-between px-1">
-        <View className={cn("flex-row items-center gap-1.5", !typical && "opacity-0")}>
+        <View className={cn("shrink flex-row items-center gap-1.5", !typical && "opacity-0")}>
           <Hatch className="size-2.5 rounded-[2px] border border-border" />
           <Text className={cn(LABEL, "text-muted-foreground")}>Typical range</Text>
         </View>

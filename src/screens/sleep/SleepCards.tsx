@@ -178,7 +178,8 @@ export function SleepConsistency({ vm }: { vm: SleepVM }) {
     <View>
       <View className="flex-row items-end justify-between gap-3">
         <Headline value={cons.pct} stat={vm.summary.find((s) => s.key === "consistency")} />
-        <View className="flex-row items-center gap-2 pb-px">
+        {/* shrink: at 320 px the legend wraps beside the headline, as on the web. */}
+        <View className="shrink flex-row items-center gap-2 pb-px">
           <View accessibilityElementsHidden className="w-5 border-t-[1.5px] border-dashed border-foreground/55" />
           <Text className="text-[13px] font-medium leading-4 text-foreground-secondary">Optimal bed/wake time</Text>
         </View>

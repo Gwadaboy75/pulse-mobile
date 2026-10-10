@@ -117,7 +117,7 @@ function Headline({ vm }: { vm: TrendViewVM }) {
     <View className="flex-row items-start gap-x-3">
       <View className="min-w-0 flex-1">
         <Text className={cn(LABEL, "text-muted-foreground")}>{vm.caption}</Text>
-        <ValueUnit value={formatValue(vm.format, vm.value)} unit={vm.format === "duration" ? "hr" : vm.unit} className="font-numeric text-[34px] font-bold leading-10" />
+        <ValueUnit value={formatValue(vm.format, vm.value)} unit={vm.format === "duration" ? "hr" : vm.unit} className="font-numeric text-[34px] font-bold leading-10" fit />
         {vm.change !== null && (
           <StatusChip tone={vm.tone === "good" ? "optimal" : vm.tone === "bad" ? "warning" : "neutral"} delta={vm.change > 0 ? "up" : vm.change < 0 ? "down" : "flat"} className="mt-1">
             {Math.abs(vm.change)}% {priorLabel(vm.range)}

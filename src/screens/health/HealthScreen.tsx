@@ -174,7 +174,8 @@ function Stress({ m }: { m: HealthHubVM["stress"] }) {
         const spark = { value: { points: v.spark.map((p) => ({ t: p.t, value: p.v })) }, reason: null, provisional: meta.provisional };
         return (
           <View className="flex-row items-end gap-4">
-            <View className="gap-2">
+            {/* shrink: the web's auto column, which gives way (its label and chip wrap) before it pushes past the card. */}
+            <View className="shrink gap-2">
               <Text className={LABEL}>Today’s high stress</Text>
               <ValueUnit value={hmm(v.highMin)} unit="hrs" className={TILE} />
               {dir && (

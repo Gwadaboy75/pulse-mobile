@@ -95,9 +95,13 @@ export function DeltaMark({ dir, tone, color }: { dir: DeltaDir; tone: Tone; col
 /** The advance of a space in Figtree SemiBold at 13 px (0.241 em). */
 const SPACE_13 = 0.241 * 13;
 
-export function ValueUnit({ value, unit, className, unitClassName }: { value: string; unit?: string; className?: string; unitClassName?: string }) {
+/**
+ * `fit`: one line, the type scaled down to the width it is given rather than breaking inside the number (the web lets
+ * it run past its column instead; a phone has no room for that at 320 px).
+ */
+export function ValueUnit({ value, unit, className, unitClassName, fit }: { value: string; unit?: string; className?: string; unitClassName?: string; fit?: boolean }) {
   return (
-    <Text className={cn("whitespace-nowrap tabular-nums", className)}>
+    <Text className={cn("whitespace-nowrap tabular-nums", className)} numberOfLines={fit ? 1 : undefined} adjustsFontSizeToFit={fit}>
       {value}
       {unit && value !== "--" && (
         <>
