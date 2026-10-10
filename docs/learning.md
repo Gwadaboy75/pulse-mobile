@@ -305,3 +305,35 @@ Google's Android Authorization API is a Play services library with no Expo or Re
 ## The iOS consent sheet: `openAuthSessionAsync`
 
 `expo-web-browser`'s `openAuthSessionAsync(url, redirect)` runs `ASWebAuthenticationSession`: Google's consent in a sheet over the app that closes itself when Google redirects to the app's scheme, here the iOS client's reversed client id (`ios.scheme` in `app.json`). It is not Safari and not a web view inside the app (Google refuses embedded web views). `expo-auth-session` wraps the same call; the app does the PKCE and the token requests itself in `src/google/token.ts`, which keeps them testable in Node.
+
+## Android app size
+
+Measured on the arm64 `preview` APK (`eas build --local`, sizes in MiB). The JavaScript bundle is Hermes bytecode and
+is stored uncompressed, so a smaller bundle shrinks the APK by the same amount.
+
+| Step | APK | APK gzipped | JS bundle |
+|---|---|---|---|
+| Before (arm64 only) | 67.1 | 33.5 | 13.9 |
+| Dev screens and fixtures out of release (`src/dev/`) | 61.4 | | 8.2 |
+| One module per lucide icon (`babel.config.js`) | 59.5 | | 6.3 |
+| R8 and resource shrinking (`expo-build-properties`) | 50.1 | 22.8 | 6.3 |
+| No expo-image, no Fresco GIF/WebP decoders | 48.6 | | 6.3 |
+| Compressed native libraries, preview only (`eas.json`) | 27.2 | 22.0 | 6.3 |
+
+```mermaid
+flowchart LR
+  A[preview APK<br/>downloaded as a file] -->|libs compressed| B[27 MB download<br/>libs extracted at install]
+  C[production AAB<br/>through Play] -->|libs uncompressed| D[Play compresses the download<br/>libs load from the APK, smaller install and updates]
+```
+
+- **Native libraries.** `expo.useLegacyPackaging` packs the `.so` files compressed (33 MB to 12 MB here). Android then
+  extracts them at install, so the installed app takes about 12 MB more on disk. Only the `preview` profile sets it,
+  through `ORG_GRADLE_PROJECT_expo.useLegacyPackaging`: Play compresses downloads itself, and uncompressed libraries
+  install smaller and update with smaller patches, which is why AGP packs them uncompressed by default.
+- **Not done.** `enableBundleCompression` would compress the Hermes bundle, but Hermes then reads it into memory
+  instead of mapping it, which slows startup. Expo's experimental tree shaking (`EXPO_UNSTABLE_TREE_SHAKING`) made the
+  bundle smaller than before the lucide plugin but larger than after it. Leaving x86 out of the store AAB changes
+  nothing, because Play delivers one ABI per phone.
+- **Left as is.** Skia (`librnskia.so`, 10.8 MB, 4.4 MB compressed) is the largest library; it ships one prebuilt
+  build and has no smaller variant. Expo Router's native stack imports `expo-symbols`, which bundles the 0.9 MB Material
+  Symbols font on Android. `@expo/ui` brings Jetpack Compose for the one date field.
