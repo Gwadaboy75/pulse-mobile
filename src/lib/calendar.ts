@@ -1,8 +1,7 @@
-// Copied from pulse src/lib/calendar.ts (imports repointed at the copied src/lib): the DateSwitcher's month-panel logic.
 import { parseISO } from "date-fns"
-import { DAY, formatDay } from "@/lib/format"
-import { BAND_COLOR, DATA_COLORS, recoveryBand } from "@/lib/bands"
-import { addDays } from "@/lib/url"
+import { DAY, formatDay } from "./format"
+import { BAND_COLOR, DATA_COLORS, recoveryBand } from "./bands"
+import { addDays } from "./url"
 
 // Pure logic for the DateSwitcher's month panel (spec §4.3, CAL1-CAL6).
 

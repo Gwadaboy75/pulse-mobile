@@ -4,7 +4,7 @@ import { Circle } from "@shopify/react-native-skia";
 import { DATA_COLORS, STRESS_COLOR, STRESS_WORD, stressLevel } from "@/lib/bands";
 import { clock, formatValue } from "@/lib/format";
 import type { Metric } from "@/lib/reasons";
-import { bandColor, hourTicks, type Band } from "../lib/charts";
+import { bandColor, hourTicks, type Band } from "@/lib/charts";
 import { ReasonPlaceholder } from "../metrics/ReasonPlaceholder";
 import { EmptyState } from "../shells/EmptyState";
 import { MetricState } from "../shells/MetricState";

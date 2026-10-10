@@ -10,7 +10,7 @@ import { arcPath, polar } from "../charts/geometry";
 import { cn } from "../cn";
 import { Icon } from "../Icon";
 import { REASON_ICON } from "../icons";
-import { markerSlices } from "../lib/charts";
+import { markerSlices } from "@/lib/charts";
 import { SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
 import { useTheme } from "../theme";

@@ -6,7 +6,7 @@ import { pillLabel, rangeLabel } from "@/lib/format";
 import { parseDay, stepDay, weekOf } from "@/lib/url";
 import { cn } from "../cn";
 import { Icon } from "../Icon";
-import { calendarContext, type CalendarContext } from "../lib/calendar";
+import { calendarContext, type CalendarContext } from "@/lib/calendar";
 import { Text } from "../Text";
 import { CalendarPanel } from "./CalendarPanel";
 import { useShellCalendar } from "./ShellStatus";

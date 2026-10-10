@@ -4,7 +4,7 @@ import { Path, RoundedRect } from "@shopify/react-native-skia";
 import { DATA_COLORS } from "@/lib/bands";
 import { clock, durationWords } from "@/lib/format";
 import type { Metric } from "@/lib/reasons";
-import { hourTicks, hypnogramSeries, STAGES, type Stage, type StageSegment } from "../lib/charts";
+import { hourTicks, hypnogramSeries, STAGES, type Stage, type StageSegment } from "@/lib/charts";
 import { alpha } from "../color";
 import { ReasonPlaceholder } from "../metrics/ReasonPlaceholder";
 import { EmptyState } from "../shells/EmptyState";

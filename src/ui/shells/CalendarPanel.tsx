@@ -21,7 +21,7 @@ import {
   STRAIN_DOT,
   WEEK_STARTS_ON,
   weekdayLabels,
-} from "../lib/calendar";
+} from "@/lib/calendar";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
 import { type CalendarDay, useShellCalendar } from "./ShellStatus";

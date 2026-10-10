@@ -2,7 +2,7 @@ import { View } from "react-native";
 import { Path, RoundedRect } from "@shopify/react-native-skia";
 import { Activity, Moon, PersonStanding } from "lucide-react-native";
 import { DATA_COLORS, ZONE_COLOR } from "@/lib/bands";
-import type { Band } from "../lib/charts";
+import type { Band } from "@/lib/charts";
 import { alpha } from "../color";
 import { Icon } from "../Icon";
 import { Text } from "../Text";

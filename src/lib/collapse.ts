@@ -1,4 +1,3 @@
-// Copied from pulse src/lib/collapse.ts: collapse progress arithmetic.
 // Scroll-linked collapse (spec §4.3, docs/design/sticky.md): progress along a collapse distance, and
 // where a progress value lands on the page's scroll timeline (0-1 of the whole scroll range).
 

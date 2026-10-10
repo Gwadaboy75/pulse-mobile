@@ -5,7 +5,7 @@ import { DATA_COLORS, recoveryColor } from "@/lib/bands";
 import { clock, formatValue } from "@/lib/format";
 import type { Metric } from "@/lib/reasons";
 import { mix } from "../color";
-import { bandColor, hourTicks, type Band } from "../lib/charts";
+import { bandColor, hourTicks, type Band } from "@/lib/charts";
 import { ReasonPlaceholder } from "../metrics/ReasonPlaceholder";
 import { EmptyState } from "../shells/EmptyState";
 import { MetricState } from "../shells/MetricState";

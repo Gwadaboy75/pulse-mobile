@@ -1,5 +1,5 @@
 import { LinearGradient, Path, vec } from "@shopify/react-native-skia";
-import { bandColor, bandStops, type Band } from "../lib/charts";
+import { bandColor, bandStops, type Band } from "@/lib/charts";
 import { alpha } from "../color";
 
 // Recharts' BandGradient / FadeGradient / bandPaint (ChartFrame.tsx), as Skia paints. A `Paint` is one colour, or a

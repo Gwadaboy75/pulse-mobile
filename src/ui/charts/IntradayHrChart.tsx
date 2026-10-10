@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { Circle, Group } from "@shopify/react-native-skia";
 import { clock } from "@/lib/format";
 import type { Metric } from "@/lib/reasons";
-import { bandColor, clockTicks, hourTicks, paddedDomain } from "../lib/charts";
+import { bandColor, clockTicks, hourTicks, paddedDomain } from "@/lib/charts";
 import { ReasonPlaceholder } from "../metrics/ReasonPlaceholder";
 import { EmptyState } from "../shells/EmptyState";
 import { MetricState } from "../shells/MetricState";

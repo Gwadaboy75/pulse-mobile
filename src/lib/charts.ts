@@ -1,5 +1,3 @@
-// Copied from pulse src/lib/charts.ts: the data helpers the chart components use (bands, hypnogram series, clock ticks,
-// dial slices). Plain data shaping; the drawing is Skia (src/ui/charts) instead of Recharts.
 // Plain data helpers for the Recharts components. No SVG maths: these only shape series and slices
 // that Recharts primitives draw (spec §5.0, §5.1, §5.6).
 

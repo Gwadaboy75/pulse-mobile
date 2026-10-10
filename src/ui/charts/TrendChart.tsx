@@ -7,7 +7,7 @@ import type { Metric } from "@/lib/reasons";
 import { RANGE_DAYS, type TrendRange } from "@/lib/url";
 import { alpha } from "../color";
 import { cn } from "../cn";
-import type { Band } from "../lib/charts";
+import type { Band } from "@/lib/charts";
 import { StatusChip, ValueUnit } from "../metrics/primitives";
 import { Segmented } from "../Segmented";
 import { Skeleton, SkeletonText } from "../Skeleton";
