@@ -179,6 +179,12 @@ On the tab roots the round action sits in the tab bar, beside the bar; on detail
 
 Sheets wrap their body in React Native's `KeyboardAvoidingView` (`padding` on iOS) and the shell scroll view uses `automaticallyAdjustKeyboardInsets` and `keyboardShouldPersistTaps="handled"`. That is the built-in route in Expo's keyboard guide. `react-native-keyboard-controller` is the richer one, but it is not a dependency of this project.
 
+Android resizes the window for the keyboard itself, so a `KeyboardAvoidingView` there must be off (`enabled={Platform.OS === "ios"}`): with `padding` on top of the resize, the Coach composer rose a keyboard's height above the keyboard, into the middle of the screen.
+
+## Scrolling inside an Android form sheet
+
+Android's native bottom sheet (`BottomSheetBehavior`, behind `presentation: "formSheet"`) lets a child scroll only when it is a nested-scrolling view; any other drag moves the sheet. React Native's `ScrollView` is one only with `nestedScrollEnabled`, so `<SheetScreen>`'s body sets it. Without it the Profile sheet never scrolled down to Save.
+
 ## Predictive back on Android
 
 `android.predictiveBackGestureEnabled` in `app.json` lets Android 13+ show the system's back preview (the app peeking out, or returning to the launcher) while the gesture is held. It is a native manifest flag, so Expo Go ignores it: it only shows in a development build.
