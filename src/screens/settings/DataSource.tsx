@@ -178,6 +178,20 @@ function SourcePolicyPicker({ syncing }: { syncing: boolean }) {
 
 type Confirm = "sample" | "reimport" | null;
 
+/** The running sync's step and percent. It reads the progress itself, so a tick redraws this line, not the card. */
+function SyncProgress() {
+  const progress = useApp((s) => s.progress);
+  if (!progress || progress.total <= 0) return null;
+  return (
+    <View accessibilityLiveRegion="polite" className="mt-4 gap-2">
+      <Text className="text-[15px] leading-[22px] tabular-nums">
+        {stepLabel(progress.step)}… {Math.floor((progress.done / progress.total) * 100)}%
+      </Text>
+      <ProgressBar value={(progress.done / progress.total) * 100} label="Sync progress" />
+    </View>
+  );
+}
+
 export function DataSource({ now }: { now: number }) {
   const { c } = useTheme();
   const source = useApp((s) => s.source);
@@ -186,7 +200,6 @@ export function DataSource({ now }: { now: number }) {
   const error = useApp((s) => s.error ?? s.sync.lastError);
   const availability = useApp((s) => s.availability);
   const warnings = useApp((s) => s.warnings);
-  const progress = useApp((s) => s.progress);
   const hc = source === "health_connect";
   const sample = source === "demo";
   const syncing = status === "syncing";
@@ -264,14 +277,7 @@ export function DataSource({ now }: { now: number }) {
           </View>
         </Callout>
       )}
-      {syncing && progress && progress.total > 0 && (
-        <View accessibilityLiveRegion="polite" className="mt-4 gap-2">
-          <Text className="text-[15px] leading-[22px] tabular-nums">
-            {stepLabel(progress.step)}… {Math.floor((progress.done / progress.total) * 100)}%
-          </Text>
-          <ProgressBar value={(progress.done / progress.total) * 100} label="Sync progress" />
-        </View>
-      )}
+      {syncing && <SyncProgress />}
       <View className="mt-4 gap-2">
         {hc ? (
           <>
