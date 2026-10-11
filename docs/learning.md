@@ -500,3 +500,18 @@ flowchart LR
   Draw -->|before| All[Record every section, 50 ms]
   Draw -->|removeClippedSubviews| Visible[Record the visible ones]
 ```
+
+## A small write redraws a small part
+
+`dataChanged()` is one global version: logging water, a check-in or a sync's end makes the focused screen run its query again (`src/screens/useScreen.ts`). The query still runs whole, but its result goes through `keepEqual` (`src/screens/keepEqual.ts`, react-query's `replaceEqualDeep`): every part equal to the last result keeps the last result's object. With the React Compiler, a component whose props are the same objects skips its render, so after a water log only the water tile and the week card redraw, not the strip, the check-in or the history. A load that started before a `dataChanged` is never joined by a newer request, and if it lands after the newer one it is dropped.
+
+Fast values stay in the small component that shows them: the sync progress line in Settings › Data source and the live bpm rows in Settings › Live heart rate subscribe themselves, so a tick redraws one line, not the card.
+
+```mermaid
+flowchart LR
+  W[write: log, check-in, sync end] --> V[dataChanged: version + 1]
+  V --> Q[focused screen re-runs its query]
+  Q --> K[keepEqual with the cached result]
+  K -->|equal parts keep their objects| R[compiled components with the same props skip]
+  K -->|changed parts are new| D[only those redraw]
+```

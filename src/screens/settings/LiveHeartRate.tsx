@@ -13,7 +13,7 @@ import { BatteryMedium, Bluetooth, BluetoothOff, ChevronRight, ExternalLink, Inf
 import { BACKGROUND_GRACE_MS } from "@/health/ble";
 import { signalWord } from "@/health/bleHr";
 import { MISSING } from "@/lib/format";
-import { showsLive, useLiveBle, type FoundDevice, type LiveControl, type LiveData } from "@/state/liveBle";
+import { showsLive, useLiveBle, useLiveBleControl, type FoundDevice, type LiveControl, type LiveData } from "@/state/liveBle";
 import { Button } from "@/ui/Button";
 import { cn } from "@/ui/cn";
 import { Icon } from "@/ui/Icon";
@@ -77,7 +77,18 @@ function Panel({ icon, title, body }: { icon: ReactNode; title: string; body?: s
 
 // ── The band ─────────────────────────────────────────────────────────────────
 
-function BandCard({ live, onFind }: { live: Live; onFind: () => void }) {
+// The per-beat rows read the live data themselves (≤ 4 renders a second); the cards around them take the controller only.
+function StatusRow() {
+  const live = useLiveBle();
+  return <Row label="Status" value={statusLabel(live)} tone={live.status === "live" ? "text-recovery-red-text" : undefined} />;
+}
+
+function HrvRow() {
+  const live = useLiveBle();
+  return <Row rule label="HRV (RMSSD)" value={live.rmssd === null ? (live.rrMs.length ? "Measuring…" : "Not sent by the band") : `${Math.round(live.rmssd)} ms`} />;
+}
+
+function BandCard({ live, onFind }: { live: LiveControl; onFind: () => void }) {
   const [confirmForget, setConfirmForget] = useState(false);
   const [forgetting, setForgetting] = useState(false);
   const linked = live.status === "live" || live.status === "connecting" || live.status === "lost";
@@ -86,11 +97,9 @@ function BandCard({ live, onFind }: { live: Live; onFind: () => void }) {
   return (
     <SectionShell variant="card" title="Live heart rate">
       <View>
-        <Row label="Status" value={statusLabel(live)} tone={live.status === "live" ? "text-recovery-red-text" : undefined} />
+        <StatusRow />
         <Row rule label="Band" value={remembered ? (remembered.name ?? "Unnamed band") : "None yet"} />
-        {live.status === "live" && (
-          <Row rule label="HRV (RMSSD)" value={live.rmssd === null ? (live.rrMs.length ? "Measuring…" : "Not sent by the band") : `${Math.round(live.rmssd)} ms`} />
-        )}
+        {live.status === "live" && <HrvRow />}
         <View className={cn(ROW, ROW_RULE, !remembered && "opacity-disabled")}>
           <View className="min-w-0 flex-1">
             <Text className={ROW_LABEL}>Connect automatically</Text>
@@ -135,7 +144,7 @@ function BandCard({ live, onFind }: { live: Live; onFind: () => void }) {
   );
 }
 
-function PermissionsCard({ live }: { live: Live }) {
+function PermissionsCard({ live }: { live: LiveControl }) {
   const [btHint, setBtHint] = useState<string | null>(null);
   const noRadio = live.radio === "unsupported" || live.radio === "unavailable";
   const permission = live.permission === "granted" ? "Allowed" : live.permission === "blocked" ? "Blocked in Android settings" : "Not allowed yet";
@@ -235,7 +244,8 @@ function secondsUntil(at: number | null, now: number) {
 }
 
 /** What the link is doing, or the scan's list. */
-function BandState({ live }: { live: Live }) {
+function BandState() {
+  const live = useLiveBle();
   const { c } = useTheme();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -318,7 +328,7 @@ function BandState({ live }: { live: Live }) {
 }
 
 /** The one action the band's state calls for (halo's Go-live sheet footer). */
-function BandAction({ live }: { live: Live }) {
+function BandAction({ live }: { live: LiveControl }) {
   const [btHint, setBtHint] = useState<string | null>(null);
   let action: ReactNode = null;
   if (live.status === "off") {
@@ -351,7 +361,7 @@ function BandAction({ live }: { live: Live }) {
  * Scans only when the person asks: Search / Go live here, or once on arrival from Heart rate's Go live button (`go=1`).
  * Never again by itself, not on coming back to the app nor when Bluetooth comes on. Leaving stops a scan still running.
  */
-function useScanOnce(live: Live, on: boolean) {
+function useScanOnce(live: LiveControl, on: boolean) {
   const latest = useRef(live);
   useEffect(() => {
     latest.current = live;
@@ -366,7 +376,7 @@ function useScanOnce(live: Live, on: boolean) {
   useEffect(() => () => latest.current.stopScan(), []);
 }
 
-function GoLiveCard({ live, scanOnArrival }: { live: Live; scanOnArrival: boolean }) {
+function GoLiveCard({ live, scanOnArrival }: { live: LiveControl; scanOnArrival: boolean }) {
   useScanOnce(live, scanOnArrival);
   return (
     <SectionShell variant="card" title="Go live">
@@ -374,7 +384,7 @@ function GoLiveCard({ live, scanOnArrival }: { live: Live; scanOnArrival: boolea
       <Steps />
       <Text className={cn(CAPTION, "mb-2 mt-6 uppercase tracking-[0.1em]")}>Your band</Text>
       <View className="gap-3">
-        <BandState live={live} />
+        <BandState />
         <BandAction live={live} />
       </View>
       <View className="mt-6 gap-2.5">
@@ -389,7 +399,7 @@ function GoLiveCard({ live, scanOnArrival }: { live: Live; scanOnArrival: boolea
 
 /** Settings › Live heart rate (`/settings?s=live`; `&go=1` scans on arrival). */
 export function LiveHeartRate() {
-  const live = useLiveBle();
+  const live = useLiveBleControl();
   const { go } = useLocalSearchParams<{ go?: string }>();
   return (
     <>
