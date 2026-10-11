@@ -58,6 +58,8 @@ export const ringStyle = (color: string | null) => (color ? { boxShadow: ringLay
 
 /** A profile field's box (the web's FIELD: h-13 rounded-xl bg-field), for a text field or a button that opens a picker. */
 export const FIELD_BOX = "h-13 rounded-xl bg-field";
+/** The same box in the Edit profile sheet: 44 px. */
+export const FIELD_BOX_COMPACT = "h-11 rounded-xl bg-field";
 
 const FIELDS = {
   /** Profile fields (web FIELD): h-13 rounded-xl bg-field px-4 text-[17px]. */
@@ -66,7 +68,12 @@ const FIELDS = {
   search: { box: "h-12 rounded-xl border border-input bg-fill-faint", input: "px-4 text-base" },
   /** The web's plain Input (shadcn: h-11 rounded-lg border border-input, dark:bg-input/30 px-2.5 text-base). */
   input: { box: "h-11 rounded-lg border border-input dark:bg-input/30", input: "px-2.5 text-base" },
+  /** A number at the end of a settings row (Goals): the plain Input at 36 px, its digits right-aligned. */
+  number: { box: "h-9 rounded-lg border border-input dark:bg-input/30", input: "px-2.5 text-right text-[15px]" },
+  /** Profile fields in the Edit profile sheet: 44 px and 15 px type, nearer the web's sheet forms than onboarding's. */
+  compact: { box: FIELD_BOX_COMPACT, input: "px-3.5 text-[15px]" },
 } as const;
+const BORDERED: readonly (keyof typeof FIELDS)[] = ["input", "number"];
 
 /** A text field; the ring shows on focus (web: focus-visible:ring-2 ring-foreground/70) and when `invalid`. */
 export function TextField({ invalid, left, right, variant = "field", ...props }: TextInputProps & { ref?: Ref<TextInput>; invalid?: boolean; left?: ReactNode; right?: ReactNode; variant?: keyof typeof FIELDS }) {
@@ -75,7 +82,7 @@ export function TextField({ invalid, left, right, variant = "field", ...props }:
   const v = FIELDS[variant];
   const ring = invalid ? c["recovery-red-text"] : focus ? c["focus-ring"] : null;
   return (
-    <View className={cn("w-full min-w-0 flex-row items-center", v.box)} style={variant === "input" ? (ring ? { borderColor: ring, boxShadow: ringLayer(alpha(ring, 0.35), { width: 2, inset: false }) } : undefined) : ringStyle(ring)}>
+    <View className={cn("w-full min-w-0 flex-row items-center", v.box)} style={BORDERED.includes(variant) ? (ring ? { borderColor: ring, boxShadow: ringLayer(alpha(ring, 0.35), { width: 2, inset: false }) } : undefined) : ringStyle(ring)}>
       {left}
       <TextInput
         {...props}

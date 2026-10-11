@@ -9,7 +9,7 @@ import { isDefaultPlan, parsePlanTarget, PLAN_DEFAULTS, PLAN_LIMITS, withPlanEna
 import { GOAL_KEYS, GOAL_META, type GoalKey } from "@/queries/goals";
 import { PLAN_KEYS, PLAN_META, type PlanKey } from "@/queries/weeklyPlan";
 import { STAT_ICON } from "@/screens/_lib/view";
-import { BODY, HINT, Switch, TextField } from "@/screens/settings/controls";
+import { BODY, HINT, ROW, ROW_LABEL, ROW_RULE, Switch, TextField } from "@/screens/settings/controls";
 import { useGoals, isDefaultGoals, parseTarget, TARGET_LIMITS, withEnabled, withTarget, type TargetKey } from "@/state/goals";
 import { useWeeklyPlan } from "@/state/weeklyPlan";
 import { Button } from "@/ui/Button";
@@ -34,28 +34,24 @@ const PLAN_HINT: Record<PlanKey, string> = {
   sleepNeed: "Nights you sleep the need Pulse sets for that night.",
 };
 
-/** One goal or habit: icon, name and switch on one row; while on, the target field with its unit and a hint or error. */
+/** One goal or habit as one settings row: icon and name (its hint or error under it), then the target with its unit as a caption, then the switch. Off, the target dims. */
 function TargetField({ icon, label, on, onToggle, unit, error, hint, field, rule }: { icon: LucideIcon; label: string; on: boolean; onToggle: (on: boolean) => void; unit: string; error?: string; hint?: string; field: ReactNode; rule: boolean }) {
   return (
-    <View className={cn("gap-3 py-3", rule && "border-t border-border")}>
-      <View className="min-h-10 flex-row items-center gap-3">
-        <Icon icon={icon} size={20} tone={on ? "foreground" : "muted-foreground"} />
-        <Text className={cn("min-w-0 flex-1 text-[15px] font-semibold leading-[22px]", !on && "text-muted-foreground")}>{label}</Text>
-        <Switch value={on} onValueChange={onToggle} label={`${label} target`} />
+    <View className={cn(ROW, rule && ROW_RULE)}>
+      <Icon icon={icon} size={20} tone={on ? "foreground" : "muted-foreground"} />
+      <View className="min-w-0 flex-1">
+        <Text className={cn(ROW_LABEL, !on && "text-muted-foreground")}>{label}</Text>
+        {error ? (
+          <Text accessibilityRole="alert" className="text-[13px] font-medium leading-[18px] text-recovery-red-text">{error}</Text>
+        ) : hint ? (
+          <Text className={HINT}>{hint}</Text>
+        ) : null}
       </View>
-      {on && (
-        <View className="gap-2 pl-8">
-          <View className="flex-row items-center gap-3">
-            <View className="w-32">{field}</View>
-            <Text className="min-w-0 flex-1 text-sm font-medium text-muted-foreground">{unit}</Text>
-          </View>
-          {error ? (
-            <Text accessibilityRole="alert" className="text-[13px] font-medium leading-[18px] text-recovery-red-text">{error}</Text>
-          ) : hint ? (
-            <Text className={HINT}>{hint}</Text>
-          ) : null}
-        </View>
-      )}
+      <View className={cn("items-end gap-0.5", !on && "opacity-40")}>
+        <View className="w-24">{field}</View>
+        <Text className="text-right text-[11px] leading-[14px] text-muted-foreground">{unit}</Text>
+      </View>
+      <Switch value={on} onValueChange={onToggle} label={`${label} target`} />
     </View>
   );
 }
@@ -77,7 +73,7 @@ function useDrafts<K extends string>() {
 }
 
 function NumberField({ value, onChange, onBlur, placeholder, invalid, label, decimals }: { value: string; onChange: (t: string) => void; onBlur: () => void; placeholder: string; invalid: boolean; label: string; decimals: number }) {
-  return <TextField variant="input" value={value} onChangeText={onChange} onBlur={onBlur} placeholder={placeholder} keyboardType={decimals ? "decimal-pad" : "number-pad"} accessibilityLabel={label} invalid={invalid} />;
+  return <TextField variant="number" value={value} onChangeText={onChange} onBlur={onBlur} placeholder={placeholder} keyboardType={decimals ? "decimal-pad" : "number-pad"} accessibilityLabel={label} invalid={invalid} />;
 }
 
 function DailyGoals() {
@@ -107,7 +103,7 @@ function DailyGoals() {
               if (!r.error) void update((g) => withTarget(g, targetKey, r.value));
             }}
             onBlur={() => d.blur(targetKey)}
-            placeholder={l.optional ? "Pulse’s need" : String(l.min)}
+            placeholder={l.optional ? "Auto" : String(l.min)}
             invalid={!!d.errors[targetKey]}
             label={`${label} target`}
             decimals={l.decimals}
