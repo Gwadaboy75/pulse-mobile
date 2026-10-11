@@ -57,7 +57,15 @@
           }
         }
       ],
-      "./plugins/withHighRefreshRate.js"
+      "./plugins/withHighRefreshRate.js",
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": [],
+          "neverForLocation": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
