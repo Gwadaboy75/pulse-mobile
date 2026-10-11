@@ -500,3 +500,26 @@ flowchart LR
   Draw -->|before| All[Record every section, 50 ms]
   Draw -->|removeClippedSubviews| Visible[Record the visible ones]
 ```
+
+## App shortcuts
+
+The PWA's manifest shortcuts (Check in, Recovery, Sleep) are Android static shortcuts, shown on a long-press of the
+app icon. `plugins/withAppShortcuts.js` adds `<meta-data android:name="android.app.shortcuts">` to MainActivity and, in a
+dangerous mod, writes `res/xml/shortcuts.xml`, the labels (`res/values/strings_shortcuts.xml`: shortcut labels must be
+string resources) and one vector drawable per glyph (the PWA's lucide paths in its deep brand tones). Both run on every
+prebuild, so `expo prebuild --clean` keeps them. Each shortcut is an `ACTION_VIEW` intent on `pulse://checkin`,
+`pulse://recovery` or `pulse://sleep`; expo-router reads everything after `pulse://` as the path, so they open
+`/checkin` (the `(sheets)/checkin` sheet), `/recovery` and `/sleep`. A cold start has no screen under a deep-linked one,
+so the root layout exports `unstable_settings = { anchor: "(tabs)" }` (SDK 57 replaced `initialRouteName` with
+`anchor`): the tabs sit under it and back goes Home. Before onboarding the tabs are guarded off, so the stack falls back
+to onboarding. A warm start goes through `singleTask` and `onNewIntent` and pushes the route on the open stack.
+
+```mermaid
+flowchart LR
+  Press[Long-press the icon] --> Tap[Tap Recovery]
+  Tap --> Intent["VIEW pulse://recovery → MainActivity"]
+  Intent --> Cold{App running?}
+  Cold -->|no| Initial["Initial URL → (tabs) anchor + /recovery"]
+  Cold -->|yes| New["onNewIntent → push /recovery"]
+  Initial --> Back[Back goes Home]
+```

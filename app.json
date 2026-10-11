@@ -79,6 +79,7 @@
         }
       ],
       "./plugins/withHighRefreshRate.js",
+      "./plugins/withAppShortcuts.js",
       "react-native-health-connect",
       [
         "react-native-ble-plx",
