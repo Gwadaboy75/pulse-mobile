@@ -95,13 +95,15 @@ export function HomeScreen() {
       if (!day || !today || !ready) return;
       const steps = [addDays(day, -1), addDays(day, 1)].filter((d) => d <= today).map((d) => ({ query: homeQuery(d), key: homeKey(d) }));
       if (day !== today) return preloadWhenIdle(steps);
+      // Tabs get their data only, as in halo: router.prefetch of a tab root sends a PRELOAD through the root stack, and
+      // on a first launch, while the stack moves from onboarding to the tabs, that could open a tab (Journal) uninvited.
       return preloadWhenIdle([
         { href: "/sleep", query: sleepQuery(day), key: sleepKey(day) },
         { href: "/recovery", query: recoveryQuery(), key: recoveryKey() },
         { href: "/strain", query: strainQuery(), key: strainKey() },
-        { href: "/health", query: healthQuery, key: HEALTH_KEY },
-        { href: "/journal", query: journalQuery(), key: journalKey() },
-        { href: "/more", query: getMore, key: MORE_KEY },
+        { query: healthQuery, key: HEALTH_KEY },
+        { query: journalQuery(), key: journalKey() },
+        { query: getMore, key: MORE_KEY },
         ...steps,
       ]);
     }, [day, today, ready]),
