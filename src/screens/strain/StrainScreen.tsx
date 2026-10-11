@@ -2,7 +2,7 @@
 // activities and trends. Ported from pulse src/app/(app)/strain/{page,loading}.tsx.
 import { View } from "react-native"
 import { useLocalSearchParams } from "expo-router"
-import { Flame } from "lucide-react-native"
+import { Activity, Flame } from "lucide-react-native"
 import { formatValue } from "@/lib/format"
 import { reasonCopy } from "@/lib/reasons"
 import { activityHref, parseDay, trendHref } from "@/lib/url"
@@ -32,6 +32,7 @@ import { DialDetailSkeleton, Divided, ScreenError } from "@/screens/recovery/sha
 import { WeeklyTrends, WeeklyTrendsSkeleton } from "@/screens/trends/WeeklyTrends"
 import { useScreen } from "@/screens/useScreen"
 import { TrainingSection } from "./TrainingCards"
+import { CardButtonLink } from "@/screens/home/parts"
 
 /** Weekly Trends in the reference app's order (strain-25..38). */
 const WEEKLY: readonly TrendViewKey[] = ["strain", "zones13", "zones45", "steps", "calories", "strength"]
@@ -96,6 +97,8 @@ export function StrainScreen() {
           ) : (
             <EmptyState body="No activities on this day." />
           )}
+          {/* Strain Coach on the band's live heart rate (/workout-live), today only, as halo's activities card. */}
+          {vm.isToday && <CardButtonLink href="/workout-live" icon={Activity} label="Live workout" className="mt-3" />}
         </SectionShell>,
       ]}
       footer={<WeeklyTrends cards={weekly} d={d} today={today} />}

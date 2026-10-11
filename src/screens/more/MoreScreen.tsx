@@ -2,7 +2,7 @@
 // loading.tsx: "Account & settings" (Profile, Data source, App, each a row to `/settings?s=`), Reports, Trends, Journal,
 // Help, Your data, then About. The account row is Profile (no accounts); no Coach row (the coach stream adds it).
 import { View } from "react-native";
-import { Archive, Bell, Bluetooth, BookOpen, CalendarDays, CalendarRange, ChartLine, Database, ListChecks, Palette, Plug, UserRound } from "lucide-react-native";
+import { Activity, Archive, Bell, Bluetooth, BookOpen, CalendarDays, CalendarRange, ChartLine, Database, ListChecks, Palette, Plug, UserRound, Wind } from "lucide-react-native";
 import { formatDay, rangeLabel } from "@/lib/format";
 import { SCORING_VERSION } from "@/pipeline";
 import { APP_VERSION, getMore } from "@/queries/settings";
@@ -19,6 +19,12 @@ const settings: LinkListRow[] = [
   { icon: Palette, label: "App", href: "/settings?s=app" },
   { icon: Bell, label: "Notifications & background", href: "/settings?s=notifications" },
   { icon: Bluetooth, label: "Live heart rate", href: "/settings?s=live" },
+];
+
+/** Both sessions that run on the band's live heart rate (halo's "Live" group). */
+const LIVE_LINKS: LinkListRow[] = [
+  { icon: Wind, label: "Breathe", description: "Paced breathing, with HRV before and after", href: "/breathe" },
+  { icon: Activity, label: "Live workout", description: "Strain Coach on your band’s live heart rate", href: "/workout-live" },
 ];
 
 /** The More tab's key; Home prefetches it with getMore. */
@@ -40,6 +46,7 @@ export function MoreScreen() {
             ]}
           />
           <LinkListSkeleton title="Trends" rows={[{ icon: ChartLine, label: "Trends" }]} />
+          <LinkListSkeleton title="Live" rows={LIVE_LINKS} />
           <LinkListSkeleton title="Journal" rows={[{ icon: ListChecks, label: "Behaviours" }]} />
           <LinkListSkeleton title="Help" rows={[{ icon: BookOpen, label: "How Pulse works" }]} />
           <LinkListSkeleton title="Your data" rows={[{ icon: Database, label: "Export" }]} />
@@ -60,6 +67,7 @@ export function MoreScreen() {
         <LinkList title="Account & settings" rows={settings} />
         <LinkList title="Reports" rows={reports} />
         <LinkList title="Trends" rows={[{ icon: ChartLine, label: "Trends", aside: "Up to 1 year", href: "/trends" }]} />
+        <LinkList title="Live" rows={LIVE_LINKS} />
         <LinkList title="Journal" rows={[{ icon: ListChecks, label: "Behaviours", aside: `${vm.behaviours.shown} of ${vm.behaviours.total} shown`, href: "/more/behaviours" }]} />
         <LinkList title="Help" rows={[{ icon: BookOpen, label: "How Pulse works", aside: `${SCORE_DOCS.length} scores`, href: "/more/how-it-works" }]} />
         <LinkList title="Your data" rows={[{ icon: Database, label: "Export", aside: "CSV, JSON", href: "/more/data" }]} />

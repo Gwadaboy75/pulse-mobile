@@ -583,4 +583,27 @@ flowchart LR
   Tick --> Live[useLiveHr: latest, last 30 min]
   Live --> Tile[Home heart-rate card]
   Live -->|liveVersion moved| HR[Heart rate screen re-reads today]
+
+## Breathe and Live workout: one clock, UI-thread motion
+
+Both screens come from halo (`src/live`, pure and tested in Vitest). Breathe's circle reads one start time on the UI
+thread: a Reanimated `useFrameCallback` computes a single number a frame (the breath level, `levelAt`) and two
+`Animated.View`s turn it into a scale and an opacity. No path or geometry is rebuilt per frame (that is what held the
+Pulse Age orb at 30 fps), so a frame is two composited layers. The JS side wakes only at each stage switch and each
+whole second for the label, the count and the haptic cue, from the same start time, so the label and the circle never
+drift. `useReducedMotion()` steps the size per stage. Live workout feeds every Bluetooth beat (`liveBle.onSample`,
+through `useCapture`) to `LiveStrain` and `LiveCoach` held in a ref, and renders once a second. `expo-keep-awake`
+(`useKeepAwake`, in `src/live/KeepAwake.tsx`) keeps the screen on while a session runs. Session summaries are small
+JSON lists in AsyncStorage (`pulse.breathe.log`, `pulse.workout.log`, 50 each); nothing reaches the Store.
+
+```mermaid
+flowchart LR
+  Start[Start: one start time] --> UI[UI thread: frame callback, levelAt]
+  UI --> Circle[scale and opacity of two views]
+  Start --> JS[JS timer: stage switch and each second]
+  JS --> Label[label, count, haptic cue]
+  BLE[liveBle.onSample] --> Capture[useCapture: HR and RR]
+  Capture --> Engines[LiveStrain and LiveCoach]
+  Engines -->|once a second| Screen[dial, zone, push or ease off]
+  Capture -->|end| Log[(AsyncStorage log)]
 ```

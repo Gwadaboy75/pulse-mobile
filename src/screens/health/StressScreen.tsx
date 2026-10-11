@@ -18,6 +18,7 @@ import { Text } from "@/ui/Text";
 import { stressSeries } from "../_lib/view";
 import { useDayScreen } from "./day";
 import { ErrorView } from "./ErrorView";
+import { BreatheCard } from "../breathe/BreatheScreen";
 import { STRESS_INFO } from "./info";
 
 const EMPTY = "No still minutes to score yet today.";
@@ -116,6 +117,7 @@ export function StressScreen() {
             {(l) => <TotalDay l={l} day={dayWord} />}
           </MetricState>
         </SectionShell>,
+        <BreatheCard key="breathe" />,
         <SectionShell key="trend" variant="card" title="30-day trend" info={{ title: "Daily stress trend", body: "Average activation across each day's scored still minutes over the last 30 days. Days without enough data remain gaps." }}>
           <TrendChart label="Stress" data={{ value: vm.trend.points.map((p) => ({ date: p.day, value: p.value })), reason: null, provisional: false }} format="decimal1" colorBy="stress" direction="down" fixedRange="m" />
         </SectionShell>,
