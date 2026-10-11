@@ -20,6 +20,7 @@ import { useDayScreen } from "./day";
 import { ErrorView } from "./ErrorView";
 import { HEART_RATE_INFO } from "./info";
 import { LastReading } from "./LastReading";
+import { LiveHeartRateHero } from "./LiveHeartRateHero";
 import { pullLiveHeartRate } from "./live";
 
 const POLL_MS = 60_000;
@@ -136,7 +137,11 @@ export function HeartRateScreen() {
       title="Heart rate"
       dateSwitcher={{ mode: "day" }}
       info={HEART_RATE_INFO}
-      hero={<HeartRateHero v={vm} now={now} />}
+      hero={
+        <LiveHeartRateHero isToday={vm.isToday}>
+          <HeartRateHero v={vm} now={now} />
+        </LiveHeartRateHero>
+      }
       primary={
         <SectionShell variant="card" title={vm.isToday ? "Today" : dayLabel(d, today)} info={{ title: "Daily heart rate", body: "Heartbeats per minute across the selected day. Gaps mean no heart rate reading was available." }}>
           <IntradayHrChart data={series} />

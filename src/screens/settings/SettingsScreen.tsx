@@ -11,11 +11,12 @@ import { cn } from "@/ui/cn";
 import { ROW, ROW_RULE } from "./controls";
 import { DataSource } from "./DataSource";
 import { DeleteEverything } from "./DeleteEverything";
+import { LiveHeartRate } from "./LiveHeartRate";
 import { ProfileCard } from "./ProfileCard";
 import { useSyncVersion } from "./syncSignal";
 
-type SectionId = "profile" | "source" | "app";
-const SECTIONS: SectionId[] = ["profile", "source", "app"];
+type SectionId = "profile" | "source" | "app" | "live";
+const SECTIONS: SectionId[] = ["profile", "source", "app", "live"];
 /** Older names: ?s=sync, ?s=appearance, ?s=profile, and the web's ?s=account. */
 const ALIAS: Record<string, SectionId> = { sync: "source", appearance: "app", account: "profile" };
 
@@ -90,7 +91,9 @@ export function SettingsScreen() {
         loading={!data}
         primary={
           <View className="w-full gap-3">
-            {!data ? (
+            {section === "live" ? (
+              <LiveHeartRate />
+            ) : !data ? (
               <SectionSkeleton section={section} />
             ) : section === "source" ? (
               <DataSource vm={data.vm} now={data.now} />
