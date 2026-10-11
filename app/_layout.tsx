@@ -33,6 +33,10 @@ enableFreeze(true);
 SplashScreen.preventAutoHideAsync().catch(() => {});
 SplashScreen.setOptions({ duration: 0, fade: false });
 
+// A cold start through a deep link (the launcher shortcuts, plugins/withAppShortcuts.js) puts the tabs under the linked
+// screen, so back goes Home. Before onboarding the tabs are guarded off and the stack falls back to onboarding.
+export const unstable_settings = { anchor: "(tabs)" };
+
 export default function RootLayout() {
   // Fonts: Figtree for text, Barlow for numerals, as the web (pulse src/app/layout.tsx). Each weight is its own file
   // and its own family name; src/ui/Text.tsx picks the name from the web's font classes.

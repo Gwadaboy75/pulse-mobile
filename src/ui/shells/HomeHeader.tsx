@@ -2,11 +2,9 @@ import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { useAnimatedStyle, useDerivedValue, type DerivedValue } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
-import { CircleUserRound } from "lucide-react-native";
 import { BAND_WORD, recoveryBand } from "@/lib/bands";
 import { formatValue } from "@/lib/format";
 import { groundColorAt } from "../Ground";
-import { Icon } from "../Icon";
 import { MiniRing, type MiniRingVariant } from "../metrics/MiniRing";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
@@ -14,6 +12,7 @@ import { DateSwitcher, useSelectedDay } from "./DateSwitcher";
 import { HEADER_ROW, HeaderFrame } from "./Header";
 import { useShellCalendar } from "./ShellStatus";
 import { useNarrow } from "./layout";
+import { UserAvatar } from "./UserAvatar";
 import { SyncStatus } from "./SyncStatus";
 import { cn } from "../cn";
 import { push } from "../navigate";
@@ -87,7 +86,7 @@ export function HomeHeader({ rings, progress, right, streak }: { rings?: HeaderR
             max-[380px] rule, spec §11 M4). */}
         <View className={cn("h-11 flex-row items-center", lt400 ? "gap-1" : "gap-2")}>
           <View className="flex-1 flex-row items-center">
-            {/* The avatar: the outline person glyph on a disc of the page ground (its 3 px ring cuts the streak pill where the
+            {/* The avatar: the photo, initials or outline person glyph (UserAvatar) on a disc of the page ground (its 3 px ring cuts the streak pill where the
                 reference app's does), over the pill's left end (the web's Avatar and Streak). */}
             <Press
               activeScale={0.96}
@@ -97,7 +96,7 @@ export function HomeHeader({ rings, progress, right, streak }: { rings?: HeaderR
               className="items-center justify-center rounded-full"
               style={{ zIndex: 1, width: 46 * u, height: 46 * u, padding: 3 * u, marginLeft: -3 * u, backgroundColor: groundColorAt(c, top + HEADER_ROW / 2) }}
             >
-              <Icon icon={CircleUserRound} size={40 * u} tone="foreground" strokeWidth={1.5} />
+              <UserAvatar size={40 * u} />
             </Press>
             {/* Past days show no streak. */}
             {streakShown && (

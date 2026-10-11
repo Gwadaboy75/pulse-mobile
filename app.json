@@ -80,6 +80,7 @@
         }
       ],
       "./plugins/withHighRefreshRate.js",
+      "./plugins/withAppShortcuts.js",
       "react-native-health-connect",
       [
         "react-native-ble-plx",
@@ -95,13 +96,13 @@
         {
           "icon": "./assets/images/android-icon-monochrome.png",
           "color": "#00b377"
-          }
-        ],
+        }
+      ],
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Pulse uses the camera to photograph a meal, so your own AI provider can estimate its nutrition. The photo isn't saved.",
-          "photosPermission": "Pulse lets you choose a meal photo, so your own AI provider can estimate its nutrition. The photo isn't saved.",
+          "cameraPermission": "Pulse uses the camera for your profile picture, or for a meal photo your own AI provider estimates. Profile pictures stay on this phone; a meal photo is sent once and not kept.",
+          "photosPermission": "Pulse uses a photo you choose as your profile picture, or as a meal photo your own AI provider estimates.",
           "microphonePermission": false
         }
       ]

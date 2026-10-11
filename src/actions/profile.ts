@@ -15,6 +15,7 @@ export const ProfileInput = z.object({
   maxHr: z.coerce.number().int().min(100, "Between 100 and 240").max(240, "Between 100 and 240").nullable(),
   heightCm: z.coerce.number().min(100, "Between 100 and 250 cm").max(250, "Between 100 and 250 cm").nullable(),
   timeZone: z.string().refine(isTimeZone, "Choose a time zone"),
+  name: z.string().max(60, "Up to 60 characters").nullable(),
 });
 // eslint-disable-next-line @typescript-eslint/no-redeclare -- pulse's pattern: the schema and its type share a name
 export type ProfileInput = z.infer<typeof ProfileInput>;
@@ -24,9 +25,17 @@ export type ProfileFormState =
   | { ok: false; error?: string; fields?: Partial<Record<keyof ProfileInput, string>> };
 
 /** The form's values as typed: `sex` and `timeZone` null until chosen, the optional numbers blank when not set. */
-export type ProfileFields = { birthDate: string; sex: string | null; maxHr: string; heightCm: string; timeZone: string | null };
+export type ProfileFields = { birthDate: string; sex: string | null; maxHr: string; heightCm: string; timeZone: string | null; name: string };
 
 const optional = (v: string) => (v.trim() !== "" ? v.trim() : null);
+
+/** The avatar's letters: the first and last words' initials ("Asha Rao" → "AR", "Asha" → "A"), or null without a name. */
+export function initials(name: string | null | undefined): string | null {
+  const words = name?.trim().split(/\s+/).filter(Boolean) ?? [];
+  if (!words.length) return null;
+  const first = (w: string) => Array.from(w)[0]!.toUpperCase();
+  return words.length === 1 ? first(words[0]!) : first(words[0]!) + first(words.at(-1)!);
+}
 
 /** Checks the form; on success saves `{ ...previous, ...fields }` (a waist set elsewhere stays) through `save`. */
 export async function saveProfileAction(form: ProfileFields, previous: Profile | null, save: (p: Profile) => Promise<void>): Promise<ProfileFormState> {
@@ -36,6 +45,7 @@ export async function saveProfileAction(form: ProfileFields, previous: Profile |
     maxHr: optional(form.maxHr),
     heightCm: optional(form.heightCm),
     timeZone: form.timeZone ?? undefined,
+    name: optional(form.name),
   });
   if (!r.success) {
     const fields: Partial<Record<keyof ProfileInput, string>> = {};
