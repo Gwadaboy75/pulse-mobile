@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { View } from "react-native";
 import { useIsFocused, useLocalSearchParams } from "expo-router";
 import { getAppPrefs, getSettings } from "@/queries/settings";
@@ -75,7 +76,12 @@ export function SettingsScreen() {
   const section = resolve(s);
   const focused = useIsFocused();
   const syncVersion = useSyncVersion(focused && section === "source");
-  const { data } = useScreen(async (ctx) => ({ vm: await getSettings(ctx), prefs: await getAppPrefs(ctx), now: ctx.now * 1000 }), ["settings", section === "source" ? syncVersion : 0]);
+  const { data, reload } = useScreen(async (ctx) => ({ vm: await getSettings(ctx), prefs: await getAppPrefs(ctx), now: ctx.now * 1000 }), ["settings"]);
+  // A sync's progress refreshes the shown data in place. Keying the screen by syncVersion made every tick (4 s) a new,
+  // empty cache entry, so the section fell back to its skeleton on each one.
+  useEffect(() => {
+    if (syncVersion) reload();
+  }, [syncVersion, reload]);
 
   return (
     <View className="flex-1">
