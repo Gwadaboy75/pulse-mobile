@@ -28,6 +28,8 @@ import { SectionShell } from "@/ui/shells/SectionShell"
 import { hrSeries, STAT_ICON, statProps, zoneBars } from "@/screens/_lib/view"
 import { ScreenError } from "@/screens/recovery/shared"
 import { useScreen } from "@/screens/useScreen"
+import { TrainingEffectCard } from "@/screens/strain/TrainingCards"
+import { ActivityCostCard } from "./ActivityCost"
 import { ActivityMenu } from "./ActivityMenu"
 import { CoachGlance } from "./CoachGlance"
 import { coachReady } from "./coachStub"
@@ -97,6 +99,7 @@ export function ActivityScreen() {
             </SectionShell>
           ),
           // A titled section like Key statistics beside it. Without heart rate there is nothing to recover from, and the notice says why.
+          !noHr && <TrainingEffectCard key="te" te={vm.trainingEffect} />,
           !noHr && (
             <SectionShell key="hrr" variant="section" title="Heart rate recovery">
               <Card className="px-4">
@@ -104,7 +107,8 @@ export function ActivityScreen() {
               </Card>
             </SectionShell>
           ),
-        ].filter((x) => x !== false)}
+          vm.cost && <SectionShell key="cost" variant="section" title="Recovery cost"><ActivityCostCard cost={vm.cost} /></SectionShell>,
+        ].filter((x) => x !== false && x !== null)}
         // With the coach set up, its pill takes the insight's place (activity-01, spec §11 R44); without it, the templated insight.
         footer={!coach && vm.insight ? <InsightCard body={vm.insight} /> : null}
       />

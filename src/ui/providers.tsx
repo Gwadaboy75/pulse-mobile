@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { todayIn } from "@/lib/url";
 import { LiveBleProvider } from "@/state/liveBle";
+import { LiveHrTicker } from "@/state/liveHr";
 import { ShellCalendarProvider } from "./shells/ShellStatus";
 import { ToastHost } from "./Toast";
 
@@ -14,6 +15,7 @@ import { ToastHost } from "./Toast";
  * - ShellCalendarProvider: today, the first day with data and the time zone, for the date switcher and the charts. The
  *   value here is the device's today with no first day; the data layer replaces it once the database is read.
  * - LiveBleProvider: live heart rate over Bluetooth (src/state/liveBle.tsx), display-only.
+ * - LiveHrTicker: the minute-by-minute Health Connect heart-rate read (src/state/liveHr.tsx); renders nothing.
  */
 export function AppProviders({ children }: { children: ReactNode }) {
   const [calendar] = useState(() => ({ today: todayIn() }));
@@ -23,6 +25,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <ShellCalendarProvider value={calendar}>
           <LiveBleProvider>{children}</LiveBleProvider>
           <ToastHost />
+          <LiveHrTicker />
         </ShellCalendarProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

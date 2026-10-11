@@ -49,6 +49,8 @@ import { strainKey, strainQuery } from "../strain/StrainScreen";
 import { useScreenReady } from "@/ui/shells/useScreenReady";
 import { preloadWhenIdle, useScreen } from "../useScreen";
 import { EditDashboardButton } from "./EditDashboard";
+import { DetectedRow } from "../activity/ActivityCost";
+import { HeartRateTile } from "./HeartRateTile";
 import { HomeInsight } from "./HomeInsight";
 import { HomeSkeleton } from "./HomeSkeleton";
 import { CardButtonContent, CardButtonLink, GradientBanner, IconLink } from "./parts";
@@ -180,6 +182,7 @@ function Home({ vm, timeZone }: { vm: HomePageVM; timeZone: string }) {
         main: (
           <View className="gap-8">
             <View className="-mt-2 gap-6">
+              {vm.isToday && <HeartRateTile phoneOnly={!!vm.phone} />}
               {vm.phone ? (
                 <PhoneActivity stats={vm.phone} link={{ d, today }} />
               ) : (
@@ -195,7 +198,7 @@ function Home({ vm, timeZone }: { vm: HomePageVM; timeZone: string }) {
               <View className="gap-3">
                 {vm.outlook && <DayBanner outlook={vm.outlook} />}
                 <SectionShell variant="card" title={vm.activities.title} action={<IconLink href="/activities" label="All activities" icon={Maximize2} />}>
-                  {vm.activities.items.length ? (
+                  {vm.activities.items.length || vm.activities.detected.length ? (
                     <View className="gap-1.5">
                       {vm.activities.items.map((it) =>
                         it.kind === "activity" ? (
@@ -204,6 +207,7 @@ function Home({ vm, timeZone }: { vm: HomePageVM; timeZone: string }) {
                           <SleepCard key={it.id} kind={it.kind} minutes={it.minutes} start={it.start} end={it.end} href={it.kind === "nap" ? napHref(it.id) : at("/sleep")} timeZone={timeZone} />
                         ),
                       )}
+                      {vm.activities.detected.map((it) => <DetectedRow key={`detected-${it.start}`} item={it} timeZone={timeZone} />)}
                     </View>
                   ) : (
                     <EmptyState body={vm.isToday ? "No activities yet today. Workouts appear after Fitbit syncs them." : "No activities on this day."} />

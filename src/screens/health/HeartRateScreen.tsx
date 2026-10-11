@@ -1,13 +1,14 @@
 // Heart rate `/health/heart-rate?d=`: the day's minutes (today up to now), resting heart rate and time in zones. Ported
 // from pulse src/app/(app)/health/heart-rate/page.tsx, LiveHeartRate.tsx and loading.tsx. The web's poll of
-// `/heart-rate` becomes `pullLiveHeartRate()` (live.ts) on a 60 s timer that runs while this screen is focused and
-// today is shown; each pull that brought data re-reads the day from the store.
+// `/heart-rate` is the app's live ticker (src/state/liveHr.tsx, halo's): it reads Health Connect every minute, and when
+// a read moved the samples (`liveVersion`) this screen re-reads today.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, View } from "react-native";
+import { View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { dayLabel, MISSING } from "@/lib/format";
 import { getHeartRate } from "@/queries/health";
 import type { HeartRateVM } from "@/queries/types";
+import { refreshLiveHr, useLiveHr } from "@/state/liveHr";
 import { IntradayHrChart, IntradayHrChartSkeleton } from "@/ui/charts/IntradayHrChart";
 import { ZoneBars, ZoneBarsSkeleton } from "@/ui/charts/ZoneBars";
 import { cn } from "@/ui/cn";
@@ -21,56 +22,27 @@ import { ErrorView } from "./ErrorView";
 import { HEART_RATE_INFO } from "./info";
 import { LastReading } from "./LastReading";
 import { LiveHeartRateHero } from "./LiveHeartRateHero";
-import { pullLiveHeartRate } from "./live";
 import { zoneBars } from "../_lib/view";
 
-const POLL_MS = 60_000;
-const MAX_BACKOFF_MS = 10 * 60_000;
-
 /**
- * While this screen is focused and today is shown, pulls every minute (live.ts) and re-reads the day when a pull brought
- * data. A failed pull doubles the wait, up to 10 minutes. Backgrounded app: no pulls until it is active again. Returns
- * the time of the last pull, which "2 minutes ago" is measured from.
+ * Today: a live read as the screen comes into focus, and a re-read of the day whenever the ticker brought new samples.
+ * Returns the time of the last live read (or of opening), which "2 minutes ago" is measured from.
  */
-function useLiveHeartRate(isToday: boolean, end: number, reload: () => void) {
-  const [now, setNow] = useState(() => Date.now());
-  const reloadRef = useRef(reload);
+function useLiveDay(isToday: boolean, reload: () => void) {
+  const { liveHr, liveVersion } = useLiveHr();
+  const [opened] = useState(() => Date.now());
+  const seen = useRef(liveVersion);
   useEffect(() => {
-    reloadRef.current = reload;
-  });
+    if (!isToday || seen.current === liveVersion) return;
+    seen.current = liveVersion;
+    reload();
+  }, [isToday, liveVersion, reload]);
   useFocusEffect(
     useCallback(() => {
-      if (!isToday) return;
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      let alive = true;
-      let wait = POLL_MS;
-      const poll = async () => {
-        clearTimeout(timer);
-        if (!alive || AppState.currentState !== "active" || Date.now() >= end) return; // the day is over: past days don't poll
-        try {
-          const r = await pullLiveHeartRate();
-          if (r.connected && r.changed) reloadRef.current();
-          wait = POLL_MS;
-        } catch {
-          wait = Math.min(wait * 2, MAX_BACKOFF_MS);
-        }
-        if (!alive) return;
-        setNow(Date.now());
-        timer = setTimeout(poll, wait);
-      };
-      const sub = AppState.addEventListener("change", (s) => {
-        clearTimeout(timer);
-        if (s === "active") void poll();
-      });
-      void poll();
-      return () => {
-        alive = false;
-        clearTimeout(timer);
-        sub.remove();
-      };
-    }, [isToday, end]),
+      if (isToday) void refreshLiveHr();
+    }, [isToday]),
   );
-  return now;
+  return liveHr.updatedAt ?? opened;
 }
 
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
@@ -115,7 +87,7 @@ function HeartRateHero({ v, now }: { v: HeartRateVM; now: number }) {
 
 export function HeartRateScreen() {
   const { data, error, reload } = useDayScreen("heartRate", getHeartRate);
-  const now = useLiveHeartRate(data?.vm.isToday ?? false, data?.vm.end ?? 0, reload);
+  const now = useLiveDay(data?.vm.isToday ?? false, reload);
   const vm = data?.vm;
   // A minute without a reading is a gap, never a line across it. Shaped once per load, not per render.
   const series = useMemo(

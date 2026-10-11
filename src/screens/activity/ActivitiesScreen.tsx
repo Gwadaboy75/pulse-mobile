@@ -19,6 +19,7 @@ import { CAPTION } from "@/screens/_lib/view"
 import { ScreenError } from "@/screens/recovery/shared"
 import { useScreen } from "@/screens/useScreen"
 import { Press } from "@/ui/Press";
+import { ActivityCostList, DETECTED_NOTE, DetectedRow } from "./ActivityCost"
 
 const KIND_LABEL: Record<ActivityKind, string> = { run: "Runs", ride: "Rides", walk: "Walks", strength: "Strength", workout: "Workouts" }
 const STAT_LABEL = "text-xs leading-4 font-bold tracking-[0.1em] text-foreground-secondary uppercase"
@@ -42,9 +43,11 @@ export function ActivitiesScreen() {
   const kinds = [...new Set(vm.groups.flatMap((g) => g.items.map((a) => a.activityKind)))]
   const kind = kinds.find((k) => k === sp.kind) ?? null
   const groups = vm.groups
-    .map((g) => (kind ? { ...g, items: g.items.filter((a) => a.activityKind === kind) } : g))
-    .filter((g) => g.items.length || (!kind && g.day === vm.today))
+    // Detected activities have no sport to filter by: they show under "All" only.
+    .map((g) => (kind ? { ...g, items: g.items.filter((a) => a.activityKind === kind), detected: [] } : g))
+    .filter((g) => g.items.length || (!kind && (g.detected.length || g.day === vm.today)))
   const items = groups.flatMap((g) => g.items)
+  const costs = vm.cost?.items.filter((x) => !kind || x.kind === kind) ?? []
 
   return (
     <DetailShell
@@ -69,9 +72,16 @@ export function ActivitiesScreen() {
               ))}
             </ScrollView>
           )}
+          {vm.cost && costs.length > 0 && (
+            <View className="gap-2">
+              <Text accessibilityRole="header" className={GROUP_LABEL}>Recovery cost</Text>
+              <ActivityCostList vm={vm.cost} items={costs} />
+            </View>
+          )}
           {groups.map((g) => (
             <Day key={g.day} g={g} today={vm.today} timeZone={timeZone} />
           ))}
+          {groups.some((g) => g.detected.length > 0) && <Text className={cn(CAPTION, "px-1")}>{DETECTED_NOTE}</Text>}
           {!items.length && groups.length <= 1 && !vm.older && <EmptyState body="No workouts in the last month. Workouts you record on your Fitbit or phone appear here after they sync." />}
           {vm.older ? (
             <Press activeBg="bg-fill-faint" accessibilityRole="link" onPress={() => setQuery({ days: days + ACTIVITY_PAGE_DAYS, kind })} className="h-11 items-center justify-center self-center rounded-full px-5">
@@ -128,13 +138,17 @@ function Day({ g, today, timeZone }: { g: Group; today: string; timeZone: string
           )}
         </Text>
       </View>
-      {g.items.length ? (
-        // 6 px inset in a 16 px card around the rows' 10 px radius, as on Home (spec §2.4).
+      {g.items.length || g.detected.length ? (
+        // 6 px inset in a 16 px card around the rows' 10 px radius, as on Home (spec §2.4). Recorded and detected rows
+        // in one time order, newest first.
         <Card className="p-1.5">
           <View className="gap-1.5">
-            {g.items.map((a) => (
-              <ActivityCard key={a.id} name={a.name} kind={a.activityKind} strain={a.strain} start={a.start} end={a.end} distanceKm={a.distanceKm} paceS={a.paceS} href={activityHref(a.id)} timeZone={timeZone} />
-            ))}
+            {[
+              ...g.items.map((a) => ({ start: a.start, row: <ActivityCard key={a.id} name={a.name} kind={a.activityKind} strain={a.strain} start={a.start} end={a.end} distanceKm={a.distanceKm} paceS={a.paceS} href={activityHref(a.id)} timeZone={timeZone} /> })),
+              ...g.detected.map((d) => ({ start: d.start, row: <DetectedRow key={`detected-${d.start}`} item={d} timeZone={timeZone} /> })),
+            ]
+              .sort((a, b) => b.start - a.start)
+              .map((x) => x.row)}
           </View>
         </Card>
       ) : (

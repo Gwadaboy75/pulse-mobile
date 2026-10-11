@@ -18,6 +18,7 @@ import {
 } from "./_lib";
 import { insightOf as recoveryInsight } from "./recovery";
 import { insightOf as sleepInsight } from "./sleep";
+import { detectedItem } from "./activityCost";
 import { coach } from "./strain";
 import {
   type DayRow,
@@ -109,7 +110,7 @@ export async function getHome(day: string, ctx: QueryCtx, opts: HomeOptions = {}
     monitorAlert: monitorAlert(row),
     monitor: monitorSummary(row, isToday),
     stress: stressNow(row, isToday),
-    activities: { title: isToday ? "Today’s activities" : "Activities", items: timelineOf(row, day, exs) },
+    activities: { title: isToday ? "Today’s activities" : "Activities", items: timelineOf(row, day, exs), detected: (row?.detected ?? []).map(detectedItem) },
     energyBank: energyBankVM(ctx, row, day, isToday, ebSeries),
     tonight: planVM(ctx, row, isToday),
     keyStats: keyStats(rows, day, isToday, keys),

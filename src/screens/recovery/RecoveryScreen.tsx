@@ -15,6 +15,7 @@ import { RECOVERY_INFO } from "@/screens/_lib/info"
 import { statProps, TodayVsLegend } from "@/screens/_lib/view"
 import { WeeklyTrends, WeeklyTrendsSkeleton } from "@/screens/trends/WeeklyTrends"
 import { useScreen } from "@/screens/useScreen"
+import { HrvStatusCard } from "@/screens/health/HrvStatusCard"
 import { BehaviorInsights } from "./BehaviorInsights"
 import { DialDetailSkeleton, Divided, ScreenError } from "./shared"
 
@@ -57,6 +58,7 @@ export function RecoveryScreen() {
       }
       insight={vm.insight ? <InsightCard body={vm.insight} action={{ label: "Explore your recovery insights", href: trendHref("recovery", { d, today }) }} /> : null}
       primary={<BehaviorInsights chips={extras.behaviors} href={dayHref("/journal/insights", d, today)} />}
+      secondary={[<HrvStatusCard key="hrv" d={d} />]}
       footer={<WeeklyTrends cards={weekly} d={d} today={today} />}
     />
   )
