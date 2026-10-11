@@ -500,3 +500,35 @@ flowchart LR
   Draw -->|before| All[Record every section, 50 ms]
   Draw -->|removeClippedSubviews| Visible[Record the visible ones]
 ```
+
+## Nutrition: photos and AI estimates
+
+`/nutrition` and the food sheet follow halo. A meal photo comes from `expo-image-picker` (the camera asks for its
+permission first; the gallery is Android's photo picker, no storage permission), is scaled to 1024 px on its long side
+and re-encoded as JPEG 0.7 by `expo-image-manipulator`, read as base64, and both cache files are deleted at once. The
+photo lives only in the sheet's memory until the estimate is in. The estimate is AI SDK `generateText` with
+`Output.object` and a zod schema, sent to the person's own coach provider with their key (read from
+`pulse.coach.setup` and secure-store `pulse.coach.apiKey`, over `expo/fetch`); the answer is re-read leniently, clamped
+and re-added. Nothing logs the photo, the key or a response body. Saved foods are `nutrition-log` rows in
+`logged_entries`, source `pulse`. The image-picker plugin in app.json sets the camera text and blocks the microphone.
+
+```mermaid
+flowchart TD
+  Sheet[Food sheet] --> Way{Way in}
+  Way -->|Take or choose photo| Pick[expo-image-picker]
+  Pick --> Scale[Manipulator: 1024 px, JPEG 0.7, base64; delete files]
+  Way -->|Describe it| Text[Description]
+  Scale --> Key{Coach key saved?}
+  Text --> Key
+  Key -->|no| Typed[Typed form]
+  Key -->|yes| Ask[generateText + Output.object, own provider]
+  Ask -->|foods| Review[Editable review]
+  Ask -->|problem| Failed[Try again or enter it yourself]
+  Failed --> Typed
+  Way -->|Type it| Typed
+  Review --> Save[logFoods: logged_entries, source pulse]
+  Typed --> Save
+  Save --> Screens[dataChanged: Nutrition and Journal reread]
+```
+
+Docs: [ImagePicker](https://docs.expo.dev/versions/v57.0.0/sdk/imagepicker/), [ImageManipulator](https://docs.expo.dev/versions/v57.0.0/sdk/imagemanipulator/), [AI SDK structured output](https://ai-sdk.dev/docs/ai-sdk-core/generating-structured-data).
