@@ -1,126 +1,98 @@
-// Journal writes (pulse src/server/actions/journal.ts): validated with zod, results are returned, not thrown, so a form
-// can show them. They take the app's Store; after a write they call `dataChanged()` (pulse's revalidatePath) so every
-// mounted screen reloads. There is no session check (one person per install) and no worker to kick: a check-in marks
-// its day dirty, and the background stream's recompute picks it up (pulse's `requestSync({ force: true, pull: false })`).
-// Select Behaviors' Save and the behaviour catalogue belong to Settings (`more/behaviours`); `addCustomTag` is here
-// because the check-in's "Add a behaviour" field needs it.
-import { z } from "zod";
-import type { Store } from "../data/repos";
-import { getJournal } from "../queries/journal";
-import { ctxOf } from "../queries/common";
-import type { JournalVM } from "../queries/types";
-import { dataChanged } from "../screens/useScreen";
-import { MAX_TAGS, tagKey } from "../journalTags";
-import { userTimeZone } from "../profile";
-import { localDay } from "../time";
-import { inDayRange } from "@/lib/url";
+// Journal writes, as halo's src/screens/journal/actions.ts does them (ported from pulse's src/server/actions/journal.ts):
+// the same validation and messages, results returned rather than thrown so a form can show them. Plain TypeScript over
+// the Store, so the tests run in Node. The caller reloads the screens (`dataChanged`) or rescores (`refresh`) after a write.
+import { behavior } from "@/lib/behaviors";
+import { addDays, localDay } from "@/lib/time";
+import type { QueryCtx } from "@/queries/ctx";
+import { addTag, getJournal, MAX_TAGS, tagKey, tagRows } from "@/queries/journal";
+import type { JournalVM } from "@/queries/types";
+import type { ActionCtx } from "@/state/app";
 
+export type { ActionCtx };
 export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
-/** Today's local `YYYY-MM-DD` in the person's time zone (UTC before onboarding). */
-const localToday = async (store: Store, now = Math.floor(Date.now() / 1000)) => localDay(now, (await userTimeZone(store)) ?? "UTC");
+const nowOf = (c: ActionCtx) => (c.nowS ? c.nowS() : Math.floor(Date.now() / 1000));
+const todayOf = (c: ActionCtx) => localDay(nowOf(c), c.timeZone);
 
-const Entry = z.object({
-  day: z.iso.date(),
-  tag: z.string().min(1).max(64),
-  // A yes/no behaviour, or a count (e.g. drinks); stored as an integer. null clears the answer: no row
-  // means "not answered", which journal impact keeps apart from an answered "no" (0).
-  value: z.union([z.boolean(), z.number().int().min(0).max(1000)]).transform(Number).nullable(),
-  /** The follow-up slider's answer (minutes after midnight or a count); kept only with a "yes". */
-  detail: z.number().int().min(0).max(1440).nullable().optional(),
-});
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+/** A real calendar day "YYYY-MM-DD" (rejects 2026-02-31), as zod's `z.iso.date()`. */
+export const isDay = (v: unknown): v is string => {
+  if (typeof v !== "string" || !DAY.test(v)) return false;
+  const t = Date.parse(`${v}T00:00:00Z`);
+  return Number.isFinite(t) && new Date(t).toISOString().slice(0, 10) === v;
+};
 
-async function writeEntry(store: Store, input: z.input<typeof Entry>): Promise<ActionResult> {
-  const r = Entry.safeParse(input);
-  if (!r.success) return { ok: false, error: r.error.issues[0].message };
-  const { day, tag, value } = r.data;
-  const detail = value ? (r.data.detail ?? null) : null;
-  if (day > (await localToday(store))) return { ok: false, error: "Can’t log a future day" };
-  if (!(await store.journal.hasTag(tag))) return { ok: false, error: `Unknown tag: ${tag}` };
-  if (value === null) await store.journal.deleteEntry(day, tag);
-  else await store.journal.saveEntry({ day, tag, value, detail });
+/** How far back a day may go (the web's MAX_PAST_DAYS): the sheet's day strip runs from that day to today. */
+export const MAX_PAST_DAYS = 3650;
+export const inDayRange = (v: string, today: string) => isDay(v) && v <= today && v >= addDays(today, -MAX_PAST_DAYS);
+
+const fail = (error: string) => ({ ok: false as const, error });
+
+export type EntryInput = { day: string; tag: string; value: boolean | number | null };
+
+/** Upserts (or, with value null, deletes) one (day, tag) for today or a past day. Repeating it changes nothing. */
+export async function saveJournalEntry(c: ActionCtx, input: EntryInput): Promise<ActionResult> {
+  const { day, tag, value } = input;
+  if (!isDay(day)) return fail("Invalid ISO date");
+  if (typeof tag !== "string" || tag.length < 1 || tag.length > 64) return fail("Invalid tag");
+  // A yes/no behaviour, or a count (e.g. drinks); stored as an integer. null clears the answer: no row means "not
+  // answered", which journal impact keeps apart from an answered "no" (0).
+  if (value !== null && typeof value !== "boolean" && !(Number.isInteger(value) && value >= 0 && value <= 1000)) return fail("Invalid value");
+  if (day > todayOf(c)) return fail("Can’t log a future day");
+  const known = (await tagRows(c.store)).some((t) => t.tag === tag);
+  if (!known) return fail(`Unknown tag: ${tag}`);
+  if (value === null) await c.store.deleteJournal(day, tag);
+  else await c.store.setJournal({ day, tag, value: Number(value) });
   // Stage 2 reads the journal (impact, Insights, Monitor context) but a check-in is no source change, so mark the day
-  // dirty (persistent, survives a restart; stage 1 redoes only that day, to the same result).
-  await store.scores.markDirty([day]);
+  // dirty (stage 1 redoes only that day, to the same result) as the web does. The caller then runs the pipeline.
+  await c.store.markIntradayDirty([day]);
   return { ok: true, data: undefined };
 }
 
-/** Upserts (or, with value null, deletes) one (day, tag) for today or a past day. Repeating it changes nothing. */
-export async function saveJournalEntry(store: Store, input: z.input<typeof Entry>): Promise<ActionResult> {
-  const res = await writeEntry(store, input);
-  if (res.ok) dataChanged();
-  return res;
+/** The check-in's Save: each changed answer, one after another, stopping at the first failure. */
+export async function saveCheckIn(c: ActionCtx, day: string, answers: Omit<EntryInput, "day">[]): Promise<ActionResult> {
+  for (const a of answers) {
+    const r = await saveJournalEntry(c, { day, ...a });
+    if (!r.ok) return r;
+  }
+  return { ok: true, data: undefined };
 }
 
-/**
- * Read-only: the journal's behaviours, a day's answers and note, and the day strip. The sheet opens over any screen
- * (spec §11 UX2), so it fetches what the Journal page would have passed it.
- */
-export async function loadCheckIn(store: Store, day: string): Promise<ActionResult<Pick<JournalVM, "tags" | "checkIn" | "strip">>> {
-  const r = z.iso.date().safeParse(day);
-  if (!r.success) return { ok: false, error: "Invalid day" };
-  const ctx = await ctxOf(store);
-  if (!inDayRange(r.data, localDay(ctx.now, ctx.timeZone))) return { ok: false, error: "Invalid day" };
-  // ponytail: getJournal also builds the strip, history and teaser the sheet drops; a lean query if it ever shows.
-  const { tags, checkIn, strip } = await getJournal(ctx, r.data);
+/** Read-only: the check-in sheet's behaviours, a day's answers and the day strip. */
+export async function loadCheckIn(ctx: QueryCtx, day: string): Promise<ActionResult<Pick<JournalVM, "tags" | "checkIn" | "strip">>> {
+  if (!isDay(day)) return fail("Invalid day");
+  if (!inDayRange(day, ctx.today)) return fail("Invalid day");
+  const { tags, checkIn, strip } = await getJournal(day, ctx);
   return { ok: true, data: { tags, checkIn, strip } };
 }
 
-const Note = z.object({ day: z.iso.date(), text: z.string().max(2000) });
-
-async function writeNote(store: Store, input: z.input<typeof Note>): Promise<ActionResult> {
-  const r = Note.safeParse(input);
-  if (!r.success) return { ok: false, error: r.error.issues[0].message };
-  const { day } = r.data;
-  const text = r.data.text.trim();
-  if (day > (await localToday(store))) return { ok: false, error: "Can’t log a future day" };
-  if (!text) await store.journal.deleteNote(day);
-  else await store.journal.saveNote(day, text);
-  return { ok: true, data: undefined };
-}
-
-/** Sets (or, when blank, removes) a day's journal note. Notes feed no score, so nothing is recomputed. */
-export async function saveJournalNote(store: Store, input: z.input<typeof Note>): Promise<ActionResult> {
-  const res = await writeNote(store, input);
-  if (res.ok) dataChanged();
-  return res;
+/** Adds a custom tag; its key is the label as snake_case. Fails when that key already exists. */
+export async function addCustomTag(c: ActionCtx, input: { label: string }): Promise<ActionResult<{ tag: string }>> {
+  const label = typeof input.label === "string" ? input.label.trim() : "";
+  if (label.length < 1) return fail("Too small: expected string to have >=1 characters");
+  if (label.length > 40) return fail("Too big: expected string to have <=40 characters");
+  const tag = tagKey(label);
+  if (!tag) return fail("Label needs a letter or digit");
+  const added = await addTag(c.store, tag, label);
+  if (added === "exists") return fail(`Tag already exists: ${tag}`);
+  if (added === "full") return fail(`Too many behaviours: the limit is ${MAX_TAGS}`);
+  return { ok: true, data: { tag } };
 }
 
 /**
- * The check-in's Save: each changed answer, then the note (when it changed), one after another as the web sends them,
- * stopping at the first failure. Screens reload once at the end, not once per answer.
+ * Select Behaviors' Save: the journal asks exactly `tags`. Catalogue behaviours not yet added are added; every other
+ * behaviour is hidden, its past answers kept.
  */
-export async function saveCheckIn(store: Store, day: string, answers: Omit<z.input<typeof Entry>, "day">[], note: string | null): Promise<ActionResult> {
-  let wrote = false;
-  try {
-    for (const a of answers) {
-      const res = await writeEntry(store, { day, ...a });
-      if (!res.ok) return res;
-      wrote = true;
-    }
-    if (note !== null) {
-      const res = await writeNote(store, { day, text: note });
-      if (!res.ok) return res;
-      wrote = true;
-    }
-    return { ok: true, data: undefined };
-  } finally {
-    if (wrote) dataChanged();
-  }
-}
-
-const CustomTag = z.object({ label: z.string().trim().min(1).max(40) });
-
-/** Adds a custom tag; its key is the label as snake_case. Fails when that key already exists. */
-export async function addCustomTag(store: Store, input: z.input<typeof CustomTag>): Promise<ActionResult<{ tag: string }>> {
-  const r = CustomTag.safeParse(input);
-  if (!r.success) return { ok: false, error: r.error.issues[0].message };
-  const { label } = r.data;
-  const tag = tagKey(label);
-  if (!tag) return { ok: false, error: "Label needs a letter or digit" };
-  const added = await store.journal.addTag(tag, label, MAX_TAGS);
-  if (added === "exists") return { ok: false, error: `Tag already exists: ${tag}` };
-  if (added === "full") return { ok: false, error: `Too many behaviours: the limit is ${MAX_TAGS}` };
-  dataChanged();
-  return { ok: true, data: { tag } };
+export async function saveBehaviors(c: ActionCtx, input: { tags: string[] }): Promise<ActionResult> {
+  const { tags } = input;
+  if (!Array.isArray(tags) || tags.length > 200 || tags.some((t) => typeof t !== "string" || t.length < 1 || t.length > 64)) return fail("Invalid input");
+  const rows = await tagRows(c.store);
+  const mine = new Set(rows.map((r) => r.tag));
+  const added = [...new Set(tags)].filter((t) => !mine.has(t));
+  if (added.some((t) => !behavior(t))) return fail("Unknown behaviour");
+  if (mine.size + added.length > MAX_TAGS) return fail(`Too many behaviours: the limit is ${MAX_TAGS}`);
+  await c.store.insertJournalTags(added.map((tag) => ({ tag, label: behavior(tag)!.label, isDefault: false, hidden: false, position: 0 })));
+  const shown = new Set(tags);
+  await c.store.updateJournalTags([...mine, ...added].map((tag) => ({ tag, hidden: !shown.has(tag) })));
+  return { ok: true, data: undefined };
 }

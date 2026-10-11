@@ -48,7 +48,8 @@ export function HealthspanScreen() {
   if (!data) return error ? <ErrorView detail retry={reload} /> : <HealthspanLoading />;
   const { vm } = data;
   const r = vm.result.value;
-  const pace = r ? { value: r.pace, reason: null, provisional: r.paceProvisional } : { value: null, reason: vm.result.reason, provisional: false };
+  // halo leaves Pace of Aging out until 21 of the last 31 days have a Recovery: calibrating until then.
+  const pace = r && r.pace !== null ? { value: r.pace, reason: null, provisional: r.paceProvisional } : { value: null, reason: r ? ("calibrating" as const) : vm.result.reason, provisional: false };
   const hasHistory = vm.history.some((p) => p.value !== null);
   const group = (g: "sleep" | "strain" | "fitness") => vm.contributors.filter((c) => c.group === g);
   const n = vm.nextUpdateInDays;
@@ -60,7 +61,7 @@ export function HealthspanScreen() {
       label: older ? "Years older" : "Years younger",
       tone: r ? (older ? "warning" : "optimal") : undefined,
     },
-    right: { value: r ? `${formatValue("decimal1", r.pace)}x` : MISSING, label: "Pace of aging" },
+    right: { value: r && r.pace !== null ? `${formatValue("decimal1", r.pace)}x` : MISSING, label: "Pace of aging" },
   } as const;
 
   return (
@@ -87,7 +88,7 @@ export function HealthspanScreen() {
               max={3}
               format="decimal1"
               unit="x"
-              describe={r ? (r.pace < 1 ? "aging slower than your 6-month average" : r.pace > 1 ? "aging faster than your 6-month average" : "aging at the normal rate") : undefined}
+              describe={r && r.pace !== null ? (r.pace < 1 ? "aging slower than your 6-month average" : r.pace > 1 ? "aging faster than your 6-month average" : "aging at the normal rate") : undefined}
               ends={["−1.0x", "1.0x", "3.0x"]}
               leading={SLOW}
               trailing={FAST}

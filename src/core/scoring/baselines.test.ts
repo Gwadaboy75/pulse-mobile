@@ -13,6 +13,7 @@ import {
   metricCfg,
   nightsSinceNewestValidNight,
   recentHrvCoverage,
+  recoveryHRVLnCfg,
   respCfg,
   restingHRCfg,
   rollingMeanSD,
@@ -86,11 +87,12 @@ describe("plan scenarios", () => {
 });
 
 describe("BaselineSeedingTest", () => {
-  const hrvBase4 = () => foldHistory([58, 61, 60, 59], hrvCfg);
+  // Recovery's HRV baseline is folded in ln(ms) (version 17).
+  const hrvBase4 = () => foldHistory([58, 61, 60, 59].map(Math.log), recoveryHRVLnCfg);
   const rhrBase4 = () => foldHistory([52, 51, 53, 52], restingHRCfg);
 
   it("below seed is not usable, recovery null", () => {
-    const hrvBase = foldHistory([58, 61, 60], hrvCfg);
+    const hrvBase = foldHistory([58, 61, 60].map(Math.log), recoveryHRVLnCfg);
     expect(isUsable(hrvBase)).toBe(false);
     const score = recoveryFromStates({
       hrv: 60,
@@ -117,12 +119,12 @@ describe("BaselineSeedingTest", () => {
   const withResp = (resp: number | null, respBaseline: ReturnType<typeof foldHistory> | null) =>
     recoveryFromStates({ hrv: 59.5, rhr: 52, resp, hrvBaseline: hrvBase4(), rhrBaseline: rhrBase4(), respBaseline, sleepPerf: 0.9 })!;
 
-  it("resp above baseline lowers recovery, below raises it", () => {
+  it("resp above baseline lowers recovery; below it changes nothing (WHOOP: a one-sided penalty)", () => {
     const respBase = foldHistory([14.5, 14.4, 14.6, 14.5, 14.5], respCfg);
     expect(isUsable(respBase)).toBe(true);
     const neutral = withResp(null, respBase);
     expect(withResp(17.5, respBase)).toBeLessThan(neutral);
-    expect(withResp(12.0, respBase)).toBeGreaterThan(neutral);
+    expect(withResp(12.0, respBase)).toBeCloseTo(neutral, 12);
   });
 
   it("null resp renormalizes to the pre-wiring score", () => {

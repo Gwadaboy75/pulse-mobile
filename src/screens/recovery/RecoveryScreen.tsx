@@ -2,6 +2,7 @@
 // Ported from pulse src/app/(app)/recovery/{page,loading}.tsx.
 import { useLocalSearchParams } from "expo-router"
 import { dayHref, parseDay, trendHref } from "@/lib/url"
+import { getRecoveryExtras } from "@/queries/mobileExtras"
 import { getRecovery } from "@/queries/recovery"
 import { getWeeklyTrends, type TrendViewKey } from "@/queries/trendView"
 import { type QueryCtx, todayOf } from "@/queries/common"
@@ -24,8 +25,8 @@ const WEEKLY: readonly TrendViewKey[] = ["recovery", "hrv", "rhr", "resp", "slee
 export const recoveryQuery = (raw?: string) => async (ctx: QueryCtx) => {
   const today = todayOf(ctx)
   const { d } = parseDay(raw, today)
-  const [vm, weekly] = await Promise.all([getRecovery(ctx, d), getWeeklyTrends(WEEKLY, d, ctx)])
-  return { d, today, vm, weekly }
+  const [vm, extras, weekly] = await Promise.all([getRecovery(d, ctx), getRecoveryExtras(d, ctx), getWeeklyTrends(WEEKLY, d, ctx)])
+  return { d, today, vm, extras, weekly }
 }
 export const recoveryKey = (raw?: string) => ["recovery", raw || null] as const
 
@@ -34,7 +35,7 @@ export function RecoveryScreen() {
   const { data, error, reload } = useScreen(recoveryQuery(raw), recoveryKey(raw))
 
   if (!data) return error ? <ScreenError retry={reload} /> : <RecoverySkeleton />
-  const { d, today, vm, weekly } = data
+  const { d, today, vm, extras, weekly } = data
   const r = vm.recovery
 
   return (
@@ -47,7 +48,7 @@ export function RecoveryScreen() {
       summary={
         <Card className="gap-0 px-4 py-1">
           <Divided>
-            {vm.summary.map((k) => (
+            {extras.summary.map((k) => (
               <KeyStatRow key={k.key} variant="row" {...statProps(k, { d, today })} />
             ))}
           </Divided>
@@ -55,7 +56,7 @@ export function RecoveryScreen() {
         </Card>
       }
       insight={vm.insight ? <InsightCard body={vm.insight} action={{ label: "Explore your recovery insights", href: trendHref("recovery", { d, today }) }} /> : null}
-      primary={<BehaviorInsights chips={vm.behaviors} href={dayHref("/journal/insights", d, today)} />}
+      primary={<BehaviorInsights chips={extras.behaviors} href={dayHref("/journal/insights", d, today)} />}
       footer={<WeeklyTrends cards={weekly} d={d} today={today} />}
     />
   )

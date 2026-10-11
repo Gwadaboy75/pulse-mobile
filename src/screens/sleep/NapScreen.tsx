@@ -3,7 +3,7 @@
 import { clock, dayLabel } from "@/lib/format";
 import { dayHref } from "@/lib/url";
 import { todayOf } from "@/queries/common";
-import { getNap } from "@/queries/sleep";
+import { getNap } from "@/queries/mobileExtras";
 import { SleepStages } from "@/ui/metrics/SleepStages";
 import { DetailShell } from "@/ui/shells/DetailShell";
 import { EmptyState } from "@/ui/shells/EmptyState";
@@ -12,7 +12,7 @@ import { useScreen } from "../useScreen";
 import { NapSkeleton } from "./NapSkeleton";
 
 export function NapScreen({ id }: { id: string }) {
-  const { data } = useScreen(async (ctx) => ({ vm: await getNap(ctx, id), today: todayOf(ctx), timeZone: ctx.timeZone }), ["nap", id]);
+  const { data } = useScreen(async (ctx) => ({ vm: await getNap(id, ctx), today: todayOf(ctx), timeZone: ctx.timeZone }), ["nap", id]);
   if (!data) return <NapSkeleton />;
   const { vm, today, timeZone } = data;
   // The web calls notFound(): its default page says this.

@@ -1,9 +1,23 @@
-// Onboarding and Settings › Profile (U19). Ported from pulse src/server/actions/profile.ts: one action for both,
-// onboarding says so with `onboarding: true`. The form hands over its fields as typed (strings), the web's FormData.
-import { saveProfile, ProfileInput } from "../profile";
-import type { Store } from "../data/repos";
-import { dataChanged } from "../screens/useScreen";
-import { DEFAULT_JOURNAL_TAGS } from "../journalTags";
+// Onboarding and Settings › Profile: one action for both. The form hands over its fields as typed (strings), checked
+// with pulse's rules; `save` writes the profile (src/state/app.ts saveProfile, which also reruns the scores).
+import { z } from "zod";
+import type { Profile } from "@/data/types";
+import { wholeYears } from "@/lib/time";
+import { isTimeZone } from "@/lib/timeZone";
+
+/** What onboarding and Settings submit. Ages 13 to 100. */
+export const ProfileInput = z.object({
+  birthDate: z.iso.date().refine((d) => {
+    const age = wholeYears(d, new Date().toISOString().slice(0, 10));
+    return age >= 13 && age <= 100;
+  }, "Enter a birth date between 13 and 100 years ago"),
+  sex: z.enum(["male", "female"], "Choose one"),
+  maxHr: z.coerce.number().int().min(100, "Between 100 and 240").max(240, "Between 100 and 240").nullable(),
+  heightCm: z.coerce.number().min(100, "Between 100 and 250 cm").max(250, "Between 100 and 250 cm").nullable(),
+  timeZone: z.string().refine(isTimeZone, "Choose a time zone"),
+});
+// eslint-disable-next-line @typescript-eslint/no-redeclare -- pulse's pattern: the schema and its type share a name
+export type ProfileInput = z.infer<typeof ProfileInput>;
 
 export type ProfileFormState =
   | { ok: true; error?: undefined; fields?: undefined }
@@ -14,7 +28,8 @@ export type ProfileFields = { birthDate: string; sex: string | null; maxHr: stri
 
 const optional = (v: string) => (v.trim() !== "" ? v.trim() : null);
 
-export async function saveProfileAction(store: Store, form: ProfileFields, opts: { onboarding?: boolean } = {}): Promise<ProfileFormState> {
+/** Checks the form; on success saves `{ ...previous, ...fields }` (a waist set elsewhere stays) through `save`. */
+export async function saveProfileAction(form: ProfileFields, previous: Profile | null, save: (p: Profile) => Promise<void>): Promise<ProfileFormState> {
   const r = ProfileInput.safeParse({
     birthDate: form.birthDate,
     sex: form.sex ?? undefined,
@@ -28,13 +43,9 @@ export async function saveProfileAction(store: Store, form: ProfileFields, opts:
     return { ok: false, fields };
   }
   try {
-    // Every day is marked for recompute (saveProfile): the pipeline rescores them when it next runs.
-    await saveProfile(store, r.data);
-    // First run: the Journal's default behaviours exist before the first check-in (pulse made them at sign-up).
-    if (opts.onboarding) await store.journal.ensureDefaultTags([...DEFAULT_JOURNAL_TAGS]);
+    await save({ ...previous, ...r.data });
   } catch {
     return { ok: false, error: "Couldn’t save. Try again." };
   }
-  dataChanged();
   return { ok: true };
 }

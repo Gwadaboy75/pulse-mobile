@@ -7,6 +7,7 @@ import { deltaTone } from "@/lib/bands"
 import { clock, dayLabel, formatValue } from "@/lib/format"
 import { dayHref } from "@/lib/url"
 import { getActivity } from "@/queries/activity"
+import { getActivityExtras } from "@/queries/mobileExtras"
 import { todayOf } from "@/queries/common"
 import type { ActivityVM } from "@/queries/types"
 import { cn } from "@/ui/cn"
@@ -24,7 +25,7 @@ import { ReasonPlaceholder } from "@/ui/metrics/ReasonPlaceholder"
 import { DetailShell } from "@/ui/shells/DetailShell"
 import { EmptyState } from "@/ui/shells/EmptyState"
 import { SectionShell } from "@/ui/shells/SectionShell"
-import { hrSeries, STAT_ICON, statProps } from "@/screens/_lib/view"
+import { hrSeries, STAT_ICON, statProps, zoneBars } from "@/screens/_lib/view"
 import { ScreenError } from "@/screens/recovery/shared"
 import { useScreen } from "@/screens/useScreen"
 import { ActivityMenu } from "./ActivityMenu"
@@ -48,8 +49,8 @@ export function ActivityScreen() {
   const { id: raw } = useLocalSearchParams<{ id: string }>()
   const id = decode(raw)
   const { data, error, reload } = useScreen(async (ctx) => {
-    const [vm, coach] = await Promise.all([getActivity(ctx, id), coachReady(ctx)])
-    return { vm, coach, today: todayOf(ctx), timeZone: ctx.timeZone }
+    const [vm, extras, coach] = await Promise.all([getActivity(id, ctx), getActivityExtras(id, ctx), coachReady(ctx)])
+    return { vm: vm && { ...vm, ...extras }, coach, today: todayOf(ctx), timeZone: ctx.timeZone }
   }, ["activity", id])
 
   if (!data) return error ? <ScreenError retry={reload} /> : <ActivitySkeleton />
@@ -84,7 +85,7 @@ export function ActivityScreen() {
                 <IntradayHrChart variant="activity" data={hrSeries(vm.hr, vm.maxHr)} />
               </View>
               <View accessibilityLabel="Time in zones">
-                <ZoneBars variant="rows" data={vm.zones} note={vm.zoneNote} noteLink={{ label: "View heart-rate settings", href: HR_SETTINGS }} emptyCopy="No heart-rate zones for this activity." />
+                <ZoneBars variant="rows" data={zoneBars(vm.zones)} note={vm.zoneNote} noteLink={{ label: "View heart-rate settings", href: HR_SETTINGS }} emptyCopy="No heart-rate zones for this activity." />
               </View>
             </View>
           )
@@ -141,7 +142,7 @@ function StatTiles({ tiles }: { tiles: ActivityVM["stats"] }) {
  * The activity hero (activity-01, activity-05): strain in blue with a chip of this kind's 30-day average, then the steps
  * in the workout for runs and walks.
  */
-function Hero({ vm }: { vm: ActivityVM }) {
+function Hero({ vm }: { vm: ActivityVM & Awaited<ReturnType<typeof getActivityExtras>> }) {
   const s = vm.strain.value
   return (
     <View className="w-full gap-2">

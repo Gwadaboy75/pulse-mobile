@@ -1,8 +1,25 @@
-import type { BodyKey } from "@/lib/dashboard";
-import { EXTRA_KEYS, type ExtraKey } from "@/lib/extraMetrics";
-import { clock, DAY, formatDay, type FormatKey } from "@/lib/format";
-import { RANGE_DAYS, RANGES, type TrendRange, weekOf } from "@/lib/url";
-import { addDays } from "../time";
+// A metric's own screen `/metric/[key]?d=&r=` (spec §11 MD1): one shell for every metric without a richer screen (the
+// day's value against its 30-day average, history over W / M / 6M / 1Y with the range's stats, where the number comes
+// from), plus the sections that make that metric useful, chosen per key below. Ported from Pulse's
+// src/server/queries/metric.ts; the hourly section reads the day's steps from store.readSteps.
+import { addDays, localMidnight } from "@/lib/time";
+import {
+  type BodyKey,
+  clock,
+  DAY,
+  EXTRA_KEYS,
+  EXTRA_METRICS,
+  type ExtraKey,
+  type ExtraMetric,
+  formatDay,
+  type FormatKey,
+  type GoodDirection,
+  type LoggedEntry,
+  RANGE_DAYS,
+  RANGES,
+  type TrendRange,
+  weekOf,
+} from "./_lib";
 import {
   ACTIVITY_NAME,
   activityKind,
@@ -19,20 +36,19 @@ import {
   priorStats,
   type QueryCtx,
   todayOf,
-  vitalReason,
 } from "./common";
-import { type LoggedEntry, toEntry } from "./log";
+import { recentEntries } from "./log";
 import { TREND_METRICS } from "./trends";
-import type { GoodDirection, KeyStat, Metric } from "./types";
+import type { KeyStat, Metric } from "./types";
 
-export type VitalDetailKey = "hrv" | "rhr" | "resp" | "spo2" | "skin";
-export type DetailKey = "steps" | "calories" | VitalDetailKey | BodyKey | ExtraKey;
-export const DETAIL_KEYS: readonly DetailKey[] = ["steps", "calories", "hrv", "rhr", "resp", "spo2", "skin", "weight", "body_fat", ...EXTRA_KEYS];
+export type DetailKey = "steps" | "calories" | BodyKey | ExtraKey;
+export const DETAIL_KEYS: readonly DetailKey[] = ["steps", "calories", "weight", "body_fat", ...EXTRA_KEYS];
 export const isDetailKey = (k: string): k is DetailKey => (DETAIL_KEYS as readonly string[]).includes(k);
 
 type Group = "activity" | "body" | "nutrition" | "vitals";
 type SectionKind = Section["kind"];
 
+/** Per metric: what it is, where it comes from, and the sections its screen adds to the shell. */
 type Config = {
   about: string;
   group: Group;
@@ -41,6 +57,7 @@ type Config = {
   total?: boolean;
   /** A spot reading (weight, glucose): the hero is the latest reading on or before the day. */
   reading?: boolean;
+  /** History draws a split (Strain's calorie stack), a reference line, a smoothed line or the normal range. */
   stack?: "calories" | "distance";
   reference?: { y: number; label: string };
   smooth?: number;
@@ -54,20 +71,15 @@ const PROTEIN_G_PER_KG = 0.8;
 
 const LEVELS = ["intensity"] as const;
 const CONFIG: Record<DetailKey, Config> = {
-  hrv: { group: "vitals", baseline: true, sections: ["outliers"], about: "Variation in time between heartbeats during sleep, measured in milliseconds. Compare it with your own usual range." },
-  rhr: { group: "vitals", baseline: true, sections: ["outliers"], about: "Your resting heart rate from Google Health, or the sleeping heart rate from your main sleep session when the daily value is missing." },
-  resp: { group: "vitals", baseline: true, sections: ["outliers"], about: "Breaths per minute during sleep, measured by your Fitbit." },
-  spo2: { group: "vitals", baseline: true, sections: ["outliers"], about: "Estimated blood oxygen saturation during sleep, measured by your Fitbit." },
-  skin: { group: "vitals", baseline: true, sections: ["outliers"], reference: { y: 0, label: "Baseline" }, about: "Nightly skin temperature above or below your personal baseline, in degrees Celsius. This is a temperature difference, not your body temperature." },
   steps: { group: "activity", total: true, sections: ["hourly", "goal", "weekday"], reference: { y: STEP_TARGET, label: "7,000" }, about: "Steps counted through the day." },
   calories: {
     group: "activity",
     total: true,
     stack: "calories",
     sections: ["workouts"],
-    about: "Everything you burned: your resting burn plus movement. Resting is the total minus active calories, since Google sends no separate resting roll-up.",
+    about: "Everything you burned: your resting burn plus movement. Resting is the total minus active calories, since the source sends no separate resting roll-up.",
   },
-  weight: { group: "body", reading: true, smooth: 7, sections: ["readings"], about: "Your weight, from a connected scale, a log in Fitbit or Google Health, or Pulse's Journal." },
+  weight: { group: "body", reading: true, smooth: 7, sections: ["readings"], about: "Your weight, from a connected scale or a manual log in your health app." },
   body_fat: { group: "body", reading: true, smooth: 7, sections: ["readings"], about: "Body fat percentage, from a smart scale or a manual log." },
   distance: { group: "activity", total: true, stack: "distance", sections: ["weekday"], about: "Distance covered on foot and in workouts, from your steps and GPS." },
   floors: { group: "activity", total: true, sections: ["weekday"], about: "Floors climbed, counted from changes in altitude as you walk." },
@@ -84,10 +96,10 @@ const CONFIG: Record<DetailKey, Config> = {
   sedentary_minutes: {
     group: "activity",
     sections: ["hourly", ...LEVELS],
-    about: "Time awake and still. Google sends one daily total, so the hourly view shows your steps instead: the gaps are when you sat.",
+    about: "Time awake and still: minutes with no steps and a low heart rate, outside sleep and workouts. The hourly view shows your steps: the gaps are when you sat.",
   },
-  avg_hr: { group: "vitals", baseline: true, sections: ["outliers"], about: "Your average heart rate over the whole day, from your Fitbit." },
-  water: { group: "nutrition", total: true, sections: ["entries"], about: "Water you logged in Fitbit, Google Health or Pulse's Journal." },
+  avg_hr: { group: "vitals", baseline: true, sections: ["outliers"], about: "Your average heart rate over the whole day, from your band." },
+  water: { group: "nutrition", total: true, sections: ["entries"], about: "Water you logged in your health app." },
   calories_in: { group: "nutrition", sections: ["balance", "macros", "entries"], about: "Calories from the food you logged." },
   protein: { group: "nutrition", sections: ["macros", "entries"], about: "Protein from the food you logged." },
   carbs: { group: "nutrition", sections: ["macros", "entries"], about: "Carbohydrates from the food you logged." },
@@ -97,11 +109,13 @@ const CONFIG: Record<DetailKey, Config> = {
   swim_strokes: { group: "activity", total: true, sections: [], about: "Strokes counted during pool swims." },
 };
 
+/** Where the number comes from, by group. */
 const SOURCE: Record<Group, string> = {
-  activity: "Google Health's daily roll-up, counted by your Fitbit or your phone and synced through the Google Health API. Pulse shows it as it comes and does not score it.",
-  body: "Readings synced from Google Health, plus any you log in Pulse. A day without a reading shows the latest one before it.",
-  nutrition: "Google Health's daily total of your logs, synced through the Google Health API, plus entries made in Pulse since the last sync.",
-  vitals: "Google Health's daily value, from your Fitbit or a connected device. Pulse shades your usual range from the last 90 days.",
+  activity: "Your health app's daily roll-up, counted by your band or your phone. Pulse shows it as it comes and does not score it.",
+  body: "Readings synced from your health app. A day without a reading shows the latest one before it.",
+  // mobile: water and food logged in Pulse's Journal add to the synced totals (common.ts loadDays, food.ts).
+  nutrition: "Your health app's daily total of your logs, plus what you log in Pulse's Journal. A meal logged in both Pulse and Fitbit counts once.",
+  vitals: "Your health app's daily value, from your band or a connected device. Pulse shades your usual range from the last 90 days.",
 };
 
 const CALORIES = {
@@ -116,7 +130,9 @@ const CALORIES = {
 
 function defOf(key: DetailKey) {
   const t = key === "calories" ? CALORIES : TREND_METRICS.find((m) => m.key === key)!;
-  return { key, label: t.label, unit: t.unit, format: t.format, direction: t.direction, pick: t.pick, partialToday: !!t.partialToday, ...CONFIG[key] };
+  // mobile: an extra Pulse derives itself (activity minutes, AZM, average HR) says so in place of the group's source line.
+  const note = (EXTRA_METRICS as readonly ExtraMetric[]).find((m) => m.key === key)?.note;
+  return { key, label: t.label, unit: t.unit, format: t.format, direction: t.direction, pick: t.pick, partialToday: !!t.partialToday, note, ...CONFIG[key] };
 }
 
 export type Point = { day: string; value: number | null; provisional?: boolean; parts?: Record<string, number> | null };
@@ -151,37 +167,45 @@ export type MetricDetailVM = {
   /** The selected day's value, or for a reading metric the latest reading on or before it (`valueDay`). */
   value: Metric<number>;
   valueDay: string | null;
+  /** Today's running total of a metric that accrues through the day. */
   soFar: boolean;
   /** Mean over the 30 days before `valueDay`. */
   average: number | null;
   sd?: number;
-  /** 365 days ending on the selected day, oldest first; today's running total is a gap, as on Trends. */
+  /**
+   * 365 days ending on the selected day, oldest first. Today's running total is drawn as a provisional point but stays
+   * out of the stats and ranges, as on Trends.
+   */
   history: Metric<Point[]>;
   ranges: Record<TrendRange, RangeStats>;
   total: boolean;
   chart: { stack?: "calories" | "distance"; reference?: { y: number; label: string }; smooth?: number; baseline?: { mean: number; sd: number } | null };
   sections: Section[];
 };
+/** Alias: the task's name for the metric screen's view model. */
+export type MetricVM = MetricDetailVM;
 
 const SPAN = RANGE_DAYS["1y"];
+/** Sedentary time's daytime window, local minutes. */
 const DAY_FROM = 7 * 60;
 const DAY_TO = 22 * 60;
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+/** The metric's screen for `day`. */
 export async function getMetricDetail(key: DetailKey, day: string, ctx: QueryCtx): Promise<MetricDetailVM> {
   const m = defOf(key);
   const today = todayOf(ctx);
   const isToday = day === today;
   // Two years: the 1Y stats compare with the year before.
   const from = addDays(day, -(2 * SPAN - 1));
-  const needExs = m.stack === "distance" || m.sections.includes("workouts");
+  const needExs = !!m.stack || m.sections.includes("workouts");
   const [rows, exs] = await Promise.all([loadDays(ctx, from, day), needExs ? exercisesBetween(ctx, addDays(day, -(SPAN - 1)), day) : []]);
   const raw = (d: string) => {
     const r = rows.get(d);
     const v = r ? m.pick(r) : null;
     return finite(v) ? v : null;
   };
-  // Exclude unfinished daily totals from history and range comparisons.
+  // Today's running total is not a day's value yet (Trends' rule): a gap in history and stats.
   const val = (d: string) => (m.partialToday && d === today ? null : raw(d));
   const days = Array.from({ length: 2 * SPAN }, (_, k) => addDays(from, k));
 
@@ -190,7 +214,11 @@ export async function getMetricDetail(key: DetailKey, day: string, ctx: QueryCtx
   const value = valueDay ? raw(valueDay) : null;
   const prior = valueDay ? priorStats(rows, valueDay, (r) => m.pick(r)) : { mean: null, sd: undefined };
 
-  const shown: Point[] = days.slice(-SPAN).map((d) => ({ day: d, value: val(d), ...(m.stack && { parts: partsOf(m.stack, rows.get(d), val(d), exs) }) }));
+  const shown: Point[] = days.slice(-SPAN).map((d) => {
+    const soFar = m.partialToday && d === today && raw(d) !== null;
+    const v = soFar ? raw(d) : val(d);
+    return { day: d, value: v, ...(soFar && { provisional: true }), ...(m.stack && { parts: partsOf(m.stack, rows.get(d), v, exs) }) };
+  });
 
   const ranges = Object.fromEntries(RANGES.map((r) => [r, rangeStats(days.map(val), days, RANGE_DAYS[r], !!m.total)])) as Record<TrendRange, RangeStats>;
   const out = m.baseline ? outliers(days.slice(-90), val) : null;
@@ -205,10 +233,10 @@ export async function getMetricDetail(key: DetailKey, day: string, ctx: QueryCtx
     direction: m.direction,
     group: m.group,
     about: m.about,
-    source: SOURCE[m.group],
+    source: m.note ?? SOURCE[m.group],
     day,
     today,
-    value: value === null ? none(detailReason(key, rows.get(day), isToday)) : ok(value),
+    value: value === null ? none("no_data") : ok(value),
     valueDay: value === null ? null : valueDay,
     soFar: m.partialToday && isToday && valueDay === today && value !== null,
     average: prior.mean,
@@ -221,11 +249,8 @@ export async function getMetricDetail(key: DetailKey, day: string, ctx: QueryCtx
   };
 }
 
-function detailReason(key: DetailKey, row: DayRow | undefined, isToday: boolean) {
-  if (key === "skin" && row?.metrics?.nightlyTempC != null) return "calibrating" as const;
-  if (["hrv", "rhr", "resp", "spo2", "skin"].includes(key)) return vitalReason(row, isToday, key === "hrv");
-  return "no_data" as const;
-}
+/** Alias: the task's name for the metric screen query. */
+export const getMetric = getMetricDetail;
 
 type SectionCtx = {
   ctx: QueryCtx;
@@ -246,15 +271,18 @@ type SectionCtx = {
 function partsOf(stack: "calories" | "distance", r: DayRow | undefined, total: number | null, exs: SectionCtx["exs"]): Record<string, number> | null {
   if (total === null || !r) return null;
   if (stack === "calories") {
+    // Resting, everyday movement and workouts (strain.ts calorieSplit).
     const a = r.extra.active_calories;
     if (!finite(a)) return null;
     const active = Math.min(Math.max(0, a), total);
-    return { active, resting: total - active };
+    const workouts = Math.min(exs.filter((e) => e.day === r.day).reduce((x, e) => x + (finite(e.calories) ? Math.max(0, e.calories) : 0), 0), active);
+    return { resting: total - active, everyday: active - workouts, workouts };
   }
   const workouts = Math.min(exs.filter((e) => e.day === r.day).reduce((a, e) => a + (e.distanceM ?? 0), 0) / 1000, total);
   return { workouts, everyday: total - workouts };
 }
 
+/** Stats over the last `n` of `values` (aligned with `days`), and the average of the `n` before them. */
 export function rangeStats(values: (number | null)[], days: string[], n: number, total: boolean): RangeStats {
   const v = values.slice(-n);
   const d = days.slice(-n);
@@ -315,6 +343,7 @@ const BUILD: Record<Exclude<SectionKind, "outliers">, (s: SectionCtx, key: Detai
   },
 
   weekday: (s) => {
+    // Twelve whole weeks ending on the day; today's running total stays out.
     const sums = Array.from({ length: 7 }, () => ({ sum: 0, n: 0 }));
     for (let k = 0; k < 84; k++) {
       const d = addDays(s.day, -k);
@@ -372,9 +401,13 @@ const BUILD: Record<Exclude<SectionKind, "outliers">, (s: SectionCtx, key: Detai
     return { kind: "workouts", active: finite(a) ? a : null, items };
   },
 
+  // mobile: the entries logged in Pulse's Journal (log.ts), kept on the phone only, and those the sync read from Health
+  // Connect (logged in Fitbit). Pulse's never reach Health Connect, so the day loader adds them to the roll-up (Fitbit's
+  // are in it already, and a Pulse food repeating a Fitbit one is left out: food.ts).
   entries: async (s, key) => {
     const type = key === "water" ? "hydration-log" : "nutrition-log";
-    return { kind: "entries", items: (await s.ctx.store.log.entriesOn(type, s.day)).map(toEntry) };
+    const start = localMidnight(s.day, s.ctx.timeZone);
+    return { kind: "entries", items: (await recentEntries(s.ctx.store, start)).filter((e) => e.day === s.day && e.type === type).reverse() };
   },
 
   balance: (s) => {
@@ -456,12 +489,12 @@ const BUILD: Record<Exclude<SectionKind, "outliers">, (s: SectionCtx, key: Detai
 
 /**
  * Steps per hour of the day from the stored steps per minute; hours still to come today are gaps. `still` adds the longest
- * stretch without a step between 07:00 and 22:00 (or now, today), for Sedentary time.
+ * stretch without a step between 07:00 and 22:00 (or now, today), for Sedentary time. Reads only the day's minutes.
  */
 async function hourly(s: SectionCtx, still: boolean): Promise<Extract<Section, { kind: "hourly" }>> {
   const start = dayStartOf(s.ctx, s.day);
   const end = dayStartOf(s.ctx, addDays(s.day, 1));
-  const mins = (await s.ctx.store.samples.readSamples("steps", start, end)).filter((x) => x.v > 0).map((x) => ({ ts: x.ts, steps: x.v }));
+  const mins = (await s.ctx.store.readSteps(start, end)).filter((x) => x.v > 0).map((x) => ({ ts: x.ts, steps: x.v }));
   if (!mins.length) return { kind: "hourly", hours: none("no_data"), still: null };
   const n = Math.round((end - start) / 3600);
   const now = s.isToday ? Math.floor((s.ctx.now - start) / 3600) : n;
@@ -470,7 +503,7 @@ async function hourly(s: SectionCtx, still: boolean): Promise<Extract<Section, {
   const hours = sums.map((v, h) => ({ t: ms(start + h * 3600), label: clock(ms(start + h * 3600), s.ctx.timeZone), value: h > now ? null : v }));
   let gap: { from: number; to: number; minutes: number } | null = null;
   if (still) {
-    // Exclude overnight hours so sleep is not counted as sedentary time.
+    // ponytail: daytime is 07:00-22:00 so a night's sleep never reads as sitting; sleep times would be exact with a band.
     const [lo, hi] = [start + DAY_FROM * 60, start + DAY_TO * 60];
     const ts = [lo - 60, ...mins.map((m) => m.ts).filter((t) => t >= lo && t < hi), Math.min(hi, s.isToday ? s.ctx.now - (s.ctx.now % 60) : hi)];
     for (let i = 1; i < ts.length; i++) {

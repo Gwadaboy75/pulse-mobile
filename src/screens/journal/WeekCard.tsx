@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { formatDay } from "@/lib/format";
-import type { WeekDay } from "@/queries/log";
+import type { WeekDay } from "@/queries/journalExtras";
 import { Card } from "@/ui/Card";
 import { ColumnChart } from "@/ui/charts/ColumnChart";
 import { cn } from "@/ui/cn";

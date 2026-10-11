@@ -3,7 +3,6 @@
     "name": "Pulse",
     "slug": "pulse",
     "platforms": [
-      "ios",
       "android"
     ],
     "version": "1.0.0",
@@ -11,15 +10,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "pulse",
     "userInterfaceStyle": "automatic",
-    "ios": {
-      "icon": {
-        "light": "./assets/images/icon.png",
-        "tinted": "./assets/images/icon-tinted.png"
-      },
-      "bundleIdentifier": "in.portlabs.pulse",
-      "scheme": "com.googleusercontent.apps.496401660534-p8o7nb8ai81ulvk65fh3lvue7sbl3ol6",
-      "supportsTablet": false
-    },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0f1113",
@@ -27,7 +17,35 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": true,
-      "package": "in.portlabs.pulse"
+      "package": "in.portlabs.pulse",
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_DISTANCE",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_RESTING_HEART_RATE",
+        "android.permission.health.READ_HEART_RATE_VARIABILITY",
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.READ_OXYGEN_SATURATION",
+        "android.permission.health.READ_RESPIRATORY_RATE",
+        "android.permission.health.READ_SKIN_TEMPERATURE",
+        "android.permission.health.READ_EXERCISE",
+        "android.permission.health.READ_TOTAL_CALORIES_BURNED",
+        "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
+        "android.permission.health.READ_VO2_MAX",
+        "android.permission.health.READ_HEALTH_DATA_HISTORY",
+        "android.permission.health.READ_WEIGHT",
+        "android.permission.health.READ_BODY_FAT",
+        "android.permission.health.READ_FLOORS_CLIMBED",
+        "android.permission.health.READ_ELEVATION_GAINED",
+        "android.permission.health.READ_HYDRATION",
+        "android.permission.health.READ_NUTRITION",
+        "android.permission.health.READ_BLOOD_GLUCOSE",
+        "android.permission.health.READ_BODY_TEMPERATURE",
+        "android.permission.health.READ_MENSTRUATION",
+        "android.permission.health.READ_INTERMENSTRUAL_BLEEDING",
+        "android.permission.health.READ_OVULATION_TEST",
+        "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -50,6 +68,9 @@
         "expo-build-properties",
         {
           "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "minSdkVersion": 26,
             "enableMinifyInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true,
             "gifEnabled": false,
@@ -57,7 +78,8 @@
           }
         }
       ],
-      "./plugins/withHighRefreshRate.js"
+      "./plugins/withHighRefreshRate.js",
+      "react-native-health-connect"
     ],
     "experiments": {
       "typedRoutes": true,

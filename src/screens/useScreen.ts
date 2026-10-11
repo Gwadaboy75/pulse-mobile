@@ -1,26 +1,13 @@
 import { router, type Href } from "expo-router";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { store } from "../data/store";
-import { ctxOf, type QueryCtx } from "../queries/common";
+import type { QueryCtx } from "@/queries/ctx";
+import { dataChanged, dataVersion, queryCtx, useDataVersion } from "@/state/app";
 import { useScreenReady } from "../ui/shells/useScreenReady";
 
-let version = 0;
-const listeners = new Set<() => void>();
+export { dataChanged, useDataVersion };
 
-export function dataChanged() {
-  version++;
-  for (const l of listeners) l();
-}
-
-const subscribe = (l: () => void) => {
-  listeners.add(l);
-  return () => listeners.delete(l);
-};
-
-const unsubscribe = () => {};
-const inactiveSubscribe = () => unsubscribe;
-
-export const useDataVersion = (active = true) => useSyncExternalStore(active ? subscribe : inactiveSubscribe, () => version);
+/** The query context, read as a load starts: the app state's Store, profile and sync state, and the clock. */
+const ctxOf = async (): Promise<QueryCtx> => queryCtx();
 
 /**
  * Screen results kept in memory, keyed by the screen's key (`[id, ...params]`). A screen opened again renders its last
@@ -40,14 +27,14 @@ const subscribeCache = (l: () => void) => {
   return () => cacheListeners.delete(l);
 };
 
-const fresh = (e: Entry | undefined): e is Entry => !!e && e.version === version && Date.now() - e.at < FRESH_MS;
+const fresh = (e: Entry | undefined): e is Entry => !!e && e.version === dataVersion() && Date.now() - e.at < FRESH_MS;
 
 function load(k: string, query: (ctx: QueryCtx) => Promise<unknown>): Promise<void> {
   const running = loading.get(k);
   if (running) return running;
-  const started = version;
+  const started = dataVersion();
   const at = performance.now();
-  const p = ctxOf(store)
+  const p = ctxOf()
     .then(query)
     .then((data) => {
       if (__DEV__) console.info(`[screen] ${k} loaded ms=${Math.round(performance.now() - at)}`);

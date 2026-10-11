@@ -1,14 +1,12 @@
 // Settings › App (appearance, notifications). Ported from pulse (app)/settings/SettingsView.tsx (Appearance), SettingsClient
-// `ThemePicker` and AppSettings.tsx. The theme is system, light or dark, kept on the device (the `theme` setting, applied
-// at launch by src/screens/onboarding/gate.ts). Notifications are two stored toggles (the web had one push subscription:
+// `ThemePicker` and AppSettings.tsx. The theme is system, light or dark, kept on the device (AsyncStorage `pulse.theme`, applied
+// at launch by src/state/app.ts boot). Notifications are two stored toggles (the web had one push subscription:
 // "Recovery ready, and when Pulse can’t sync"); scheduling them is the background stream's.
 import { useState } from "react";
 import { View } from "react-native";
 import { colorScheme } from "nativewind";
 import { Monitor, Moon, Sun } from "lucide-react-native";
-import { saveNotify, saveTheme, type NotifyKey, type Theme } from "@/actions/preferences";
-import { store } from "@/data/store";
-import type { AppPrefs } from "@/queries/settings";
+import { saveNotify, saveTheme, type AppPrefs, type NotifyKey, type Theme } from "@/actions/preferences";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { Text } from "@/ui/Text";
 import { cn } from "@/ui/cn";
@@ -32,7 +30,7 @@ function ThemePicker({ initial }: { initial: Theme }) {
       onChange={(v) => {
         setTheme(v);
         colorScheme.set(v);
-        void saveTheme(store, v);
+        void saveTheme(v);
       }}
     />
   );
@@ -51,7 +49,7 @@ function NotifyRow({ label, hint, settingKey, initial, rule }: { label: string; 
         value={on}
         onValueChange={(v) => {
           setOn(v);
-          void saveNotify(store, settingKey, v);
+          void saveNotify(settingKey, v);
         }}
       />
     </View>

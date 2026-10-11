@@ -4,7 +4,7 @@
 // src/components/metrics/BehaviorInsights.tsx.
 import { View } from "react-native"
 import { Lightbulb } from "lucide-react-native"
-import type { BehaviorChip } from "@/core/algorithms/behaviorChips"
+import type { BehaviorChip } from "@/queries/mobileExtras"
 import { Icon } from "@/ui/Icon"
 import { StatusChip } from "@/ui/metrics/primitives"
 import { SectionShell } from "@/ui/shells/SectionShell"

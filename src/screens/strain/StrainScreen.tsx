@@ -39,10 +39,13 @@ const WEEKLY: readonly TrendViewKey[] = ["strain", "zones13", "zones45", "steps"
 export const strainQuery = (raw?: string) => async (ctx: QueryCtx) => {
   const today = todayOf(ctx)
   const { d } = parseDay(raw, today)
-  const [vm, weekly] = await Promise.all([getStrain(ctx, d), getWeeklyTrends(WEEKLY, d, ctx)])
+  const [vm, weekly] = await Promise.all([getStrain(d, ctx), getWeeklyTrends(WEEKLY, d, ctx)])
   return { d, today, timeZone: ctx.timeZone, vm, weekly }
 }
 export const strainKey = (raw?: string) => ["strain", raw || null] as const
+
+/** A day's zones carry no typical range (only a workout's do, in another shape): the bars take them without it. */
+const dayZones = (m: StrainVM["zones"]) => ({ ...m, value: m.value?.map(({ typical: _typical, ...z }) => z) ?? null })
 
 export function StrainScreen() {
   const { d: raw } = useLocalSearchParams<{ d?: string }>()
@@ -79,7 +82,7 @@ export function StrainScreen() {
       }
       secondary={[
         <SectionShell key="zones" variant="card" title="Time in zones">
-          <ZoneBars variant="rows" data={vm.zones} note={vm.zoneNote} emptyCopy={vm.isToday ? "No heart-rate zones yet today." : "No heart-rate zones on this day."} />
+          <ZoneBars variant="rows" data={dayZones(vm.zones)} note={vm.zoneNote} emptyCopy={vm.isToday ? "No heart-rate zones yet today." : "No heart-rate zones on this day."} />
         </SectionShell>,
         <SectionShell key="activities" variant="card" title="Activities">
           {vm.activities.length ? (

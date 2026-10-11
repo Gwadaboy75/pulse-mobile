@@ -1,21 +1,17 @@
-import type { JournalSection } from "@/lib/behaviors";
-import type { BehaviorChip } from "@/core/algorithms/behaviorChips";
-// View models returned by server/queries, one per screen (spec §7). Shapes mirror the U12 kit props
-// (src/lib/reasons.ts Metric, ZoneBars' ZoneRow, DriverList's DriverItem…), importing only types from the kit.
-// Conventions: instants are epoch **milliseconds** (as the kit's charts and cards take them), days are
+// View models returned by the screen queries, one per screen (Pulse spec §7), ported verbatim from the web app's
+// src/server/queries/types.ts so the ported UI consumes them unchanged.
+// Conventions: instants are epoch **milliseconds** (as the charts and cards take them), days are
 // local `YYYY-MM-DD`, Strain is on the reference app's 0–21 scale, and no number is ever NaN or ±Infinity.
-import type { DashboardKey } from "@/lib/dashboard";
-import type { FormatKey } from "@/lib/format";
-
-import type { ChipTone, GoodDirection, RecoveryBand as Band, StressLevel } from "@/lib/bands";
+import type { ChipTone, DashboardKey, FormatKey, GoodDirection, RecoveryBand as Band, StressLevel } from "./_lib";
 import type { Metric, MetricTag, ReasonCode } from "@/lib/reasons";
+import type { EnergyBand } from "@/core/algorithms/energyBank";
 
-// Type-only: shared with the kit, erased at build, so no UI code reaches the server bundle.
 export type { Band, ChipTone, GoodDirection, Metric, MetricTag, ReasonCode, StressLevel };
 export type SleepStatus = "poor" | "sufficient" | "optimal";
 export type ActivityKind = "run" | "ride" | "walk" | "strength" | "workout";
 
-export type DayPoint = { day: string; value: number | null; provisional?: boolean };
+/** `partial`: today's running total of a metric that accrues through the day (drawn faded, kept out of averages). */
+export type DayPoint = { day: string; value: number | null; provisional?: boolean; partial?: boolean };
 /** 182 days ending on the selected day (the chart slices W / M / 6M). */
 export type Trend = {
   points: DayPoint[];
@@ -42,9 +38,9 @@ export type KeyStat = {
   status?: SleepStatus;
   chip?: { tone: ChipTone; text: string };
   caption?: string;
-  /** Detail route without `?d=`; U13 adds the day. */
+  /** Detail route without `?d=`; the UI adds the day. */
   href?: string;
-  /** Overrides the format the unit implies (extra metrics: `src/lib/extraMetrics.ts`). */
+  /** Overrides the format the unit implies (extra metrics). */
   format?: FormatKey;
 };
 
@@ -54,8 +50,8 @@ export type ZoneRow = {
   min: number;
   max: number | null;
   seconds: number;
-  /** Activity only: the middle half (25th to 75th percentile) of this zone's share (0-1) over the last 30 days of the same kind. */
-  typical?: { low: number; high: number };
+  /** Activity only: the mean seconds and share (0-1) in this zone over the person's last 30 days of the same kind. */
+  typical?: { seconds: number; share: number };
 };
 export type StackedSegment = { key: string; label: string; count: number; color: string };
 
@@ -93,11 +89,16 @@ export type SleepPlanVM = {
   /** Tomorrow's typical wake, epoch ms. */
   wakeAt: number;
   weekend: boolean;
+  /** Minutes the bedtimes leave to fall asleep (the typical latency of recent nights); 0 without staged nights. */
+  latencyMin: number;
   plans: { key: "peak" | "perform" | "get_by"; label: "Peak" | "Perform" | "Get by"; share: number; sleepMin: number; bedtimeAt: number }[];
 };
 
 export type EnergyBankVM = {
   current: number;
+  /** Garmin's Body Battery band of `current`: 5–25 very low, 26–50 low, 51–75 medium, 76–100 high. */
+  band: EnergyBand;
+  /** The level at wake. */
   startLevel: number;
   /** Wake, epoch ms. */
   startAt: number;
@@ -105,13 +106,16 @@ export type EnergyBankVM = {
   charged: number;
   /** Negative. */
   drained: number;
-  /** Every 5 minutes from wake. */
+  /** Every 5 minutes from where the day's curve starts (midnight when it carries on from yesterday, else wake). */
   curve: TimePoint[];
   drains: { label: string; kind: "workout" | "activity" | "stress"; start: number; amount: number }[];
   naps: { start: number; end: number }[];
 };
 
 // ── Home ─────────────────────────────────────────────────────────────────────
+
+/** The stats Home's own cards read (HomeVM.cardStats). */
+export type CardStatKey = "hrv" | "rhr" | "resp" | "steps" | "calories";
 
 export type HomeVM = {
   day: string;
@@ -136,8 +140,13 @@ export type HomeVM = {
   energyBank: Metric<EnergyBankVM>;
   tonight: Metric<SleepPlanVM>;
   keyStats: KeyStat[];
-  /** My Dashboard's editor: the metrics with no data in 30 days. */
-  dashboard: { empty: DashboardKey[] };
+  /**
+   * The numbers Home's own cards read whatever My Dashboard shows (Your week's Recovery vitals, the Goals card's steps
+   * and calories), each against its 30-day average.
+   */
+  cardStats: Record<CardStatKey, KeyStat>;
+  /** My Dashboard's editor: the default list (v1 rows, or phone metrics without a band) and the metrics with no data in 30 days. */
+  dashboard: { defaults: DashboardKey[]; empty: DashboardKey[] };
   /** No heart rate on the day but the phone counted steps (spec §11 CD2): those stats lead Home. Null otherwise. */
   phone: KeyStat[] | null;
   weeklyTeaser: { period: string; start: string; end: string } | null;
@@ -147,10 +156,6 @@ export type HomeVM = {
   insights: { key: "strain" | "recovery" | "sleep"; title: string; body: string; href: string }[];
   /** The 7 days ending on `day`: was a check-in logged. */
   journalWeek: { day: string; done: boolean }[];
-  /** My Plan (`FEATURES.myPlan`): Pulse has no plan source yet, so always null. */
-  plan: { title: string; daysLeft: number; /** 0-1 */ done: number } | null;
-  /** The Stress Monitor dashboard tile's line; null when the tile is not on the dashboard. */
-  stressChart: Metric<StressDayChart> | null;
   /** The 7 days ending on `day`, oldest first: Strain 0-21 and Recovery %. */
   strainRecovery: { day: string; strain: number | null; recovery: number | null }[];
 };
@@ -173,13 +178,11 @@ export type RecoveryVM = {
   isToday: boolean;
   recovery: Metric<number>;
   band: Band | null;
-  /** The score's inputs with their baselines and points (the coach reads them). */
   contributors: Contributor[];
-  /** The screen's rows, as the reference app shows them: today against the prior 30 days (spec §11 R34). */
-  summary: KeyStat[];
   insight: string | null;
-  /** Behavior Insights: what held the day before, toned by its next-day Recovery effect (docs/algorithms/behavior-chips.md). */
-  behaviors: BehaviorChip[];
+  trend: Trend;
+  drivers: Metric<DriverItem[]>;
+  forecast: Metric<{ value: number; low: number; high: number; band: Band }>;
 };
 
 // ── Strain and Activity ──────────────────────────────────────────────────────
@@ -188,14 +191,50 @@ export type HrChart = { points: TimePoint[]; zones: ZoneRow[]; spans: Span[]; no
 
 export type ActivityItem = Extract<TimelineItem, { kind: "activity" }>;
 
+/**
+ * Mobile: a stretch of sustained elevated heart rate with no workout recorded (src/core/algorithms/autoWorkout.ts),
+ * labelled by its steps. Shown, never scored; it has no detail screen.
+ */
+export type DetectedItem = {
+  kind: "walk" | "run" | "cardio";
+  /** "Walking", "Running", "Other cardio". */
+  label: string;
+  start: number;
+  end: number;
+  avgHr: number;
+  maxHr: number;
+  /** 0–21, display only. */
+  strain: number | null;
+  steps: number | null;
+};
+
+/** Mobile: one kind's Activity Cost (src/core/algorithms/activityCost.ts); `change` and `nextMorning` are Recovery points. */
+export type ActivityCostEntry = { kind: ActivityKind; name: string; sessions: number } & (
+  | { reason: null; change: number; nextMorning: number; daysToBaseline: number | null; confidence: "building" | "solid" }
+  | { reason: "not_enough_data" }
+);
+
+/** Mobile: what each kind of workout costs next-morning Recovery, over all history. */
+export type ActivityCostVM = {
+  /** Mean Recovery the kinds are measured against; null with no Recovery yet. */
+  baseline: number | null;
+  /** "rest": days with no workout in the week before; "all": every day (too few rest days). */
+  baselineKind: "rest" | "all";
+  /** Workouts with a next-morning Recovery a kind needs before it is measured. */
+  minSessions: number;
+  items: ActivityCostEntry[];
+};
+
 /** `/activities`: one group per day with a workout (today always), newest first. */
 export type ActivitiesVM = {
   today: string;
   /** How many days back the list reaches. */
   days: number;
-  groups: { day: string; items: ActivityItem[]; minutes: number; steps: number | null; dayStrain: number | null }[];
+  groups: { day: string; items: ActivityItem[]; minutes: number; steps: number | null; dayStrain: number | null; detected: DetectedItem[] }[];
   /** True when workouts exist before the window, so "Show older" has something to load. */
   older: boolean;
+  /** Mobile: Activity Cost for every kind; null before the pipeline has stored it. */
+  cost: ActivityCostVM | null;
 };
 
 export type StrainVM = {
@@ -212,6 +251,14 @@ export type StrainVM = {
   /** How the zones are set: five on heart-rate reserve from the day's resting and max heart rate. */
   zoneNote: string;
   activities: ActivityItem[];
+  trend: Trend;
+  /**
+   * 30 days ending on the day: total kcal split into resting, everyday movement and workouts, which add up to the total
+   * (calorieSplit in strain.ts: active capped at the total, workouts at active).
+   */
+  calories: SplitPoint[];
+  /** 60 days ending on the day: minutes of recorded workouts (0 on any day without one, data or not). */
+  workouts: Trend;
 };
 
 export type ActivityVM = {
@@ -222,12 +269,14 @@ export type ActivityVM = {
   start: number;
   end: number;
   strain: Metric<number>;
-  /** The mean strain of earlier activities of the same kind in the last 30 days (the hero's chip). */
-  strainAverage: number | null;
-  /** Runs and walks: steps inside the workout and the 30-day mean for the kind; null when none were counted. */
-  steps: { value: number; average: number | null } | null;
-  /** Cardio and muscular shares of the strain (0-1). Always null until a source estimates muscular load. */
-  split: { cardio: number; muscular: number } | null;
+  /**
+   * The strain's split between heart rate and muscular load, whole percents summing to 100 (WHOOP shows the same
+   * split since 2026); null unless the session carries a muscular load.
+   */
+  loadSplit: { cardioPct: number; muscularPct: number } | null;
+  /** Version 19: Garmin-style Aerobic Training Effect and the Recovery Time it added (queries/training.ts); null without one. */
+  trainingEffect: import("./training").TrainingEffectVM | null;
+  dayStrain: number | null;
   stats: KeyStat[];
   insight: string | null;
   hr: Metric<HrChart>;
@@ -236,6 +285,8 @@ export type ActivityVM = {
   /** How the zones are set: five on heart-rate reserve from the day's resting and max heart rate. */
   zoneNote: string;
   hrr: Metric<{ value: number; tone: ChipTone; label: "Good" | "Typical" | "Low" }>;
+  /** Mobile: this kind's Activity Cost and the Recovery the morning after this workout; null before the pipeline stored one. */
+  cost: (Omit<ActivityCostVM, "items"> & { item: ActivityCostEntry; nextMorning: number | null }) | null;
 };
 
 // ── Sleep ────────────────────────────────────────────────────────────────────
@@ -273,28 +324,13 @@ export type SleepVM = {
      */
     nights: ({ day: string; label: string; bed: number; wake: number; typicalBed: number | null; typicalWake: number | null } | null)[];
   }>;
-  /** Time in bed, wake events, respiratory rate and sleep debt: the coach reads them; the screen does not show them (R33). */
+  /** Deep and REM minutes per night, 30 nights ending on the day (WHOOP's Restorative sleep bars). */
+  restorative: SplitPoint[];
+  /** Sleep efficiency per night, % (WHOOP's Sleep efficiency trend). */
+  efficiencyTrend: Trend;
   details: KeyStat[];
-  /** Last night's deep + REM minutes against the prior 30 nights (the Restorative Sleep row, spec §11 R33). */
-  restorative: Metric<{ minutes: number; average: number | null; sd?: number }>;
-  /**
-   * The Sleep Efficiency card: the share against the prior 30 nights, asleep and awake time, the wake events and where
-   * each spell awake fell across the night (`at` and `width` as 0-1 of bed to wake).
-   */
-  efficiency: Metric<{ pct: number; average: number | null; sd?: number; asleepMin: number; awakeMin: number; wakeEvents: number | null; wakes: { at: number; width: number }[] }>;
-  /** Sleep Stress (`FEATURES.sleepStress`): no source yet, so always `no_data` (spec §11 R33). */
-  sleepStress: Metric<SleepStressNight>;
+  debtTrend: Trend;
   planner: Metric<SleepPlanVM & { weekdayWake: boolean }>;
-};
-
-/** A night's stress: the share in high stress against the prior 30 nights, the 0-3 line, and minutes at each level. */
-export type SleepStressNight = {
-  pct: number;
-  average: number | null;
-  bed: number;
-  wake: number;
-  points: TimePoint[];
-  minutes: { high: number; medium: number; low: number };
 };
 
 // ── Health ───────────────────────────────────────────────────────────────────
@@ -315,14 +351,16 @@ export type Vital = {
 
 export type HealthHubVM = {
   day: string;
-  /** `paceDelta`: this week's Pace of Aging minus last week's; null without both. */
-  healthspan: Metric<{ pulseAge: number; deltaYears: number; pace: number; paceDelta: number | null }>;
+  /** `paceDelta`: this week's Pace of Aging minus last week's; null without both. `pace` is null without 21 of 30 days. */
+  healthspan: Metric<{ pulseAge: number; deltaYears: number; pace: number | null; paceDelta: number | null }>;
   monitor: Metric<{ vitals: { key: VitalKey; short: string; status: Vital["status"] }[]; inRange: number; total: number }>;
   stress: Metric<{ highMin: number; typicalHighMin: number | null; /** Today’s weekday, short ("Mon"). */ weekday: string; spark: TimePoint[] }>;
   fitness: Metric<{ vo2max: number; category: string; percentile: number; acwr: number | null; acwrTone: ChipTone | null }>;
   /** The newest band reading (epoch ms), today or not. */
   heartRate: { t: number; bpm: number } | null;
 };
+/** Alias: the task's name for the Health hub view model. */
+export type HealthVM = HealthHubVM;
 
 /** Minute-mean heart rate (`t` epoch ms, a null minute is a gap) and the newest sample; the live route's answer too. */
 export type HeartRateLive = { points: TimePoint[]; latest: { t: number; bpm: number } | null };
@@ -345,19 +383,12 @@ export type HealthspanContributor = {
   group: "sleep" | "strain" | "fitness";
   label: string;
   unit: string;
-  /** The 6-month mean the score uses. */
   metric: Metric<number>;
-  /** The 30-day mean (the Pace of Aging window); null when unknown. */
-  recent: number | null;
   target: number;
   years: number | null;
   domain: [number, number];
   higherIsBetter: boolean;
   caption?: string;
-  /** "Outperforming" and its sentence (src/core/algorithms/healthspanFactor.ts); null without a value. */
-  state: { title: string; body: string } | null;
-  /** The factor's Trend View. */
-  trendHref: string;
   explanation: string;
   source: string;
 };
@@ -370,7 +401,8 @@ export type HealthspanVM = {
   asOf: string;
   nextUpdateInDays: number;
   age: number;
-  result: Metric<{ pulseAge: number; deltaYears: number; pace: number; paceProvisional: boolean; vo2maxSource: "run" | "daily" | null }>;
+  /** `pace` is the weekly value (Mondays), null with fewer than 21 of the last 31 days scored for Recovery (`paceDays`). */
+  result: Metric<{ pulseAge: number; deltaYears: number; pace: number | null; paceDays: number | null; paceProvisional: boolean; vo2maxSource: "run" | "daily" | "estimate" | null }>;
   insight: { title: string; body: string } | null;
   /** Pulse Age at each week end. */
   history: DayPoint[];
@@ -384,7 +416,7 @@ export type MonitorVM = {
   illness: { level: string; score: number } | null;
   vitals: Vital[];
   heartRhythm: HeartRhythm;
-  /** Weight and body fat always; blood glucose and core temperature only once the person has ever had one. */
+  /** Weight and body fat always; blood glucose and core temperature only once the owner has ever had one. */
   measurements: Measurement[];
 };
 
@@ -413,15 +445,12 @@ export type HeartRhythm = {
 /** The latest reading on or before the selected day, against the mean of readings in the 30 days before it. */
 export type Measurement = KeyStat & { format: FormatKey };
 
-/** A day's stress line: still minutes 0-3, the excluded spans (sleep, workouts) and, today, the latest reading. */
-export type StressDayChart = { points: TimePoint[]; spans: Span[]; now: number | null };
-
 export type StressVM = {
   day: string;
   isToday: boolean;
   gauge: Metric<{ value: number; level: StressLevel; at: number | null; dayAverage: boolean }>;
   insight: string | null;
-  chart: Metric<StressDayChart>;
+  chart: Metric<{ points: TimePoint[]; spans: Span[]; now: number | null }>;
   levels: Metric<{
     lowMin: number;
     mediumMin: number;
@@ -435,7 +464,10 @@ export type StressVM = {
 };
 
 export type FitnessVM = {
-  vo2: Metric<{ value: number; source: "run" | "daily"; sourceDay: string; percentile: number; category: string; ageBand: string; sex: "male" | "female" }>;
+  /** `source`: a measured value, Fitbit's estimate, or (mobile) Pulse's own estimate when there is neither. */
+  vo2: Metric<{ value: number; source: "run" | "daily" | "estimate"; sourceDay: string; percentile: number; category: string; ageBand: string; sex: "male" | "female" }>;
+  /** Mobile: Fitness Age from resting heart rate and activity (Nes 2011, after noop), and the VO2 max it estimates. */
+  fitnessAge: Metric<{ fitnessAge: number; age: number; vo2max: number; method: "nes" | "uth"; activityIndex: number; restingHr: number; day: string }>;
   trend: Trend;
   trainingLoad: Metric<{ acwr: number; status: "detraining" | "optimal" | "pushing" | "high_risk"; tone: ChipTone }>;
   /** 90 days of CTL ("Fitness"), ATL ("Fatigue") and TSB ("Form"). */
@@ -445,18 +477,17 @@ export type FitnessVM = {
 
 // ── Journal ──────────────────────────────────────────────────────────────────
 
-/** A behaviour: its journal question and section come from the catalogue (src/lib/behaviors.ts); a custom one sits under "custom". */
-export type JournalTag = { tag: string; label: string; question: string; section: JournalSection; isDefault: boolean; hidden: boolean };
+export type JournalTag = { tag: string; label: string; group: "evening" | "recovery" | "context" | "custom"; isDefault: boolean; hidden: boolean };
 
-/** More › Behaviours and Select Behaviors: every tag in journal order, hidden ones included. */
-export type BehavioursVM = { tags: JournalTag[] };
+/** More › Behaviours: every tag in check-in order, hidden ones included, with its answered-day count. */
+export type BehavioursVM = { tags: (JournalTag & { answers: number })[] };
 
 export type JournalVM = {
   day: string;
   today: string;
   strip: { day: string; done: boolean }[];
   tags: JournalTag[];
-  checkIn: { done: boolean; entries: Record<string, number>; details: Record<string, number>; note: string; yes: { tag: string; label: string }[] };
+  checkIn: { done: boolean; entries: Record<string, number>; yes: { tag: string; label: string }[] };
   teaser: { text: string; ready: boolean };
   history: { day: string; yes: string[] }[];
 };
@@ -492,7 +523,7 @@ export type ReportVM = {
 
 // ── More and Settings ────────────────────────────────────────────────────────
 
-/** Matches the U12 ShellStatus context. */
+/** Matches the ShellStatus context. */
 export type ShellStatusVM = {
   mode: "demo" | "google";
   sync: { state: "ok" | "syncing" | "stale" | "error"; lastSuccessAt: number | null };
@@ -510,12 +541,11 @@ export type SettingsVM = {
   source: {
     label: "Demo data" | "Google Health";
     status: "demo" | "not_connected" | "not_linked" | "no_device" | "connected" | "revoked";
-    /** A grant without the scopes Pulse asks for (logging to Google): Settings offers a reconnect. */
     needsPermissions?: boolean;
   };
   import: { done: number; total: number } | null;
   sync: { key: string; label: string; lastSuccessAt: number | null; status: "ok" | "stale" | "error" | "never"; error: string | null }[];
-  profile: { birthDate: string; age: number; sex: "male" | "female"; maxHr: number; maxHrSource: "set" | "estimated"; timeZone: string; heightCm: number | null };
+  profile: { birthDate: string; age: number; sex: "male" | "female"; maxHr: number; maxHrSource: "set" | "learned" | "estimated"; timeZone: string; heightCm: number | null; waistCm: number | null };
   version: string;
   scoringVersion: number;
 };

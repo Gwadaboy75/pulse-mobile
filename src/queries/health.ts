@@ -1,22 +1,19 @@
-// Health hub and its four detail screens (spec §7.6–7.10). Ported from pulse src/server/queries/health.ts: reads go
-// through the repositories (`ctx.store`), there is no user id.
-import { factorCopy } from "@/core/algorithms/healthspanFactor";
-import type { HealthspanContribution } from "@/core/algorithms/healthspan";
-import { minChronic } from "@/core/scoring/readiness";
-import { standardConfig } from "@/core/scoring/trainingLoad";
-import { acwrTone } from "@/lib/bands";
-import { dayLabel, formatDay } from "@/lib/format";
-import { trendHref, weekOf } from "@/lib/url";
+// Health hub and its four detail screens (spec §7.6–7.10). Ported from Pulse's src/server/queries/health.ts.
+import { fitnessLevel } from "@/core/algorithms/fitnessLevel";
+import { HEALTHSPAN_TERM_COUNT, healthspanConfig, type HealthspanContribution } from "@/core/algorithms/healthspan";
 import { minuteMeanHr } from "@/core/algorithms/stress";
-import { addDays, daysBetween, fractionalYears, localMidnight, wall } from "../time";
-import { zoneBounds, zoneNote, zoneRows } from "./strain";
-import { illnessRaised, VITAL_LABEL } from "./home";
+import { minAcuteDays, minChronic } from "@/core/scoring/readiness";
+import { standardConfig } from "@/core/scoring/trainingLoad";
+import { addDays, daysBetween, fractionalYears, localMidnight, wall } from "@/lib/time";
+import { acwrTone, dayLabel, formatDay, weekOf } from "./_lib";
 import {
   type DayRow,
   dayStartOf,
   finite,
+  lastStored,
   loadDays,
   loadSeries,
+  maxHrOf,
   meanSd,
   minutePoints,
   ms,
@@ -28,9 +25,11 @@ import {
   todayOf,
   vitalReason,
   trendPoints,
-  stressChartOf,
+  daySpansOf,
   exercisesBetween,
 } from "./common";
+import { illnessRaised, VITAL_LABEL } from "./home";
+import { zoneBounds, zoneNote, zoneRows } from "./strain";
 import type {
   ChipTone,
   EcgReading,
@@ -48,8 +47,7 @@ import type {
   Vital,
   VitalKey,
 } from "./types";
-
-const lastStored = async (ctx: QueryCtx, today: string) => (await ctx.store.scores.lastStoredDay(today)) ?? today;
+import { metricsWithLoggedBody } from "@/data/body";
 
 // ── Hub ─────────────────────────────────────────────────────────────────────
 
@@ -75,7 +73,7 @@ export async function getHealthHub(ctx: QueryCtx): Promise<HealthHubVM> {
   const tl = fit.trainingLoad.value;
   return {
     day: today,
-    healthspan: hs.value ? ok({ pulseAge: hs.value.pulseAge, deltaYears: hs.value.deltaYears, pace: hs.value.pace, paceDelta: prevPace == null ? null : hs.value.pace - prevPace }, hs.provisional) : none(hs.reason ?? "no_data", hs.nightsLeft),
+    healthspan: hs.value ? ok({ pulseAge: hs.value.pulseAge, deltaYears: hs.value.deltaYears, pace: hs.value.pace, paceDelta: prevPace == null || hs.value.pace == null ? null : hs.value.pace - prevPace }, hs.provisional) : none(hs.reason ?? "no_data", hs.nightsLeft),
     monitor: monitor.count.value
       ? ok({ vitals: monitor.vitals.map((v) => ({ key: v.key, short: v.short, status: v.status })), inRange: monitor.count.value.inRange, total: 5 })
       : none(monitor.count.reason ?? "no_data"),
@@ -98,23 +96,27 @@ export async function getHealthHub(ctx: QueryCtx): Promise<HealthHubVM> {
   };
 }
 
+/** Alias: the task's name for the Health hub query. */
+export const getHealth = getHealthHub;
+
 /** The newest stored band reading, whenever it was. */
 async function latestHr(ctx: QueryCtx) {
-  const r = await ctx.store.samples.sampleRange("hr");
-  return r ? (await hrMinutes(ctx, r.max, r.max + 1)).latest : null;
+  const r = await ctx.store.hrBounds();
+  return r ? (await hrMinutes(ctx, r.last, r.last + 1)).latest : null;
 }
 
 // ── Healthspan ──────────────────────────────────────────────────────────────
 
-const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "recent" | "target" | "years" | "caption" | "key" | "state" | "trendHref">> = {
+// Mobile: the terms and references follow WHOOP's Healthspan (white paper, 2025); see src/core/algorithms/healthspan.ts.
+const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "target" | "years" | "caption" | "key">> = {
   sleepHours: {
     group: "sleep",
     label: "Hours of sleep",
     unit: "h",
     domain: [4, 10],
     higherIsBetter: true,
-    explanation: "Both short and long sleep are linked to higher mortality. Seven to eight hours a night carries the lowest risk.",
-    source: "Cappuccio 2010",
+    explanation: "Short sleep is linked to higher mortality: about 29% higher at 5 hours a night than at 7. Seven hours or more carries the lowest risk, and sleeping longer costs nothing here.",
+    source: "Saint-Maurice 2024",
   },
   sri: {
     group: "sleep",
@@ -122,17 +124,18 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "recent" | 
     unit: "%",
     domain: [0, 100],
     higherIsBetter: true,
-    explanation: "Going to bed and waking at the same times predicts a longer life even more strongly than how long you sleep.",
+    explanation: "Going to bed and waking at the same times predicts a longer life even more strongly than how long you sleep. Most of the benefit comes by a consistency of about 76. Measured here as the 7-day Sleep Regularity Index, the measure that evidence used; the Sleep screen’s consistency compares the last 24 hours with the 4 days before, as WHOOP does, so the two can differ a little.",
     source: "Windred 2024",
   },
   zone13: {
     group: "strain",
-    label: "Heart rate zones 1-3",
+    label: "Moderate activity",
     unit: "min",
     domain: [0, 300],
     higherIsBetter: true,
-    explanation: "Moderate activity is linked to steeply lower mortality, with most of the benefit in the first 150 minutes a week.",
-    source: "Ekelund 2019",
+    explanation:
+      "Moderate activity is linked to steeply lower mortality: about 20% lower at 75 minutes a week, levelling off past 300. Counted from 40% of your heart-rate reserve (a brisk walk) to the top of Zone 3, inside workouts or in stretches of 10 minutes or more, as WHOOP counts zone time in activities.",
+    source: "Arem 2015",
   },
   zone45: {
     group: "strain",
@@ -140,8 +143,9 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "recent" | 
     unit: "min",
     domain: [0, 150],
     higherIsBetter: true,
-    explanation: "Vigorous activity adds benefit on top of moderate activity. About 75 to 150 minutes a week is where it levels off.",
-    source: "Lee 2022",
+    explanation:
+      "Vigorous activity adds benefit on top of moderate activity: about 18% lower mortality at 15 minutes a week and 36% at about 55. Counted from 80% of your heart-rate reserve, inside workouts or in stretches of 10 minutes or more.",
+    source: "Ahmadi 2022",
   },
   strength: {
     group: "strain",
@@ -149,7 +153,7 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "recent" | 
     unit: "min",
     domain: [0, 150],
     higherIsBetter: true,
-    explanation: "Muscle-strengthening work is linked to lower mortality, with the lowest risk around 40 minutes a week.",
+    explanation: "Muscle-strengthening work (strength training, weights, calisthenics or HIIT) is linked to lower mortality, with the lowest risk from about 40 minutes a week. More earns no extra credit and costs nothing.",
     source: "Momma 2022",
   },
   steps: {
@@ -158,7 +162,7 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "recent" | 
     unit: "steps",
     domain: [0, 15000],
     higherIsBetter: true,
-    explanation: "More daily steps go with lower mortality, levelling off around 8,000 to 10,000 steps a day.",
+    explanation: "More daily steps go with lower mortality, levelling off past about 10,000 a day. Only days with 12 hours of heart rate count, so a band left on the charger isn't read as a lazy day.",
     source: "Paluch 2022",
   },
   vo2max: {
@@ -168,7 +172,7 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "recent" | 
     domain: [15, 70],
     higherIsBetter: true,
     explanation:
-      "Higher cardiorespiratory fitness is one of the strongest predictors of a longer life. Each extra 1 MET (3.5 ml/kg/min) is linked to about 13% lower all-cause mortality.",
+      "Higher cardiorespiratory fitness is one of the strongest predictors of a longer life. Each extra 1 MET (3.5 ml/kg/min) is linked to about 13% lower all-cause mortality. A measured value counts in full; Fitbit's estimate, or Pulse's own from resting heart rate and activity when there is neither, counts half.",
     source: "Kodama 2009",
   },
   restingHr: {
@@ -183,26 +187,17 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "recent" | 
   leanMass: {
     group: "fitness",
     label: "Lean body mass",
-    unit: "kg",
-    domain: [40, 80],
+    unit: "%",
+    domain: [50, 95],
     higherIsBetter: true,
-    explanation: "More fat-free mass for your height is linked to lower mortality, independent of body fat.",
-    source: "Sedlmeier 2021",
+    explanation:
+      "The share of your weight that isn't fat. Each 10 points more body fat is linked to about 11% higher all-cause mortality. Credit stops 5 points past the target, and from 60 it neither adds nor takes away years. From your body fat readings; with weight alone, body fat is estimated from your BMI (Deurenberg 1991) and counts half.",
+    source: "Jayedi 2022",
   },
 };
 const HS_ORDER = ["sleepHours", "sri", "zone13", "zone45", "strength", "steps", "vo2max", "restingHr", "leanMass"];
-/** Each factor's Trend View (health-03's VIEW TREND). */
-const HS_TREND: Record<string, string> = {
-  sleepHours: "hours",
-  sri: "consistency",
-  zone13: "zones13",
-  zone45: "zones45",
-  strength: "strength",
-  steps: "steps",
-  vo2max: "vo2max",
-  restingHr: "rhr",
-  leanMass: "lean_mass",
-};
+
+const VO2_CAPTION = { run: "Measured", daily: "Fitbit estimate: counts half", estimate: "Estimated from resting heart rate and activity: counts half" } as const;
 
 /** Healthspan `/health/healthspan` for the ISO week containing `day` (spec §7.7). Updated weekly. */
 export async function getHealthspan(day: string, ctx: QueryCtx): Promise<HealthspanVM> {
@@ -213,38 +208,41 @@ export async function getHealthspan(day: string, ctx: QueryCtx): Promise<Healths
   const lastSunday = addDays(weekStart, -1);
   const shown = weekEnd <= last ? weekEnd : rows.get(lastSunday)?.healthspan ? lastSunday : last;
   const hs = rows.get(shown)?.healthspan;
-  const h2 = ctx.profile.heightCm ? (ctx.profile.heightCm / 100) ** 2 : null;
 
   let result: HealthspanVM["result"];
   if (!hs) result = none("no_data");
   else if (hs.reason !== null) result = none("calibrating", Math.max(1, 20 - hs.dataDays));
-  else result = ok({ pulseAge: hs.pulseAge, deltaYears: hs.deltaYears, pace: hs.paceOfAging, paceProvisional: hs.paceProvisional, vo2maxSource: hs.vo2maxSource }, hs.provisional);
+  else
+    result = ok(
+      { pulseAge: hs.pulseAge, deltaYears: hs.deltaYears, pace: hs.paceOfAging ?? null, paceDays: hs.paceDays ?? null, paceProvisional: hs.paceProvisional, vo2maxSource: hs.vo2maxSource },
+      hs.provisional,
+    );
 
-  const contributions = hs && hs.reason === null ? hs.contributions : [];
+  // Only the current terms; a row stored before lean mass became a body-fat % term (no `paceDays`) leaves it out.
+  const current = hs && hs.reason === null && hs.paceDays !== undefined;
+  const contributions = hs && hs.reason === null ? hs.contributions.filter((c) => c.key in HS_META && (current || c.key !== "leanMass")) : [];
+  const body = current ? hs.bodyComposition : null;
   const contributors: HealthspanContributor[] = HS_ORDER.map((key) => {
     const meta = HS_META[key];
     const c = contributions.find((x) => x.key === key);
-    const display = (v: number) => (key === "sri" ? Math.max(0, v) : key === "leanMass" && h2 ? v * h2 : v);
+    const display = (v: number) => (key === "sri" ? Math.max(0, v) : v);
     const target = c ? display(c.reference) : 0;
     const caption =
       key === "vo2max" && hs?.reason === null && hs.vo2maxSource
-        ? hs.vo2maxSource === "run"
-          ? "From runs"
-          : "Estimated: counts half"
-        : key === "leanMass" && !c
-          ? "No lean body mass: add weight and body fat in Fitbit. Left out of Pulse Age."
+        ? VO2_CAPTION[hs.vo2maxSource]
+        : key === "leanMass"
+          ? c
+            ? leanCaption(c, body, hs?.reason === null ? hs.age : 0)
+            : "Needs body fat (a smart scale, or Journal › Log › Body fat), or your weight with your height in Profile. Left out of Pulse Age."
           : undefined;
-    const domain: [number, number] = key === "leanMass" && c ? [target * 0.75, target * 1.25] : meta.domain;
+    const domain: [number, number] = key === "leanMass" && c ? [target - 25, target + 10] : meta.domain;
     return {
       key,
       ...meta,
       domain,
       metric: c ? ok(display(c.value), result.provisional) : none("no_data"),
-      recent: c?.recent != null ? display(c.recent) : null,
       target,
       years: c ? c.years : null,
-      state: c ? factorCopy(meta.label, c.years) : null,
-      trendHref: trendHref(HS_TREND[key]),
       ...(caption && { caption }),
     };
   });
@@ -264,20 +262,57 @@ export async function getHealthspan(day: string, ctx: QueryCtx): Promise<Healths
     nextUpdateInDays: weekEnd > last ? Math.max(0, daysBetween(today, weekEnd)) : 0,
     age: hs && hs.reason === null ? hs.age : fractionalYears(ctx.profile.birthDate, shown),
     result,
-    insight: hs && hs.reason === null ? healthspanInsight(hs.paceOfAging, contributions) : null,
+    insight: hs && hs.reason === null ? healthspanInsight(hs.paceOfAging, hs.deltaYears, contributions, hs.termsUsed) : null,
     history,
     contributors,
   };
 }
 
-function healthspanInsight(pace: number, cs: HealthspanContribution[]) {
-  const title = pace < 0.9 ? "Aging slower" : pace > 1.1 ? "Aging faster" : "Steady and healthy";
+/** Lean body mass's caption: the body composition behind the % (lean and fat mass in kg, and per m² of height). */
+function leanCaption(c: HealthspanContribution, b: HealthspanBody | null | undefined, age: number) {
+  const parts = [`${(100 - c.value).toFixed(1)}% body fat`];
+  if (b?.leanKg != null && b.fatKg != null) parts.push(`${b.leanKg.toFixed(1)} kg lean, ${b.fatKg.toFixed(1)} kg fat`);
+  if (b?.ffmi != null && b.fmi != null) parts.push(`FFMI ${b.ffmi.toFixed(1)}, FMI ${b.fmi.toFixed(1)} kg/m²`);
+  const note = c.estimated
+    ? " Body fat estimated from your BMI: counts half."
+    : age >= healthspanConfig.bodyFat.noEffectFromAge
+      ? " From 60, body fat neither adds nor takes away years."
+      : "";
+  return `${parts.join(" · ")}.${note}`;
+}
+type HealthspanBody = Extract<NonNullable<DayRow["healthspan"]>, { reason: null }>["bodyComposition"];
+
+/** `termsUsed`: how many of Pulse Age's 9 inputs it rests on (absent on rows stored before scoring version 10). */
+function healthspanInsight(pace: number | null, deltaYears: number, cs: HealthspanContribution[], termsUsed: number | undefined) {
+  const title =
+    pace == null
+      ? deltaYears < -1
+        ? "Younger than your age"
+        : deltaYears > 1
+          ? "Older than your age"
+          : "Close to your age"
+      : pace < 0.9
+        ? "Aging slower"
+        : pace > 1.1
+          ? "Aging faster"
+          : "Steady and healthy";
   const best = [...cs].sort((a, b) => a.years - b.years)[0];
   const worst = [...cs].sort((a, b) => b.years - a.years)[0];
   const label = (c: HealthspanContribution) => HS_META[c.key].label.toLowerCase();
-  const parts = [`Your Pace of Aging is ${pace.toFixed(1)}x against your 6-month average.`];
+  const parts = [
+    pace == null
+      ? `Pace of Aging shows once ${healthspanConfig.paceMinDays} of the last 30 days have data.`
+      : `Your Pace of Aging is ${pace.toFixed(1)}x against your 6-month average.`,
+  ];
   if (best && best.years < 0) parts.push(`Your biggest boost is ${label(best)}, worth ${Math.abs(best.years).toFixed(1)} years.`);
   if (worst && worst.years > 0) parts.push(`${HS_META[worst.key].label} adds the most, ${worst.years.toFixed(1)} years.`);
+  // Mobile: say how much of Pulse Age is measured; a missing input counts as no effect.
+  if (termsUsed != null)
+    parts.push(
+      termsUsed < HEALTHSPAN_TERM_COUNT
+        ? `Based on ${termsUsed} of ${HEALTHSPAN_TERM_COUNT} inputs; the missing ones neither add nor take away years.`
+        : `Based on all ${HEALTHSPAN_TERM_COUNT} inputs.`,
+    );
   return { title, body: parts.join(" ") };
 }
 
@@ -326,7 +361,7 @@ export async function getMonitor(day: string, ctx: QueryCtx, preloaded?: Map<str
     const tags = hm && hm.reason === null && hm.stale.includes(v.key === "restingHr" ? "rhr" : v.key === "skinTempDev" ? "skinTemp" : v.key) ? (["stale_baseline"] as const) : [];
     return {
       key: v.key,
-      label: VITAL_LABEL[v.key],
+      label: v.key === "skinTempDev" ? "Skin temp (from baseline)" : VITAL_LABEL[v.key],
       short: v.short,
       unit: v.unit,
       metric: finite(value) ? ok(value, false, [...tags]) : none(reason),
@@ -358,7 +393,7 @@ export async function getMonitor(day: string, ctx: QueryCtx, preloaded?: Map<str
   };
 }
 
-// ── Heart rhythm and measurements (docs/research/heart-rhythm-ui.md) ────────
+// ── Heart rhythm and measurements ───────────────────────────────────────────
 
 type EcgCopy = Pick<EcgReading, "label" | "tone" | "explanation">;
 /**
@@ -382,26 +417,23 @@ export const ECG_RESULT: Record<string, EcgCopy> = {
   UNREADABLE: { label: "Poor recording", tone: "neutral", explanation: "The signal was too noisy to read. Try again sitting still with your arm resting on a table." },
   NOT_ANALYZED: { label: "Not analyzed", tone: "neutral", explanation: "This recording was saved but not classified, so it has no rhythm result." },
 };
-const NO_RESULT: EcgCopy = { label: "No result", tone: "neutral", explanation: "No rhythm result came with this recording." };
+export const NO_RESULT: EcgCopy = { label: "No result", tone: "neutral", explanation: "No rhythm result came with this recording." };
 
-const ecgOf = (ctx: QueryCtx, r: { id: string; ts: number; day: string; data: unknown }): EcgReading => {
-  const d = r.data as { result?: string; avgBpm?: number | null };
-  const result = d.result ?? "RESULT_CLASSIFICATION_UNSPECIFIED";
-  return { id: r.id, at: ms(r.ts), day: r.day, time: wall(r.ts, ctx.timeZone).time.slice(0, 5), result, ...(ECG_RESULT[result] ?? NO_RESULT), avgBpm: finite(d.avgBpm) ? d.avgBpm : null };
-};
-
+/**
+ * Heart-rhythm records up to `day`, newest first. Only the Google Health API carries them (src/google/sync.ts writes
+ * the Store's health records); with Health Connect or demo data the section is honestly empty.
+ */
 async function heartRhythm(ctx: QueryCtx, day: string): Promise<HeartRhythm> {
-  const all = await ctx.store.daily.healthRecordsUpTo(day);
-  const rows = (kind: "ecg" | "irn") => all.filter((r) => r.kind === kind);
-  const ecg = rows("ecg").map((r) => ecgOf(ctx, r));
-  const irn = rows("irn");
+  const all = await ctx.store.healthRecords(day);
+  const ecg = all
+    .filter((r) => r.kind === "ecg")
+    .map((r): EcgReading => {
+      const d = r.data as { result?: string; avgBpm?: number | null };
+      const result = d.result ?? "RESULT_CLASSIFICATION_UNSPECIFIED";
+      return { id: r.id, at: ms(r.ts), day: r.day, time: wall(r.ts, ctx.timeZone).time.slice(0, 5), result, ...(ECG_RESULT[result] ?? NO_RESULT), avgBpm: finite(d.avgBpm) ? d.avgBpm : null };
+    });
+  const irn = all.filter((r) => r.kind === "irn");
   return { ecg, irn: { count: irn.length, latestAt: irn[0] ? ms(irn[0].ts) : null, latestDay: irn[0]?.day ?? null } };
-}
-
-/** One ECG reading for its sheet (`/ecg?id=`): the web opens it from the Heart rhythm list it already holds. */
-export async function getEcgReading(ctx: QueryCtx, id: string): Promise<EcgReading | null> {
-  const r = (await ctx.store.daily.healthRecordsUpTo(todayOf(ctx))).find((x) => x.kind === "ecg" && x.id === id);
-  return r ? ecgOf(ctx, r) : null;
 }
 
 const MEASUREMENTS = [
@@ -411,12 +443,22 @@ const MEASUREMENTS = [
   { key: "core_temp", label: "Core temperature", unit: "°C", format: "decimal1", col: "core_temp", always: false },
 ] as const;
 
-/** Every reading of a measurement, newest first: a daily_metrics column, or a daily_values key. */
-const readings = (ctx: QueryCtx, col: (typeof MEASUREMENTS)[number]["col"]): Promise<{ day: string; value: number }[]> =>
-  col === "weightKg" || col === "bodyFatPct" ? ctx.store.daily.metricReadings(col) : ctx.store.daily.valueReadings(col);
+/** Every reading of each measurement, newest first: a Metrics column, or a daily-values key. */
+async function allReadings(ctx: QueryCtx): Promise<{ day: string; value: number }[][]> {
+  const [metrics, values] = await Promise.all([metricsWithLoggedBody(ctx.store), ctx.store.dailyValues()]);
+  const newest = (a: { day: string }, b: { day: string }) => b.day.localeCompare(a.day);
+  return MEASUREMENTS.map((m) => {
+    if (m.col === "weightKg" || m.col === "bodyFatPct") {
+      const col = m.col;
+      return metrics.flatMap((r) => (finite(r[col]) ? [{ day: r.day, value: r[col] }] : [])).sort(newest);
+    }
+    const key = m.col;
+    return values.filter((v) => v.key === key && /^\d{4}-\d{2}-\d{2}$/.test(v.day)).map((v) => ({ day: v.day, value: v.value })).sort(newest);
+  });
+}
 
 async function measurements(ctx: QueryCtx, day: string, today: string): Promise<Measurement[]> {
-  const all = await Promise.all(MEASUREMENTS.map((m) => readings(ctx, m.col)));
+  const all = await allReadings(ctx);
   const out: Measurement[] = [];
   for (const [i, m] of MEASUREMENTS.entries()) {
     const rs = all[i];
@@ -449,19 +491,21 @@ export async function getStress(day: string, ctx: QueryCtx): Promise<StressVM> {
   const row = rows.get(day);
   const st = row?.stress;
   const gauge = stressNow(row, isToday);
+  const start = dayStartOf(ctx, day);
   const sameStress = [7, 14, 21, 28].map((k) => rows.get(addDays(day, -k))?.stress).filter((x) => !!x && x.average != null);
   const typicalOf = (pick: (x: NonNullable<DayRow["stress"]>) => number) => meanSd(sameStress.map((x) => pick(x!))).mean ?? 0;
   const typical = sameStress.length ? typicalOf((x) => x.highMin) : null;
 
+  const spans = daySpansOf(row, start, exs);
   const scored = st && st.average != null;
-  const chart = stressChartOf(ctx, row, day, isToday, series, exs);
+  const empty = row?.s1?.hrCount ? "no_data" : "band_not_worn";
 
   return {
     day,
     isToday,
     gauge,
     insight: scored ? stressInsight(st, ctx.timeZone) : null,
-    chart,
+    chart: scored ? ok({ points: minutePoints(series, start, 2), spans, now: isToday && st.latest ? ms(st.latest.ts) : null }, st.provisional) : none(empty),
     levels: scored
       ? ok(
           {
@@ -474,7 +518,7 @@ export async function getStress(day: string, ctx: QueryCtx): Promise<StressVM> {
           },
           st.provisional,
         )
-      : none(chart.reason ?? "no_data"),
+      : none(empty),
     trend: {
       points: trendPoints(rows, day, (r) => r.stress?.average, 30),
     },
@@ -512,23 +556,37 @@ export async function getFitness(ctx: QueryCtx): Promise<FitnessVM> {
     const lo = Math.min(70, Math.max(20, Math.floor(age / 10) * 10));
     return `${lo}-${lo + 9}`;
   };
+  // Mobile: Fitness Age and Pulse's own VO2 max estimate (from resting HR and activity) on the newest day that has one.
+  const estDay = [...rows.keys()].sort().reverse().find((d) => d >= addDays(last, -6) && rows.get(d)?.healthspan?.fitnessEstimate);
+  const est = estDay ? rows.get(estDay)!.healthspan!.fitnessEstimate! : null;
+  const estAge = estDay ? fractionalYears(ctx.profile.birthDate, estDay) : 0;
   const vo2: FitnessVM["vo2"] =
     f && f.reason === null
       ? ok({ value: f.vo2max, source: f.source, sourceDay: f.sourceDay, percentile: f.percentile, category: f.category, ageBand: decade(f.age), sex: ctx.profile.sex }, f.source === "daily")
+      : est && estDay
+        ? ok({ value: est.vo2max, source: "estimate", sourceDay: estDay, ...fitnessLevel(est.vo2max, estAge, ctx.profile.sex), ageBand: decade(estAge), sex: ctx.profile.sex }, true)
+        : none("no_data");
+  const fitnessAge: FitnessVM["fitnessAge"] =
+    est && estDay
+      ? ok({ fitnessAge: est.fitnessAge, age: estAge, vo2max: est.vo2max, method: est.method, activityIndex: est.activityIndex, restingHr: est.restingHr, day: estDay })
       : none("no_data");
   const tl = row?.trainingLoad;
   const effortDays = [...rows.values()].filter((r) => r.s1?.effort != null).length;
   const trainingLoad: Metric<NonNullable<FitnessVM["trainingLoad"]["value"]>> =
-    tl?.acwr != null ? ok({ acwr: tl.acwr, ...acwrStatus(tl.acwr) }) : none("calibrating", Math.max(1, minChronic - effortDays));
+    // Garmin's ratio needs 7 days for a first acute load and 14 acute loads for the chronic one: 20 days in all.
+    tl?.acwr != null ? ok({ acwr: tl.acwr, ...acwrStatus(tl.acwr) }) : none("calibrating", Math.max(1, minAcuteDays + minChronic - 1 - effortDays));
   const load = Array.from({ length: 90 }, (_, k) => {
     const d = addDays(last, k - 89);
     const t = rows.get(d)?.trainingLoad;
     return { day: d, ctl: t?.ctl ?? null, atl: t?.atl ?? null, tsb: t?.tsb ?? null };
   });
+  // Measured and Fitbit values; with none in the window, Pulse's own estimate.
+  const measured = trendPoints(rows, last, (r) => r.metrics?.vo2maxRun ?? r.metrics?.vo2maxDaily);
   return {
     vo2,
+    fitnessAge,
     trend: {
-      points: trendPoints(rows, last, (r) => r.metrics?.vo2maxRun ?? r.metrics?.vo2maxDaily),
+      points: measured.some((p) => p.value !== null) ? measured : trendPoints(rows, last, (r) => r.healthspan?.fitnessEstimate?.vo2max, 182, () => true),
     },
     trainingLoad,
     load,
@@ -540,10 +598,10 @@ export async function getFitness(ctx: QueryCtx): Promise<FitnessVM> {
 
 /**
  * The band's heart rate over [from, to) unix seconds (minute-aligned) as minute means, a null for a minute without a
- * sample so the chart leaves a gap, plus the newest raw sample in the range.
+ * sample so the chart leaves a gap, plus the newest raw sample in the range. Reads only that window.
  */
 export async function hrMinutes(ctx: QueryCtx, from: number, to: number): Promise<HeartRateLive> {
-  const hr = await ctx.store.samples.readHr(from, to);
+  const hr = await ctx.store.readHr(from, to);
   const last = hr.at(-1);
   return {
     points: minuteMeanHr(hr, from, to).map((v, m) => ({ t: ms(from + m * 60), v: v === null ? null : Math.round(v) })),
@@ -566,7 +624,7 @@ export async function getHeartRate(day: string, ctx: QueryCtx): Promise<HeartRat
     ...hr,
     restingHr: row?.metrics?.rhrBpm ?? null,
     zoneBands: row?.s1 ? zoneBounds(row.s1.zoneLower) : [],
-    maxHr: row?.s1?.maxHr ?? ctx.profile.maxHr,
+    maxHr: row?.s1?.maxHr ?? maxHrOf(ctx),
     zones: zoneRows(row),
     zoneNote: zoneNote(row, ctx),
   };

@@ -1,16 +1,28 @@
+// The Trend View over the 180-day demo seed (halo's seed and pipeline, the in-memory Store).
 import { beforeAll, describe, expect, it } from "vitest";
-import { addDays } from "../time";
-import type { QueryCtx } from "./common";
-import { seededCtx } from "./testing";
+import { MemoryStore } from "@/data/memory";
+import { seedDemo } from "@/data/seed";
+import type { Profile } from "@/data/types";
+import { addDays } from "@/lib/time";
+import { runPipeline } from "@/pipeline";
+import type { QueryCtx } from "./ctx";
 import { getTrendView, isTrendViewKey, TREND_VIEW, type TrendViewKey } from "./trendView";
 
+const TZ = "Asia/Kolkata";
+const TODAY = "2026-10-02";
+const NOW = Date.parse("2026-10-02T14:00:00+05:30") / 1000;
+const PROFILE: Profile = { birthDate: "1990-01-01", sex: "male", maxHr: 183, heightCm: 178, timeZone: TZ };
 let ctx: QueryCtx;
 beforeAll(async () => {
-  ctx = await seededCtx();
+  const store = new MemoryStore();
+  await seedDemo(store, { today: TODAY, timeZone: TZ, now: NOW });
+  await runPipeline(store, PROFILE, { today: TODAY });
+  ctx = { store, profile: PROFILE, timeZone: TZ, today: TODAY, now: NOW, sync: { lastSyncTs: NOW, firstDay: addDays(TODAY, -179), lastError: null } };
 }, 120_000);
 
-// The seeded range starts on Monday 2026-04-06 (day index 0); `now` is day 179.
+// The seeded range starts on Monday 2026-04-06 (day index 0); today is day 179.
 const dayAt = (i: number) => addDays("2026-04-06", i);
+
 
 describe("getTrendView", () => {
   it("every metric builds a window, a prior and a verdict", async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sleepRegularityIndex, sriConsistency, sriDisplay } from "./sleepRegularity";
+import { laggedPairs, poolPairs, sleepRegularityIndex, sriConsistency, sriDisplay, sriOf, sriPairs, whoopConsistency } from "./sleepRegularity";
 
 const H = 3600;
 const DAY = 24 * H;
@@ -54,5 +54,51 @@ describe("display helpers", () => {
     expect(sriDisplay(85)).toBe(85);
     expect(sriConsistency(85)).toBe(0.85);
     expect(sriConsistency(null)).toBeNull();
+  });
+});
+
+describe("sriPairs and pooling", () => {
+  it("pooling every pair gives the window's SRI, and a pair touching an uncovered day is null", () => {
+    const sessions = [at(0, 0, 8), at(1, 1, 8), at(2, 0, 8), at(4, 0, 8)];
+    const covered = [true, true, true, false, true];
+    const pairs = sriPairs(sessions, ws, covered);
+    expect(pairs.map((p) => p && p.same)).toEqual([1440 - 60, 1440 - 60, null, null]);
+    const all = poolPairs(pairs)!;
+    expect(sriOf(all.same, all.pairs)).toBeCloseTo(sleepRegularityIndex(sessions, ws, covered)!, 10);
+    expect(poolPairs([null, undefined])).toBeNull();
+  });
+});
+
+describe("WHOOP-style Sleep Consistency: the last 24 hours against each of the 4 days before", () => {
+  it("an identical schedule over 5 days gives 100", () => {
+    const sessions = Array.from({ length: 6 }, (_, i) => at(i - 1, 23, 31));
+    expect(whoopConsistency(laggedPairs(sessions, ws))).toBe(100);
+  });
+
+  it("compares the last day with each earlier one, not consecutive days", () => {
+    const sessions = Array.from({ length: 5 }, (_, i) => at(i, 0, 8));
+    const pairs = laggedPairs(sessions, ws);
+    expect(pairs).toHaveLength(4);
+    // Last night 3 h later than the four before: 6 of 24 hours differ in each pair.
+    const shifted = [...sessions.slice(0, 4), at(4, 3, 11)];
+    expect(whoopConsistency(laggedPairs(shifted, ws))).toBeCloseTo(-100 + 200 * (18 / 24), 10);
+    expect(whoopConsistency(laggedPairs(shifted, ws))!).toBeLessThan(100);
+  });
+
+  it("one odd night four days ago costs a quarter as much as the same odd night last night", () => {
+    const base = Array.from({ length: 5 }, (_, i) => at(i, 0, 8));
+    const oldOdd = [at(0, 3, 11), ...base.slice(1)];
+    const newOdd = [...base.slice(0, 4), at(4, 3, 11)];
+    const lossOld = 100 - whoopConsistency(laggedPairs(oldOdd, ws))!;
+    const lossNew = 100 - whoopConsistency(laggedPairs(newOdd, ws))!;
+    expect(lossOld * 4).toBeCloseTo(lossNew, 8);
+  });
+
+  it("skips days without data, and is null when the last day has none; never below 0", () => {
+    const sessions = Array.from({ length: 5 }, (_, i) => at(i, 0, 8));
+    expect(whoopConsistency(laggedPairs(sessions, ws, [true, false, true, true, true]))).toBe(100);
+    expect(whoopConsistency(laggedPairs(sessions, ws, [true, true, true, true, false]))).toBeNull();
+    const flipped = [at(0, 12, 20), at(1, 12, 20), at(2, 12, 20), at(3, 12, 20), at(4, 0, 8)];
+    expect(whoopConsistency(laggedPairs(flipped, ws))).toBe(0);
   });
 });

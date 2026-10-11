@@ -148,7 +148,7 @@ export const ADD_ACTIVITY_INFO: InfoContent = {
   title: "Add an activity",
   body: (
     <>
-      <P>Pulse reads your workouts from Fitbit through Google Health, so it cannot add one here.</P>
+      <P>Pulse reads your workouts from Fitbit through Health Connect, so it cannot add one here.</P>
       <P>Start or log the workout in the Fitbit app. It appears in your activities after the next sync, with its Strain.</P>
     </>
   ),

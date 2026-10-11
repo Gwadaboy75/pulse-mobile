@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { DEFAULT_JOURNAL_TAGS } from "@/server/journalTags"
+import { DEFAULT_JOURNAL_TAGS } from "@/queries/journal"
 import { BEHAVIORS, behavior, followUpText, questionOf } from "./behaviors"
 
 it("keys are unique, A to Z, and cover the nine defaults", () => {

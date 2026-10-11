@@ -1,17 +1,16 @@
 import { useState } from "react";
 import { View } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { Droplet } from "lucide-react-native";
 import { logEntry, type LogInput } from "@/actions/log";
-import { store } from "@/data/store";
 import { dayLabel } from "@/lib/format";
-import { CYCLE_SYMPTOMS, FLOWS, KIND_LABEL, LOG_KINDS, MEALS, MOODS, OVULATION_RESULTS, RECONNECT, SYMPTOMS, VALENCES, WATER_STEPS, type LogKind } from "@/lib/log";
-import { getLog } from "@/queries/log";
+import { CYCLE_SYMPTOMS, FLOWS, KIND_LABEL, LOG_KINDS, MEALS, MOODS, OVULATION_RESULTS, SYMPTOMS, VALENCES, WATER_STEPS, type LogKind } from "@/queries/log";
+import { getDayLog } from "@/queries/journalExtras";
 import { todayOf } from "@/queries/common";
 import { parseDay } from "@/lib/url";
 import { DateTimeField } from "@/screens/log/DateTimeField";
 import { Chips, Field, FormAlert, Input } from "@/screens/log/fields";
-import { CONNECT_HREF } from "@/screens/log/connect";
+import { actionCtx, dataChanged } from "@/state/app";
 import { defaultAt, EMPTY, toInput, wallNow, type Form } from "@/screens/log/form";
 import { toast } from "@/ui/Toast";
 import { useScreen } from "@/screens/useScreen";
@@ -28,11 +27,10 @@ import { cn } from "@/ui/cn";
 export default function LogSheet() {
   const { kind: raw, d } = useLocalSearchParams<{ kind?: string; d?: string }>();
   const kind = (LOG_KINDS as readonly string[]).includes(raw ?? "") ? (raw as LogKind) : "water";
-  const { data: vm } = useScreen((ctx) => getLog(ctx, parseDay(d, todayOf(ctx)).d), ["log", d]);
+  const { data: vm } = useScreen((ctx) => getDayLog(parseDay(d, todayOf(ctx)).d, ctx), ["log", d]);
   const [form, setForm] = useState<Form>(EMPTY[kind]);
   const [at, setAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [reconnect, setReconnect] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const set = (k: string) => (v: string | string[]) => {
@@ -48,24 +46,22 @@ export default function LogSheet() {
       </SheetScreen>
     );
 
-  const access = vm.access[kind];
-  const blocked = reconnect || access === "not_connected" || access === "reconnect";
   const time = at ?? defaultAt(vm);
   const now = wallNow(vm.timeZone);
 
   const send = async (input: LogInput, close = true) => {
     setSaving(true);
     setError(null);
-    const r = await logEntry(store, input).catch(() => ({ ok: false as const, error: "Couldn’t save. Check your connection and try again." }));
+    const r = await logEntry(actionCtx(), input).catch(() => ({ ok: false as const, error: "Couldn’t save. Try again." }));
     setSaving(false);
     if (!r.ok) {
       haptic.error();
-      if (r.error === RECONNECT) setReconnect(true);
-      else setError(r.error);
+      setError(r.error);
       return;
     }
+    dataChanged();
     if (close) closeSheet();
-    toast.success(`${KIND_LABEL[input.kind]} saved to Google Health`);
+    toast.success(`${KIND_LABEL[input.kind]} saved`);
   };
   const save = () => {
     const input = toInput(kind, form, time);
@@ -88,29 +84,17 @@ export default function LogSheet() {
   return (
     <SheetScreen
       title={title}
-      description={blocked ? undefined : "Saved to Google Health"}
+      description="Kept on this phone"
       footer={
-        blocked ? null : (
-          <>
-            {error && <FormAlert>{error}</FormAlert>}
-            <Button size="sheet" onPress={save} disabled={saving}>
-              {saving ? "Saving…" : "Save"}
-            </Button>
-          </>
-        )
+        <>
+          {error && <FormAlert>{error}</FormAlert>}
+          <Button size="sheet" onPress={save} disabled={saving}>
+            {saving ? "Saving…" : "Save"}
+          </Button>
+        </>
       }
     >
-      {blocked ? (
-        <View className="gap-4 pt-2">
-          <Text className="max-w-[65ch] text-[15px] leading-[22px] text-foreground-secondary">
-            {access === "not_connected" ? "Connect Google to log to Google Health." : `Pulse needs new permissions to save ${KIND_LABEL[kind].toLowerCase()} to Google Health. Reconnect Google and allow them; nothing you have synced is lost.`}
-          </Text>
-          <Button size="sheet" onPress={() => router.replace(CONNECT_HREF)}>
-            {access === "not_connected" ? "Connect Google" : "Reconnect Google"}
-          </Button>
-        </View>
-      ) : (
-        <View className="gap-6 pt-2">
+      <View className="gap-6 pt-2">
           {kind === "water" && (
             <>
               <Section title="Add">
@@ -155,6 +139,14 @@ export default function LogSheet() {
                 {field("kg", "Weight", "(kg)", { mode: "decimal", className: "flex-1" })}
                 {field("fat", "Body fat", "(%)", { mode: "decimal", placeholder: "Optional", className: "flex-1" })}
               </View>
+              {timeField}
+            </Section>
+          )}
+
+          {kind === "spo2" && (
+            <Section title="Reading">
+              {field("pct", "Blood oxygen", "(%)", { mode: "decimal", placeholder: "e.g. 95" })}
+              <Text className={CAPTION}>The morning reading from the Fitbit app (Google Health doesn’t share blood oxygen with Health Connect).</Text>
               {timeField}
             </Section>
           )}
@@ -207,8 +199,7 @@ export default function LogSheet() {
               {when(timeField)}
             </>
           )}
-        </View>
-      )}
+      </View>
     </SheetScreen>
   );
 }

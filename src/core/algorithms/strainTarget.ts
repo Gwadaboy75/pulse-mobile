@@ -12,8 +12,8 @@ export const strainTargetConfig = {
   multipliers: { green: [1.0, 1.25], yellow: [0.8, 1.0], red: [0.5, 0.75] } as Record<RecoveryBand, readonly [number, number]>,
   /** Cold-start ranges by band, 0–21 (*tunable*). */
   coldStart: { green: [14, 18], yellow: [10, 14], red: [6, 10] } as Record<RecoveryBand, readonly [number, number]>,
-  /** ACWR above this caps the upper bound at the base (spec; readiness' "building fast" edge). */
-  acwrCapAbove: 1.3,
+  /** ACWR above this caps the upper bound at the base: readiness' "building fast" edge, Garmin's 1.5 since version 18 (was 1.3). */
+  acwrCapAbove: 1.5,
   /** ACWR below this lifts both bounds by `lift` (spec; readiness' "ramping down" edge). */
   acwrLiftBelow: 0.8,
   lift: 0.1,

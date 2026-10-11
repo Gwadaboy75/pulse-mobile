@@ -4,7 +4,7 @@ import { View } from "react-native";
 import { Check, ChevronRight, Circle } from "lucide-react-native";
 import { AGE_LABEL } from "@/lib/format";
 import type { HealthspanVM } from "@/queries/types";
-import { daysBetween } from "@/time";
+import { daysBetween } from "@/lib/time";
 import { Icon } from "@/ui/Icon";
 import { Press } from "@/ui/Press";
 import { CAPTION } from "@/ui/metrics/primitives";
@@ -45,7 +45,7 @@ function Row({ done, title, detail, onPress }: { done: boolean; title: string; d
 }
 
 export function FirstAge({ vm }: { vm: HealthspanVM }) {
-  const height = useScreen((ctx) => ctx.store.profile.getProfileRow(), ["firstAge"]).data?.heightCm ?? null;
+  const height = useScreen(async (ctx) => ctx.profile.heightCm, ["firstAge"]).data ?? null;
   const first = useOptionalShellCalendar()?.firstDay;
   const days = first ? Math.max(0, daysBetween(first, vm.day) + 1) : 0;
   return (

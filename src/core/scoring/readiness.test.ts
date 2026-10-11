@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { acwrSignal, evaluate, evaluateWithTrainingLoad, mean, type ReadinessDay, sampleSD } from "./readiness";
+import { effortOfTrimp } from "./strain";
+import { acuteLoad, acwrBand, acwrSignal, chronicLoad, evaluate, evaluateWithTrainingLoad, mean, type ReadinessDay, sampleSD } from "./readiness";
 
 const pad = (n: number) => String(n).padStart(2, "0");
-const d = (i: number, hrv: number | null, rhr: number | null, effort: number | null, resp: number | null = null): ReadinessDay => ({
+/** A day; `load` is the day's linear load (TRIMP), which the load ratio and monotony read. */
+const d = (i: number, hrv: number | null, rhr: number | null, load: number | null, resp: number | null = null): ReadinessDay => ({
   day: `2024-03-${pad(i)}`,
   hrv,
   rhr,
-  effort,
+  load,
   resp,
 });
 
@@ -40,12 +42,12 @@ describe("ReadinessEngineTest", () => {
   it("ACWR spike strains", () => {
     const days: ReadinessDay[] = [];
     for (let i = 1; i <= 21; i++) days.push(d(i, 60, 52, 5));
-    for (let i = 22; i <= 28; i++) days.push(d(i, 60, 52, 15));
-    days.push(d(29, 60, 52, 15));
+    for (let i = 22; i <= 28; i++) days.push(d(i, 60, 52, 25));
+    days.push(d(29, 60, 52, 25));
     const r = evaluate(days);
     expect(flagOf(r, "acwr")).toBe("bad");
     expect(r.level).toBe("strained");
-    expect(r.acwr!).toBeGreaterThan(1.5);
+    expect(r.acwr!).toBeGreaterThanOrEqual(2.0);
   });
 
   it("resp rate rise flags", () => {
@@ -71,12 +73,63 @@ describe("ReadinessEngineTest", () => {
   });
 });
 
-describe("plan U6: ACWR bands and monotony", () => {
-  it("classifies 0.8 / 1.3 / 1.5 as noop does (lower bound inclusive)", () => {
+describe("Garmin's load ratio: bands, acute and chronic load", () => {
+  it("bands at Garmin's 2026 edges 0.8 / 1.5 / 2.0, lower bound inclusive", () => {
     expect(acwrSignal(0.79, 1, 1)).toMatchObject({ flag: "watch", detail: "LOAD_RAMPING_DOWN" });
     expect(acwrSignal(0.8, 1, 1)).toMatchObject({ flag: "good", detail: "LOAD_SWEET_SPOT" });
-    expect(acwrSignal(1.3, 1, 1)).toMatchObject({ flag: "watch", detail: "LOAD_BUILDING_FAST" });
-    expect(acwrSignal(1.5, 1, 1)).toMatchObject({ flag: "bad", detail: "LOAD_SPIKING" });
+    expect(acwrSignal(1.49, 1, 1)).toMatchObject({ flag: "good", detail: "LOAD_SWEET_SPOT" });
+    expect(acwrSignal(1.5, 1, 1)).toMatchObject({ flag: "watch", detail: "LOAD_BUILDING_FAST" });
+    expect(acwrBand(1.99)).toBe("LOAD_BUILDING_FAST");
+    expect(acwrSignal(2.0, 1, 1)).toMatchObject({ flag: "bad", detail: "LOAD_SPIKING" });
+  });
+
+  const days = (n: number, load: (i: number) => number | null) => Array.from({ length: n }, (_, i) => d(i + 1, 60, 52, load(i + 1)));
+  const loadMap = (rows: ReadinessDay[]) => {
+    const m = new Map(rows.map((r) => [r.day, r.load]));
+    return (day: string) => m.get(day);
+  };
+
+  it("a constant load L for 40 days gives an acute load of 7L and a ratio of 1.00", () => {
+    const rows = Array.from({ length: 40 }, (_, i) => ({ day: new Date(Date.UTC(2024, 0, 1 + i)).toISOString().slice(0, 10), load: 30 }));
+    const r = evaluate(rows);
+    expect(r.acute).toBeCloseTo(210, 9);
+    expect(r.chronic).toBeCloseTo(210, 9);
+    expect(r.acwr).toBeCloseTo(1, 12);
+  });
+
+  it("one day's load decays linearly to 0 over 10 days", () => {
+    const rows = days(31, (i) => (i === 10 ? 110 : 0));
+    const at = loadMap(rows);
+    for (let k = 0; k < 10; k++) expect(acuteLoad(at, `2024-03-${pad(10 + k)}`)).toBeCloseTo((7 / 5.5) * (1 - 0.1 * k) * 110, 9);
+    expect(acuteLoad(at, "2024-03-20")).toBe(0);
+  });
+
+  it("leaves missing days out and renormalises the weights; under 7 of 10 days there is none", () => {
+    const at = loadMap(days(10, (i) => (i === 10 || i === 9 ? null : 20)));
+    // Eight days at 20: the weighted mean is still 20, so 7 × 20.
+    expect(acuteLoad(at, "2024-03-10")).toBeCloseTo(140, 9);
+    const sparse = loadMap(days(10, (i) => (i % 2 ? 20 : null)));
+    expect(acuteLoad(sparse, "2024-03-10")).toBeNull();
+  });
+
+  it("the chronic load is the mean of 28 days of acute loads, from 14 of them", () => {
+    expect(chronicLoad(() => 70, "2024-03-28")).toBe(70);
+    let n = 0;
+    expect(chronicLoad(() => (n++ < 13 ? 70 : null), "2024-03-28")).toBeNull();
+    const r = evaluate(days(15, () => 10));
+    expect(r.acwr).toBeNull(); // acute loads from day 7: 9 of them by day 15
+    expect(evaluate(days(20, () => 10)).acwr).toBeCloseTo(1, 12);
+  });
+
+  it("is linear: two extra hard days in a steady month move it more than the log-compressed Effort did", () => {
+    // 28 days at 60 TRIMP (Strain ≈ 9.4), then two days at 240 (≈ 15.5).
+    const rows = days(30, (i) => (i > 28 ? 240 : 60));
+    expect(evaluate(rows).acwr!).toBeGreaterThan(1.3);
+    // The old ratio: the 7-day mean of Effort over its 28-day mean.
+    const effort = rows.map((r) => effortOfTrimp(r.load!));
+    const old = mean(effort.slice(-7))! / mean(effort.slice(-28))!;
+    expect(old).toBeLessThan(1.2);
+    expect(evaluate(rows).acwr!).toBeGreaterThan(old + 0.15);
   });
 
   it("monotony ≥ 2.0 sets the watch flag; below does not", () => {
@@ -95,11 +148,11 @@ describe("plan U6: ACWR bands and monotony", () => {
 });
 
 describe("ReadinessTrainingLoadTest", () => {
-  const metric = (day: number, effort: number | null, hrv = 60, rhr = 52): ReadinessDay => ({
+  const metric = (day: number, load: number | null, hrv = 60, rhr = 52): ReadinessDay => ({
     day: `2026-01-${pad(day)}`,
     rhr,
     hrv,
-    effort,
+    load,
     resp: 14,
   });
   const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);

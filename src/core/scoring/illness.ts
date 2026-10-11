@@ -1,6 +1,7 @@
 // Ports IllnessSignalEngine.kt (multi-signal heads-up with corroboration and confounder suppression) and
 // the illness half of V5HealthSignals.kt (trailing-window z-scores and the per-signal trust gate).
 // Not ported: IllnessDistance, the cycle and body-clock engines. Wellness only, never a diagnosis.
+import { hrvCfg, respCfg, restingHRCfg, skinTempCfg } from "./baselines";
 
 export const raiseThreshold = 50.0;
 export const mildThreshold = 25.0;
@@ -135,14 +136,30 @@ export interface IllnessDay {
   resp?: number | null;
 }
 
-/** Rolling mean + sample SD z, or null when the value is absent or the window holds < 14 values. */
-function zAgainst(value: number | null | undefined, window: (number | null | undefined)[]): number | null {
+/**
+ * The smallest SD each signal's z divides by (mobile addition): half the baselines' σ floor, 0.5 × 1.253 × floorSpread
+ * (Baselines.kt metricCfg spreads are mean absolute deviations; σ ≈ 1.253 × spread): 1.25 bpm, 3.1 ms, 0.31 rpm,
+ * 0.19 °C. Without a floor a near-constant history made any change fire: 20 nights of a resting HR of 72 and then 73
+ * read as a z in the millions. The full σ floor (2.5 bpm, 6.3 ms, 0.63 rpm, 0.38 °C) is above ordinary night-to-night
+ * spreads (the demo's 30 nights before its illness peak: 1.9 bpm, 7.9 ms, 0.35 rpm, 0.20 °C), and silenced the signal
+ * there entirely; half keeps it and still needs about +3 bpm on a flat resting HR.
+ */
+export const illnessSdFloorShare = 0.5;
+export const illnessSdFloor = {
+  restingHR: illnessSdFloorShare * 1.253 * restingHRCfg.floorSpread,
+  hrv: illnessSdFloorShare * 1.253 * hrvCfg.floorSpread,
+  respiration: illnessSdFloorShare * 1.253 * respCfg.floorSpread,
+  skinTemp: illnessSdFloorShare * 1.253 * skinTempCfg.floorSpread,
+} satisfies Record<IllnessSignalKey, number>;
+
+/** Rolling mean + sample SD z (SD floored at `sdFloor`), or null when the value is absent or the window holds < 14 values. */
+function zAgainst(value: number | null | undefined, window: (number | null | undefined)[], sdFloor: number): number | null {
   if (value == null) return null;
   const xs = window.filter((v): v is number => v != null);
   if (xs.length < illnessMinBaselineNights) return null;
   const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
   const variance = xs.reduce((a, x) => a + (x - mean) * (x - mean), 0) / Math.max(xs.length - 1, 1);
-  return (value - mean) / Math.max(Math.sqrt(variance), 1e-6);
+  return (value - mean) / Math.max(Math.sqrt(variance), sdFloor);
 }
 
 const hasAnyVital = (d: IllnessDay) => d.rhr != null || d.hrv != null || d.skinTempDev != null || d.resp != null;
@@ -159,11 +176,11 @@ export function illnessFromDays(days: IllnessDay[], journal: Omit<IllnessContext
     withVitals.filter((d) => d.hrv != null).length >= illnessMinBaselineNights;
 
   const latest = days.at(-1);
-  const z = (f: (d: IllnessDay) => number | null | undefined) => (latest ? zAgainst(f(latest), prior.map(f)) : null);
-  const rhrZ = z((d) => d.rhr);
-  const tempZ = z((d) => d.skinTempDev);
-  const hrvZ = z((d) => d.hrv);
-  const respZ = z((d) => d.resp);
+  const z = (f: (d: IllnessDay) => number | null | undefined, floor: number) => (latest ? zAgainst(f(latest), prior.map(f), floor) : null);
+  const rhrZ = z((d) => d.rhr, illnessSdFloor.restingHR);
+  const tempZ = z((d) => d.skinTempDev, illnessSdFloor.skinTemp);
+  const hrvZ = z((d) => d.hrv, illnessSdFloor.hrv);
+  const respZ = z((d) => d.resp, illnessSdFloor.respiration);
 
   const labels: Partial<Record<IllnessSignalKey, string>> = {};
   if (rhrZ != null && rhrZ >= signalZThreshold) labels.restingHR = "RHR up";

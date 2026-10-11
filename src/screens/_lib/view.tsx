@@ -52,7 +52,18 @@ import { Icon } from "@/ui/Icon"
 import { Text } from "@/ui/Text"
 import type { FormatKey } from "@/lib/format"
 import { dayHref, RANGE_DAYS, type TrendRange } from "@/lib/url"
-import type { EnergyBankVM, HrChart, KeyStat, Metric, StressDayChart, Trend } from "@/queries/types"
+import type { EnergyBankVM, HrChart, KeyStat, Metric, Span, TimePoint, Trend, ZoneRow } from "@/queries/types"
+import type { ZoneRow as ZoneBarRow } from "@/ui/charts/ZoneBars"
+
+/** A day's stress line: still minutes 0-3, the excluded spans (sleep, workouts) and, today, the latest reading. */
+export type StressDayChart = { points: TimePoint[]; spans: Span[]; now: number | null }
+
+/**
+ * Zones as ZoneBars draws them. halo's typical is the mean share of the zone over the last 30 days of the same kind;
+ * the bars mark it as a band of no width (a tick) where the earlier query drew the middle half.
+ */
+export const zoneBars = (m: Metric<ZoneRow[]>): Metric<ZoneBarRow[]> =>
+  mapMetric(m, (zs) => zs.map(({ typical, ...z }) => ({ ...z, ...(typical && { typical: { low: typical.share, high: typical.share } }) })))
 
 export { CAPTION, LABEL } from "@/ui/metrics/primitives"
 /** The inset legend strip under a summary card (spec §7.2, §7.3, §7.5). */

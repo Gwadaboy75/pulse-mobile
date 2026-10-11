@@ -6,7 +6,7 @@ import { useState, type ReactNode } from "react";
 import { haptic } from "@/ui/haptics";
 import { View } from "react-native";
 import { saveProfileAction, type ProfileFormState } from "@/actions/profile";
-import { store } from "@/data/store";
+import { appState, saveProfile } from "@/state/app";
 import { Button } from "@/ui/Button";
 import { Text } from "@/ui/Text";
 import { Field, RadioSegments, SmallButton, TextField } from "../settings/controls";
@@ -43,7 +43,7 @@ export function ProfileForm({
 
   const submit = async () => {
     setPending(true);
-    const r = await saveProfileAction(store, { birthDate, sex, maxHr, heightCm, timeZone: timeZone || null }, { onboarding });
+    const r = await saveProfileAction({ birthDate, sex, maxHr, heightCm, timeZone: timeZone || null }, appState().profile, saveProfile);
     setPending(false);
     setState(r);
     if (r.ok) onSaved?.();

@@ -24,8 +24,10 @@ describe("strainTarget", () => {
     expect([r.low, r.high]).toEqual([expect.closeTo(6, 10), expect.closeTo(9, 10)]);
   });
 
-  it("ACWR 1.4 caps the upper bound at the base, keeping the minimum width below it", () => {
-    const t = strainTarget(days(12), GREEN, 1.4);
+  it("ACWR above 1.5 (Garmin's High) caps the upper bound at the base, keeping the minimum width below it; 1.4 doesn't", () => {
+    expect(strainTarget(days(12), GREEN, 1.4).acwrRule).toBeNull();
+    expect(strainTarget(days(12), GREEN, 1.5).acwrRule).toBeNull();
+    const t = strainTarget(days(12), GREEN, 1.6);
     expect(t.high).toBeCloseTo(12, 10);
     expect(t.low).toBeCloseTo(10, 10);
     expect(t.acwrRule).toBe("capped");

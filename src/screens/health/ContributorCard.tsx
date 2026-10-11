@@ -15,11 +15,26 @@ import { ContributorRow } from "@/ui/metrics/ContributorRow";
 import { CAPTION } from "@/ui/metrics/primitives";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { Text } from "@/ui/Text";
+import { trendHref } from "@/lib/url";
 import { TextLink } from "./CardButton";
+import { factorCopy } from "./factor";
 import { Press } from "@/ui/Press";
 import { DURATION } from "@/ui/motion";
 
 const glyph = (g: Parameters<typeof Icon>[0]["icon"]): ReactNode => <Icon icon={g} size={20} tone="muted-foreground" strokeWidth={1.75} />;
+/** Each factor's Trend View (halo's contributors carry no link). */
+const HS_TREND: Record<string, string> = {
+  sleepHours: "hours",
+  sri: "consistency",
+  zone13: "zones13",
+  zone45: "zones45",
+  strength: "strength",
+  steps: "steps",
+  vo2max: "vo2max",
+  restingHr: "rhr",
+  leanMass: "lean_mass",
+};
+
 const ICON: Record<string, ReactNode> = {
   sleepHours: glyph(Moon),
   sri: glyph(Moon),
@@ -83,7 +98,7 @@ export function ContributorCard({ title, items }: { title: string; items: Health
                   icon={ICON[c.key]}
                   label={c.label}
                   metric={c.metric.value === null ? c.metric : { ...c.metric, value: c.metric.value * k }}
-                  recent={c.recent === null ? null : c.recent * k}
+                  recent={null}
                   unit={s.unit}
                   format={s.format}
                   domain={[c.domain[0] * k, c.domain[1] * k]}
@@ -96,17 +111,17 @@ export function ContributorCard({ title, items }: { title: string; items: Health
               </Press>
               {isOpen && (
                 <Animated.View entering={FadeIn.duration(DURATION.base)} exiting={FadeOut.duration(DURATION.fast)} className="gap-3 pb-5">
-                  {c.state && (
+                  {c.years !== null && (
                     <View className="gap-1">
-                      <Text className="text-[17px] font-semibold leading-6">{c.state.title}</Text>
-                      <Text className="text-[15px] leading-[22px] text-foreground-secondary">{c.state.body}</Text>
+                      <Text className="text-[17px] font-semibold leading-6">{factorCopy(c.label, c.years).title}</Text>
+                      <Text className="text-[15px] leading-[22px] text-foreground-secondary">{factorCopy(c.label, c.years).body}</Text>
                     </View>
                   )}
                   <Text className="text-[15px] leading-[22px] text-foreground-secondary">Target for your age: {show(c.target)}</Text>
                   {c.caption && c.metric.value !== null && <Text className={CAPTION}>{c.caption}</Text>}
                   <Text className="text-[15px] leading-[22px]">{c.explanation}</Text>
                   <Text className={CAPTION}>Source: {c.source}.</Text>
-                  <TextLink href={c.trendHref}>View trend</TextLink>
+                  {HS_TREND[c.key] && <TextLink href={trendHref(HS_TREND[c.key])}>View trend</TextLink>}
                 </Animated.View>
               )}
             </Animated.View>

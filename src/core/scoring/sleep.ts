@@ -1,6 +1,6 @@
-// Ports SleepStager.hypnogramMetrics (SleepStager.kt), RestScorer (AnalyticsEngine.kt L1505–1739: sleep
-// performance and need), SleepDebt.kt, and VitalityEngine.sleepConsistency (1 − CV). Rest's consistency input
-// is a plain [0, 1] number so U7 can pass SRI / 100 in its place.
+// Ports SleepStager.hypnogramMetrics (SleepStager.kt), the personalised need from RestScorer (AnalyticsEngine.kt
+// L1505–1739), SleepDebt.kt, and VitalityEngine.sleepConsistency (1 − CV). Sleep Performance itself is Halo's own
+// implementation of WHOOP's 2025 four-part score (since version 16; docs/research/whoop-garmin.md C4).
 import type { HypnogramMetrics, SleepSession, Stage, StageSegment } from "./types";
 
 // ── Hypnogram ──────────────────────────────────────────────────────────────
@@ -62,21 +62,21 @@ export function hypnogramMetrics(session: SleepSession): HypnogramMetrics {
   };
 }
 
-// ── Rest (sleep performance) ───────────────────────────────────────────────
+// ── Sleep Performance (WHOOP's 2025 four parts) ─────────────────────────────
 
-export const wDuration = 0.5;
-export const wEfficiency = 0.2;
-export const wRestorative = 0.2;
-export const wConsistency = 0.1;
+/**
+ * WHOOP's Sleep Performance since May 2025 has four parts: Hours vs Needed, Sleep Consistency, Sleep Efficiency and Sleep
+ * Stress (published: Gadgets & Wearables, 2025-05-05; WHOOP, "Everything WHOOP launched in 2025", 2025-12-15). Restorative
+ * sleep is shown beside it, not in it. The weights are unpublished; these are a guess (docs/research/whoop-garmin.md W-7,
+ * 2026-10-09) that lets hours against need drive the score, as it did on its own before 2025.
+ */
+export const sleepPerformanceWeights = { hours: 0.7, consistency: 0.1, efficiency: 0.1, stress: 0.1 };
+/** Efficiency earning full marks (calibrated: WHOOP's member average is 89.4 %, its target "above 85 %", The Locker 2026-06-15). */
+export const efficiencyTarget = 0.95;
 export const defaultSleepNeedHours = 8.0;
 /** Fewer scorable nights than this → the population default need. */
 export const minNeedNights = 7;
 export const maxNeedHours = 9.5;
-export const restorativeTargetShare = 0.5;
-export const deepShareTarget = 0.13;
-export const deepFloorFactor = 0.5;
-/** Used when no consistency signal is supplied (noop adds a neutral term, it does not renormalize). */
-export const NEUTRAL_CONSISTENCY = 0.5;
 
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
 
@@ -98,42 +98,42 @@ export function personalizedNeedHours(nightlyHours: number[], age: number | null
   return Math.min(Math.max(q, floor), maxNeedHours);
 }
 
-/**
- * Rest composite in [0, 100] (2 dp), or null with no asleep time.
- * @param efficiency asleep / in-bed in [0, 1].
- * @param consistency sleep regularity in [0, 1]; null → NEUTRAL_CONSISTENCY.
- */
-export function rest(
-  asleepSeconds: number,
-  efficiency: number,
-  deepSeconds: number,
-  remSeconds: number,
-  sleepNeedHours: number | null = null,
-  consistency: number | null = null,
-): number | null {
-  if (asleepSeconds <= 0.0) return null;
-  const asleepHours = asleepSeconds / 3600.0;
-  const needHours = Math.max(sleepNeedHours ?? defaultSleepNeedHours, 0.1);
-  const durationScore = Math.min(100.0, (asleepHours / needHours) * 100.0);
-  const efficiencyScore = clamp(efficiency * 100.0, 0.0, 100.0);
-  const restorativeShare = (deepSeconds + remSeconds) / asleepSeconds;
-  const deepAdequacy = clamp(deepSeconds / asleepSeconds / deepShareTarget, 0.0, 1.0);
-  const deepFactor = deepFloorFactor + (1.0 - deepFloorFactor) * deepAdequacy;
-  const restorativeScore = Math.min(100.0, (restorativeShare / restorativeTargetShare) * 100.0) * deepFactor;
-  const consistencyScore = clamp((consistency ?? NEUTRAL_CONSISTENCY) * 100.0, 0.0, 100.0);
-  const weighted =
-    wDuration * durationScore + wEfficiency * efficiencyScore + wRestorative * restorativeScore + wConsistency * consistencyScore;
-  return Math.round(weighted * 100.0) / 100.0;
+export interface SleepPerformanceInput {
+  asleepMin: number;
+  /** The night's full need (the planner's need made the evening before), minutes. */
+  needMin: number;
+  /** Asleep / in bed, 0–1. */
+  efficiency: number;
+  /** WHOOP-style consistency, 0–100; null drops the part. */
+  consistency: number | null;
+  /** Sleep Stress, % of asleep minutes in a high-stress state; null drops the part. */
+  stressPct: number | null;
 }
 
-/** Rest from a night's stored totals (noop's restFromDaily, at the default need). */
-export function restFromTotals(
-  night: { totalSleepMin: number | null; efficiency: number | null; deepMin: number | null; remMin: number | null },
-  consistency: number | null = null,
-): number | null {
-  const { totalSleepMin, efficiency } = night;
-  if (totalSleepMin == null || efficiency == null || totalSleepMin <= 0.0) return null;
-  return rest(totalSleepMin * 60.0, efficiency, (night.deepMin ?? 0.0) * 60.0, (night.remMin ?? 0.0) * 60.0, null, consistency);
+/** The four parts on 0–100 (null where the input is missing). */
+export function sleepPerformanceParts(a: SleepPerformanceInput) {
+  return {
+    hours: Math.min(100, (100 * a.asleepMin) / Math.max(a.needMin, 1)),
+    consistency: a.consistency == null ? null : clamp(a.consistency, 0, 100),
+    efficiency: Math.min(100, (100 * clamp(a.efficiency, 0, 1)) / efficiencyTarget),
+    stress: a.stressPct == null ? null : 100 - clamp(a.stressPct, 0, 100),
+  };
+}
+
+/**
+ * Sleep Performance 0–100 (2 dp): 0.70 · Hours vs Needed + 0.10 · Consistency + 0.10 · Efficiency + 0.10 · (100 − Sleep
+ * Stress), a missing part's weight shared among the rest; null without sleep.
+ */
+export function sleepPerformance(a: SleepPerformanceInput): number | null {
+  if (!(a.asleepMin > 0)) return null;
+  const p = sleepPerformanceParts(a);
+  const w = sleepPerformanceWeights;
+  const terms: [number, number][] = [[p.hours, w.hours], [p.efficiency, w.efficiency]];
+  if (p.consistency != null) terms.push([p.consistency, w.consistency]);
+  if (p.stress != null) terms.push([p.stress, w.stress]);
+  const total = terms.reduce((acc, [, wt]) => acc + wt, 0);
+  const score = terms.reduce((acc, [v, wt]) => acc + v * wt, 0) / total;
+  return Math.round(score * 100.0) / 100.0;
 }
 
 /**
@@ -151,7 +151,8 @@ export function sleepConsistency(nightlyHours: number[]): number | null {
 
 // ── Sleep debt ─────────────────────────────────────────────────────────────
 
-export const DEFAULT_WINDOW_NIGHTS = 14;
+/** Nights the debt ledger looks back over: WHOOP's 28 days of sleep history (The Locker, 2026-02-12). */
+export const DEFAULT_WINDOW_NIGHTS = 28;
 /** Calculated debt below this clears; exactly 10 remains. */
 export const ON_TARGET_BAND_MIN = 10.0;
 export const DEBT_CARRY = 0.55;

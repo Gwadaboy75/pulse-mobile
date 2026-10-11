@@ -50,8 +50,8 @@ describe("buildReport", () => {
     expect(r.deltas.sleepHours).toBe(0);
     expect(r.best).toEqual({ day: "2026-10-04", recovery: 90 });
     expect(r.worst).toEqual({ day: "2026-09-28", recovery: 30 });
-    // The last day's ACWR: 1.4 is building fast.
-    expect(r.trainingBalance).toEqual({ acwr: 1.4, status: "LOAD_BUILDING_FAST" });
+    // The last day's ACWR: 1.4 is in Garmin's optimal range (0.8–1.5, version 18; it read building fast at noop's 1.3).
+    expect(r.trainingBalance).toEqual({ acwr: 1.4, status: "LOAD_SWEET_SPOT" });
     expect(r.sleepConsistency).toBe(80);
   });
 

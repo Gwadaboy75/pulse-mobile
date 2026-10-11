@@ -23,12 +23,15 @@ export interface HrZoneSet {
 export interface TimeInZone {
   /** Seconds per zone (seconds[0] is Zone 1). */
   seconds: number[];
-  /** Below Zone 1 (under 50% of reserve): WHOOP's "Zone 0". */
+  /** Below Zone 1 (under 40 % of reserve): WHOOP's "Zone 0". */
   belowZone1: number;
 }
 
-/** Lower edges as a share of heart-rate reserve. */
-export const zoneEdges = [0.5, 0.6, 0.7, 0.8, 0.9];
+/**
+ * Lower edges as a share of heart-rate reserve (published, WHOOP 2024-11-21): Zone 1 40–60 %, Zone 2 60–70, Zone 3
+ * 70–80, Zone 4 80–90, Zone 5 90–100. Zone 1's 40 % is also ACSM's moderate floor (src/pipeline/intensity.ts).
+ */
+export const zoneEdges = [0.4, 0.6, 0.7, 0.8, 0.9];
 
 /** Five zones from resting and max heart rate. A reserve under 1 bpm (bad profile data) is treated as 1. */
 export function zones(restingHR: number, maxHR: number): HrZoneSet {

@@ -1,118 +1,110 @@
-// Ported from pulse src/server/queries/home.test.ts (the Journal Insights case) and isolation.test.ts (getJournal on a
-// spread of days), onto the F2 seed scored on SQLite.
-import { beforeAll, describe, expect, it } from "vitest";
-import { addDays } from "../time";
-import { todayOf, type QueryCtx } from "./common";
-import { getBehaviours, getJournal, getJournalInsights } from "./journal";
-import { seededCtx } from "./testing";
+// The Journal view models over the Store: the strip, check-in, history, teaser and Behaviour insights.
+import { beforeEach, describe, expect, it } from "vitest";
+import type { Effect, TagImpact } from "@/core/algorithms/journalImpact";
+import { openMemoryStore } from "@/data/memory";
+import type { Store } from "@/data/store";
+import { addDays } from "@/lib/time";
+import { emptyScoreRow } from "@/pipeline/stage1";
+import type { QueryCtx } from "./ctx";
+import { ensureDefaultTags, getJournal, getJournalInsights } from "./journal";
 
-// The seed loads answers but not the behaviours' rows: the nine defaults the F2 answers use.
-const TAGS = [
-  { tag: "alcohol", label: "Alcohol" },
-  { tag: "late_caffeine", label: "Late caffeine" },
-  { tag: "late_meal", label: "Late meal" },
-  { tag: "screen_in_bed", label: "Screen in bed" },
-  { tag: "meditation", label: "Meditation" },
-  { tag: "stretching", label: "Stretching" },
-  { tag: "sauna", label: "Sauna" },
-  { tag: "travel", label: "Travel" },
-  { tag: "illness", label: "Illness" },
-];
+const TODAY = "2026-10-03";
+let store: Store;
+const ctx = (): QueryCtx => ({
+  store,
+  profile: { birthDate: "1990-01-01", sex: "male", maxHr: null, heightCm: null, timeZone: "UTC" },
+  timeZone: "UTC",
+  today: TODAY,
+  now: Date.parse(`${TODAY}T12:00:00Z`) / 1000,
+  sync: { lastSyncTs: null, firstDay: "2026-06-01", lastError: null },
+});
 
-let ctx: QueryCtx;
-beforeAll(async () => {
-  ctx = await seededCtx();
-  await ctx.store.journal.ensureDefaultTags(TAGS);
+const none: Effect = { nYes: 2, nNo: 1, delta: null, ciLow: null, ciHigh: null, label: "not_enough_data" };
+const fx = (delta: number, label: Effect["label"], n = [6, 8]): Effect => ({ nYes: n[0], nNo: n[1], delta, ciLow: delta - 4, ciHigh: delta + 4, label });
+const impact = (tag: string, effects: Partial<TagImpact["effects"]>): TagImpact => ({
+  tag,
+  status: "ok",
+  nYes: 6,
+  nNo: 8,
+  effects: { recovery: none, hrvZ: none, sleepPerf: none, ...effects },
+});
+const putImpact = async (day: string, impacts: TagImpact[]) => store.putScores({ ...emptyScoreRow(day), journal_impact: { key: "k", impacts } });
+
+beforeEach(async () => {
+  store = openMemoryStore();
+  await ensureDefaultTags(store);
 });
 
 describe("getJournal", () => {
-  it("builds the 30-day strip ending today, the day's answers and its labelled yes list", async () => {
-    const today = todayOf(ctx);
-    const vm = await getJournal(ctx, today);
-    expect(vm.day).toBe(today);
+  it("builds the 30-day strip, the day's check-in and the history, newest first", async () => {
+    await store.setJournal({ day: TODAY, tag: "alcohol", value: 1 });
+    await store.setJournal({ day: TODAY, tag: "sauna", value: 0 });
+    await store.setJournal({ day: "2026-10-01", tag: "meditation", value: 0 });
+    await store.setJournal({ day: "2026-08-01", tag: "travel", value: 1 }); // outside the 30 days
+    const vm = await getJournal(TODAY, ctx());
     expect(vm.strip).toHaveLength(30);
-    expect(vm.strip[0].day).toBe(addDays(today, -29));
-    expect(vm.strip.at(-1)!.day).toBe(today);
-    const answers = await ctx.store.journal.entriesBetween(addDays(today, -29), today);
-    expect(vm.strip.map((s) => s.done)).toEqual(vm.strip.map((s) => answers.some((a) => a.day === s.day)));
-    const mine = answers.filter((a) => a.day === today);
-    expect(vm.checkIn.done).toBe(mine.length > 0);
-    expect(vm.checkIn.entries).toEqual(Object.fromEntries(mine.map((a) => [a.tag, a.value])));
-    expect(vm.checkIn.yes.map((y) => y.tag).sort()).toEqual(mine.filter((a) => a.value > 0).map((a) => a.tag).sort());
-    expect(vm.tags.map((t) => t.tag)).toEqual(TAGS.map((t) => t.tag));
-    expect(vm.tags.find((t) => t.tag === "alcohol")).toMatchObject({ question: "Had any alcohol?", section: "nighttime", isDefault: true, hidden: false });
+    expect(vm.strip[0].day).toBe(addDays(TODAY, -29));
+    expect(vm.strip.filter((s) => s.done).map((s) => s.day)).toEqual(["2026-10-01", TODAY]);
+    expect(vm.checkIn).toEqual({ done: true, entries: { alcohol: 1, sauna: 0 }, yes: [{ tag: "alcohol", label: "Alcohol" }] });
+    expect(vm.history).toEqual([
+      { day: TODAY, yes: ["Alcohol"] },
+      { day: "2026-10-01", yes: [] },
+    ]);
+    expect(vm.teaser).toEqual({ ready: false, text: "Insights appear after 5 days with and 5 without a behaviour." });
   });
 
-  it("history lists the days with answers, newest first, each with its yes labels", async () => {
-    const today = todayOf(ctx);
-    const vm = await getJournal(ctx, today);
-    expect(vm.history.length).toBeGreaterThan(0);
-    expect(vm.history.map((h) => h.day)).toEqual([...vm.history.map((h) => h.day)].sort().reverse());
-    const day = vm.history[0].day;
-    const yes = (await ctx.store.journal.entriesBetween(day, day)).filter((a) => a.value > 0).map((a) => TAGS.find((t) => t.tag === a.tag)!.label);
-    expect(vm.history[0].yes).toEqual(yes);
+  it("reaches back to an older day, and leaves hidden behaviours off the sheet but on History", async () => {
+    await store.setJournal({ day: "2026-08-01", tag: "travel", value: 1 });
+    await store.updateJournalTags([{ tag: "travel", hidden: true }]);
+    const vm = await getJournal("2026-08-01", ctx());
+    expect(vm.strip[0]).toEqual({ day: "2026-08-01", done: true });
+    expect(vm.tags.some((t) => t.tag === "travel")).toBe(false);
+    expect(vm.checkIn.yes).toEqual([{ tag: "travel", label: "Travel" }]);
+    expect(vm.tags.find((t) => t.tag === "alcohol")?.group).toBe("evening");
   });
 
-  it("a day further back than the strip's 30 days extends the strip to reach it", async () => {
-    const today = todayOf(ctx);
-    const vm = await getJournal(ctx, "2026-07-01");
-    expect(vm.strip[0].day).toBe("2026-07-01");
-    expect(vm.strip.at(-1)!.day).toBe(today);
-    expect(vm.history.every((h) => h.day >= addDays(today, -29))).toBe(true);
+  it("teases the strongest clear Recovery effect from the newest stored impact", async () => {
+    await putImpact("2026-09-20", [impact("sauna", { recovery: fx(9, "positive") })]);
+    await putImpact("2026-10-02", [impact("meditation", { recovery: fx(2, "no_clear_effect") }), impact("alcohol", { recovery: fx(-11.6, "negative") })]);
+    expect((await getJournal(TODAY, ctx())).teaser).toEqual({ ready: true, text: "Your strongest effect so far: alcohol lowers next-day Recovery by 12%." });
   });
 
-  it("the teaser names the strongest effect on next-day Recovery", async () => {
-    const vm = await getJournal(ctx, todayOf(ctx));
-    expect(vm.teaser.ready).toBe(true);
-    expect(vm.teaser.text).toMatch(/^Your strongest effect so far: .+ (lowers|raises) next-day Recovery by \d+%\.$/);
-  });
-
-  it("a hidden behaviour leaves the check-in but its answers still label History; the day's note is returned", async () => {
-    const day = "2026-09-20";
-    await ctx.store.journal.saveEntry({ day, tag: "sauna", value: 1, detail: null });
-    await ctx.store.journal.showOnly(TAGS.map((t) => t.tag).filter((t) => t !== "sauna"));
-    await ctx.store.journal.saveNote(day, "Slept at a friend's");
-    const vm = await getJournal(ctx, day);
-    expect(vm.tags.some((t) => t.tag === "sauna")).toBe(false);
-    expect(vm.checkIn.note).toBe("Slept at a friend's");
-    expect(vm.checkIn.yes.map((y) => y.label)).toContain("Sauna");
-    expect((await getBehaviours(ctx)).tags.find((t) => t.tag === "sauna")).toMatchObject({ hidden: true, section: "daytime" });
-    await ctx.store.journal.showOnly(TAGS.map((t) => t.tag));
-  });
-
-  it("a custom behaviour sits under custom, its label asked as a question", async () => {
-    expect(await ctx.store.journal.addTag("cold_plunge", "Cold plunge", 60)).toBe("added");
-    const tag = (await getJournal(ctx, todayOf(ctx))).tags.find((t) => t.tag === "cold_plunge");
-    expect(tag).toMatchObject({ section: "custom", question: "Cold plunge?", isDefault: false });
+  it("finds an impact stored more than two weeks ago", async () => {
+    await putImpact("2026-09-01", [impact("sauna", { recovery: fx(9, "positive") })]);
+    expect((await getJournal(TODAY, ctx())).teaser.ready).toBe(true);
   });
 });
 
 describe("getJournalInsights", () => {
-  it("shows the seeded alcohol effect as negative, with days with and without", async () => {
-    const vm = await getJournalInsights(ctx, "recovery");
+  it("splits clear effects (largest first) from behaviours that need more days, with the arms' averages", async () => {
+    const asOf = "2026-10-02";
+    await putImpact(asOf, [
+      impact("alcohol", { recovery: fx(-12, "negative"), hrvZ: fx(-0.4, "negative") }),
+      impact("sauna", { recovery: fx(15, "positive") }),
+      impact("meditation", { recovery: fx(1, "no_clear_effect") }),
+      impact("travel", {}),
+    ]);
+    // Alcohol on Sep 30 (Recovery 40 the next day), none on Sep 28 (Recovery 80 the next day).
+    await store.setJournal({ day: "2026-09-30", tag: "alcohol", value: 1 });
+    await store.setJournal({ day: "2026-09-28", tag: "alcohol", value: 0 });
+    const rec = (day: string, value: number) => store.putScores({ ...emptyScoreRow(day), recovery: { value, hrvZ: null } as never });
+    await rec("2026-10-01", 40);
+    await rec("2026-09-29", 80);
+    const vm = await getJournalInsights("recovery", ctx());
     expect(vm.unit).toBe("%");
-    const alcohol = vm.items.find((x) => x.key === "alcohol");
-    expect(alcohol?.effect).toBe("negative");
-    expect(alcohol!.avgWith!).toBeLessThan(alcohol!.avgWithout!);
-    expect(alcohol!.yes).toBeGreaterThan(0);
-    expect(alcohol!.no).toBeGreaterThan(0);
+    expect(vm.items.map((i) => [i.key, i.effect])).toEqual([
+      ["sauna", "positive"],
+      ["alcohol", "negative"],
+      ["meditation", "none"],
+    ]);
+    expect(vm.items[1]).toMatchObject({ label: "Alcohol", delta: -12, yes: 6, no: 8, ci: [-16, -8], avgWith: 40, avgWithout: 80 });
+    expect(vm.needsMore).toEqual([{ key: "travel", label: "Travel", yes: 2, no: 1 }]);
+    const hrv = await getJournalInsights("hrv", ctx());
+    expect(hrv.unit).toBe("SD");
+    expect(hrv.items.map((i) => i.key)).toEqual(["alcohol"]);
   });
 
-  it("ranks by the size of the effect, and HRV is in SD", async () => {
-    for (const m of ["recovery", "hrv", "sleep"] as const) {
-      const vm = await getJournalInsights(ctx, m);
-      expect(vm.metric).toBe(m);
-      const sizes = vm.items.map((i) => Math.abs(i.delta));
-      expect(sizes).toEqual([...sizes].sort((a, b) => b - a));
-      for (const i of vm.items) expect(Number.isFinite(i.delta) && i.ci!.every(Number.isFinite)).toBe(true);
-    }
-    expect((await getJournalInsights(ctx, "hrv")).unit).toBe("SD");
-  });
-
-  it("a behaviour without 5 days with and 5 without waits under needsMore, labelled", async () => {
-    const vm = await getJournalInsights(ctx, "recovery");
-    for (const n of vm.needsMore) expect(Math.min(n.yes, n.no)).toBeLessThan(5);
-    const all = [...vm.items.map((i) => i.key), ...vm.needsMore.map((n) => n.key)];
-    expect(new Set(all).size).toBe(all.length);
+  it("is empty before any impact is stored", async () => {
+    expect(await getJournalInsights("sleep", ctx())).toEqual({ metric: "sleep", unit: "%", items: [], needsMore: [] });
   });
 });

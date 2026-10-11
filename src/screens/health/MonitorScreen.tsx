@@ -135,9 +135,13 @@ export function MonitorScreen() {
       }
       footer={
         <View className="gap-8">
-          <SectionShell variant="section" title="Heart rhythm">
-            <HeartRhythm rhythm={vm.heartRhythm} />
-          </SectionShell>
+          {/* ECG and irregular rhythm notifications come only from the Google Health API, which Pulse no longer reads:
+              Health Connect has neither, so the section shows only if an older import left readings. */}
+          {(vm.heartRhythm.ecg.length > 0 || vm.heartRhythm.irn.count > 0) && (
+            <SectionShell variant="section" title="Heart rhythm">
+              <HeartRhythm rhythm={vm.heartRhythm} />
+            </SectionShell>
+          )}
           <SectionShell variant="section" title="Measurements">
             <Measurements rows={vm.measurements} at={(href) => dayHref(href, d, today)} />
           </SectionShell>
@@ -149,7 +153,7 @@ export function MonitorScreen() {
 
 /**
  * Health Monitor loading (spec §7.8, §5.19): the date row, the count hero, the five vital tiles with the note, then
- * Heart rhythm at its one-row size and the two measurements every user has.
+ * the two measurements every user has (Heart rhythm shows only with readings, so it is not drawn ahead).
  */
 function MonitorLoading() {
   return (
@@ -171,9 +175,6 @@ function MonitorLoading() {
       }
       footer={
         <View className="gap-8">
-          <SectionShell variant="section" title="Heart rhythm">
-            <Skeleton className="h-14 w-full rounded-2xl" />
-          </SectionShell>
           <SectionShell variant="section" title="Measurements">
             <Card className="gap-0 px-4 py-1">
               <Divided>

@@ -1,5 +1,5 @@
 // The Sample data card at the top of every tab root (docs/onboarding.md), while the database holds onboarding's generated
-// demo. "Connect your data" opens `/connect`: Google says yes first, then the sample is cleared.
+// demo. "Connect your data" opens `/connect`: Health Connect grants access first, then the sample is cleared.
 import { ArrowUpRight } from "lucide-react-native";
 import { Card } from "../Card";
 import { Icon } from "../Icon";

@@ -1,12 +1,12 @@
 import "../global.css";
 
 import { useEffect, useMemo } from "react";
-import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import { useFonts } from "expo-font";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as SystemUI from "expo-system-ui";
 import { StatusBar } from "expo-status-bar";
+import { colorScheme } from "nativewind";
 import { Platform, Text, View } from "react-native";
 import { enableFreeze } from "react-native-screens";
 import { Barlow_500Medium } from "@expo-google-fonts/barlow/500Medium";
@@ -17,11 +17,9 @@ import { Figtree_500Medium } from "@expo-google-fonts/figtree/500Medium";
 import { Figtree_600SemiBold } from "@expo-google-fonts/figtree/600SemiBold";
 import { Figtree_700Bold } from "@expo-google-fonts/figtree/700Bold";
 
-import { db } from "@/data/db";
-import migrations from "@/data/migrations/migrations";
 import { Opening } from "@/screens/Opening";
 import { ShellData } from "@/screens/ShellData";
-import { useProfileGate } from "@/screens/onboarding/gate";
+import { boot, useApp } from "@/state/app";
 import { AppProviders } from "@/ui/providers";
 import { sheetOptions, type SheetSize } from "@/ui/shells/sheets";
 import { useTheme } from "@/ui/theme";
@@ -38,26 +36,30 @@ export default function RootLayout() {
   // Fonts: Figtree for text, Barlow for numerals, as the web (pulse src/app/layout.tsx). Each weight is its own file
   // and its own family name; src/ui/Text.tsx picks the name from the web's font classes.
   const [fonts, fontError] = useFonts({ Figtree_400Regular, Figtree_500Medium, Figtree_600SemiBold, Figtree_700Bold, Barlow_500Medium, Barlow_600SemiBold, Barlow_700Bold });
-  // Migrations run at app start, as they run at boot on the web app.
-  const { success, error } = useMigrations(db, migrations);
-  // Whether the person has a profile yet (pulse's (app) layout sends a person without one to onboarding).
-  const hasProfile = useProfileGate(success);
+  // Boot opens the database and reads the profile, the source and the saved theme (src/state/app.ts); the stored theme is
+  // applied before the first frame, so a dark-mode person never sees a light flash.
+  useEffect(() => void boot((theme) => colorScheme.set(theme as "light" | "dark" | "system")), []);
+  const status = useApp((s) => s.status);
+  const opened = useApp((s) => s.store !== null);
+  // Onboarded: a profile, a source and a first completed run (pulse's (app) layout sends anyone else to onboarding).
+  const onboarded = useApp((s) => s.onboarded);
+  const bootError = useApp((s) => (s.store ? null : s.error));
   // A font that fails to load must not strand the app on the splash screen: the text falls back to the system font.
   const fontsDone = fonts || !!fontError;
-  const ready = (success || !!error) && fontsDone && (!success || hasProfile !== null);
+  const ready = fontsDone && (status !== "booting" || !!bootError);
 
   return (
     <>
-      {error ? (
+      {bootError && !opened ? (
         <View className="flex-1 items-center justify-center bg-background p-6">
-          <Text className="text-destructive">Database migration failed: {error.message}</Text>
+          <Text className="text-destructive">Couldn’t open the database: {bootError}</Text>
         </View>
       ) : (
         ready && (
           <AppProviders>
             {/* The calendar's today, first day, zone and month loader, read once for every date switcher. */}
             <ShellData>
-              <Screens hasProfile={!!hasProfile} />
+              <Screens onboarded={onboarded} />
             </ShellData>
           </AppProviders>
         )
@@ -68,7 +70,7 @@ export default function RootLayout() {
   );
 }
 
-function Screens({ hasProfile }: { hasProfile: boolean }) {
+function Screens({ onboarded }: { onboarded: boolean }) {
   const { c, scheme } = useTheme();
   // Without a theme React Navigation paints its own white card and light grey ground while a screen slides in or out, and the
   // window itself is the system's default: a white flash on every push, back and sheet. Both are the app's ground instead.
@@ -85,12 +87,12 @@ function Screens({ hasProfile }: { hasProfile: boolean }) {
       <Stack screenOptions={{ headerShown: false, animation: Platform.OS === "android" ? "ios_from_right" : "default", contentStyle: { backgroundColor: c.background } }}>
         {/* First run: without a profile the person lands on onboarding and the tabs are out of reach; saving the profile
             flips the guards, and the navigator moves to the tabs (Stack.Protected). Declared first so each is the first screen. */}
-        <Stack.Protected guard={!hasProfile}>
+        <Stack.Protected guard={!onboarded}>
           <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
         </Stack.Protected>
         {/* Every other route needs a profile, so a deep link cannot open a screen before onboarding. A route is guarded only
             when it is declared here: a new route file is added to this list. */}
-        <Stack.Protected guard={hasProfile}>
+        <Stack.Protected guard={onboarded}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="activities" />
           <Stack.Screen name="activity/[id]" />
@@ -120,8 +122,6 @@ function Screens({ hasProfile }: { hasProfile: boolean }) {
           <Stack.Screen name="dev/kit/detail" />
           <Stack.Screen name="dev/kit/home" />
           <Stack.Screen name="dev/kit/metrics" />
-          <Stack.Screen name="dev/parity" />
-          <Stack.Screen name="dev/time" />
           {/* Sheets are routes presented by the platform (src/ui/shells/sheets.ts says how to add one). */}
           <Stack.Screen name="(sheets)/dashboard" options={sheetOptions("screen", c)} />
           <Stack.Screen name="(sheets)/plus" options={sheetOptions("default", c)} />

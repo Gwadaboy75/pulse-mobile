@@ -7,7 +7,7 @@ const COPY: Record<string, string> = {
   "Stress Monitor": "Body activation from 0 to 3, based on heart rate during still minutes. Movement, workouts and sleep are excluded.",
   "Health Monitor": "Your nightly vital signs compared with your personal baseline. Unusual readings are signals to watch, not diagnoses.",
   "Healthspan": "Pulse Age combines fitness, sleep and strain patterns to estimate how your habits relate to long-term health.",
-  "Fitness": "Your estimated aerobic fitness and training load, based on the measurements available from Google Health.",
+  "Fitness": "Your estimated aerobic fitness and training load, based on the measurements available from Health Connect.",
   "Heart rate": "Heartbeats per minute recorded throughout the day. Gaps mean no reading was available.",
   "Heart rate variability": "Variation in time between heartbeats during sleep, in milliseconds. Compare it with your own usual range.",
   "Resting heart rate": "Your heart rate at rest. Pulse uses sleeping heart rate when a daily resting value is unavailable.",

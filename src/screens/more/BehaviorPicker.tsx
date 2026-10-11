@@ -5,9 +5,9 @@
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { Check, Search } from "lucide-react-native";
-import { saveBehaviors } from "@/actions/behaviours";
-import { store } from "@/data/store";
-import { BEHAVIOR_CATEGORIES, BEHAVIORS, type BehaviorCategory, questionOf } from "@/lib/behaviors";
+import { saveBehaviors } from "@/actions/journal";
+import { actionCtx, dataChanged } from "@/state/app";
+import { behavior, BEHAVIOR_CATEGORIES, BEHAVIORS, type BehaviorCategory, questionOf } from "@/lib/behaviors";
 import type { BehavioursVM } from "@/queries/types";
 import { alpha } from "@/ui/color";
 import { cn } from "@/ui/cn";
@@ -25,7 +25,7 @@ type Item = { key: string; label: string; question: string; category: BehaviorCa
 /** The catalogue A to Z, then the user's own behaviours. */
 const itemsOf = (tags: BehavioursVM["tags"]): Item[] => [
   ...BEHAVIORS.map((b) => ({ key: b.key, label: b.label, question: b.question, category: b.category })),
-  ...tags.filter((t) => t.section === "custom").map((t) => ({ key: t.tag, label: t.label, question: questionOf(t.tag, t.label), category: "custom" as const })),
+  ...tags.filter((t) => !behavior(t.tag)).map((t) => ({ key: t.tag, label: t.label, question: questionOf(t.tag, t.label), category: "custom" as const })),
 ];
 
 /** What the journal asks today: every behaviour the user has and hasn't hidden. */
@@ -135,6 +135,7 @@ export function BehaviorPicker({ tags, initial, selected, onChange }: { tags: Be
 
 /** Saves a selection; the error copy the two hosts show. */
 export async function saveSelection(selected: Set<string>): Promise<string | null> {
-  const r = await saveBehaviors(store, { tags: [...selected] }).catch(() => ({ ok: false as const, error: "network" }));
+  const r = await saveBehaviors(actionCtx(), { tags: [...selected] }).catch(() => ({ ok: false as const, error: "network" }));
+  if (r.ok) dataChanged();
   return r.ok ? null : r.error.startsWith("Too many") ? "That’s more behaviours than Pulse can track. Choose fewer." : "Couldn’t save. Check your connection and try again.";
 }

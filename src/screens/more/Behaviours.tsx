@@ -6,7 +6,7 @@ import { View, type TextInput } from "react-native";
 import Animated, { FadeInDown, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { addCustomTag } from "@/actions/journal";
-import { store } from "@/data/store";
+import { actionCtx, dataChanged } from "@/state/app";
 import { getBehaviours } from "@/queries/journal";
 import type { BehavioursVM } from "@/queries/types";
 import { Button } from "@/ui/Button";
@@ -63,11 +63,12 @@ function Behaviours({ vm }: { vm: BehavioursVM }) {
     if (name.length > 32) return invalid("Use 32 characters or fewer.");
     if (vm.tags.some((t) => t.label.toLowerCase() === name.toLowerCase())) return invalid("That behaviour already exists.");
     setAdding(true);
-    const r = await addCustomTag(store, { label: name }).catch(() => ({ ok: false as const, error: "network" }));
+    const r = await addCustomTag(actionCtx(), { label: name }).catch(() => ({ ok: false as const, error: "network" }));
     setAdding(false);
     if (!r.ok) return invalid(r.error.startsWith("Tag already exists") ? "That behaviour already exists." : r.error.startsWith("Too many") ? "You’ve reached the behaviour limit." : "Couldn’t add it. Try again.");
     setAddError(null);
     setLabel("");
+    dataChanged();
     toast.success(`${name} added`);
   };
 

@@ -3,6 +3,7 @@
 // Δ = mean(yes) − mean(no), with a seeded 90% percentile-bootstrap CI.
 import { mean } from "../scoring/forecast";
 import { percentile } from "../scoring/strain";
+import { finish, type Steps } from "@/lib/yield";
 
 export const journalImpactConfig = {
   /** Behaviour days looked at, ending the day before `asOf` (*tunable*). */
@@ -104,6 +105,14 @@ function effect(yes: number[], no: number[], key: string): Effect {
  * "not enough data"; ties by tag name.
  */
 export function journalImpact(entries: JournalDay[], outcomes: OutcomeDay[], asOf: string): TagImpact[] {
+  return finish(journalImpactSteps(entries, outcomes, asOf));
+}
+
+/**
+ * journalImpact, pausing after each bootstrap (src/lib/yield.ts): a thousand resamples per tag and metric run long on a
+ * phone, so the pipeline slices between them. The same result either way.
+ */
+export function* journalImpactSteps(entries: JournalDay[], outcomes: OutcomeDay[], asOf: string): Steps<TagImpact[]> {
   const from = addDays(asOf, -journalImpactConfig.windowDays);
   const byDay = new Map(outcomes.map((o) => [o.day, o]));
   const arms = new Map<string, { yes: (OutcomeDay | undefined)[]; no: (OutcomeDay | undefined)[] }>();
@@ -120,14 +129,17 @@ export function journalImpact(entries: JournalDay[], outcomes: OutcomeDay[], asO
   const values = (days: (OutcomeDay | undefined)[], m: ImpactMetric) =>
     days.map((d) => d?.[m]).filter((v): v is number => v != null);
 
-  const result: TagImpact[] = [...arms].map(([tag, { yes, no }]) => {
+  const result: TagImpact[] = [];
+  for (const [tag, { yes, no }] of arms) {
     const enough = yes.length >= journalImpactConfig.minDays && no.length >= journalImpactConfig.minDays;
     // Per-metric n never exceeds the tag's, so a tag below the minimum gives "not enough data" everywhere.
-    const effects = Object.fromEntries(
-      IMPACT_METRICS.map((m) => [m, effect(values(yes, m), values(no, m), `${tag}:${m}`)]),
-    ) as Record<ImpactMetric, Effect>;
-    return { tag, status: enough ? "ok" : "not_enough_data", nYes: yes.length, nNo: no.length, effects };
-  });
+    const effects = {} as Record<ImpactMetric, Effect>;
+    for (const m of IMPACT_METRICS) {
+      effects[m] = effect(values(yes, m), values(no, m), `${tag}:${m}`);
+      yield;
+    }
+    result.push({ tag, status: enough ? "ok" : "not_enough_data", nYes: yes.length, nNo: no.length, effects });
+  }
   const rank = (t: TagImpact) =>
     t.status !== "ok" ? -2 : t.effects.recovery.delta == null ? -1 : Math.abs(t.effects.recovery.delta);
   return result.sort((a, b) => rank(b) - rank(a) || a.tag.localeCompare(b.tag));

@@ -13,7 +13,7 @@ const GLYPH: Record<VitalKey, LucideIcon> = { resp: Wind, spo2: Droplet, resting
 // A tile's icon: 20 px, stroke 1.5, muted (the web's `[&_svg]:stroke-[1.5]`).
 const ICON = (k: VitalKey): ReactNode => <Icon icon={GLYPH[k]} size={20} tone="muted-foreground" strokeWidth={1.5} />;
 const FORMAT: Record<VitalKey, FormatKey> = { resp: "decimal1", spo2: "int", restingHr: "int", hrv: "int", skinTempDev: "signed1" };
-const NOTE = "Resting heart rate, HRV and skin temperature use Google’s personal ranges when it has them; otherwise your range is your baseline ± 2 SD over 60 nights.";
+const NOTE = "Your range is your baseline ± 2 SD over 60 nights.";
 
 /** The web's two-column grid with the last tile across both (`*:last:col-span-2`), as rows of two. */
 function Grid({ tiles }: { tiles: ReactNode[] }) {

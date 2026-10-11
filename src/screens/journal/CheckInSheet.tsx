@@ -9,11 +9,11 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTim
 import { useFocusEffect, useLocalSearchParams, useNavigation } from "expo-router";
 import { Check, ChevronLeft, ChevronRight, LoaderCircle, Pencil, X } from "lucide-react-native";
 import { addCustomTag, loadCheckIn, saveCheckIn } from "@/actions/journal";
-import { store } from "@/data/store";
-import { behavior, followUpText, JOURNAL_SECTIONS, questionOf } from "@/lib/behaviors";
+import { actionCtx, dataChanged, queryCtx, refresh } from "@/state/app";
+import { behavior, followUpText, JOURNAL_SECTIONS, questionOf, type JournalSection } from "@/lib/behaviors";
 import { DAY, dayLabel, formatDay, MISSING } from "@/lib/format";
 import { addDays, parseDay } from "@/lib/url";
-import type { JournalVM } from "@/queries/types";
+import type { JournalTag, JournalVM } from "@/queries/types";
 import { FormAlert, Input } from "@/screens/log/fields";
 import { alpha } from "@/ui/color";
 import { Button } from "@/ui/Button";
@@ -30,7 +30,16 @@ import { Slider } from "./Slider";
 import { push } from "@/ui/navigate";
 import { Press } from "@/ui/Press";
 
-type Loaded = { day: string } & Pick<JournalVM, "tags" | "checkIn" | "strip">;
+/** A behaviour with the question the check-in asks and its section, from the catalogue (src/lib/behaviors.ts). */
+type Tag = JournalTag & { question: string; section: JournalSection };
+type Loaded = { day: string; tags: Tag[] } & Pick<JournalVM, "checkIn" | "strip">;
+const withQuestion = (t: JournalTag): Tag => ({ ...t, question: questionOf(t.tag, t.label), section: behavior(t.tag)?.section ?? "custom" });
+
+/**
+ * The Store keeps a yes, a no or a count per behaviour (halo's journal_entries): no follow-up values and no notes. The
+ * follow-up sliders and the Notes field stay in the code but are not shown.
+ */
+const DETAILS = false;
 type Confirm = { to: string | null };
 
 function Spinner() {
@@ -90,20 +99,21 @@ export function CheckInSheet() {
   const loaded = data?.day === day ? data : null;
   const tags = loaded?.tags ?? [];
   const saved = loaded?.checkIn.entries ?? {};
-  const savedDetails = loaded?.checkIn.details ?? {};
-  const dirty = !!loaded && (changedEntries(values, details, saved, savedDetails).length > 0 || note.trim() !== loaded.checkIn.note);
+  const savedDetails: Record<string, number> = {};
+  const dirty = !!loaded && (changedEntries(values, details, saved, savedDetails).length > 0 || note.trim() !== "");
 
   useEffect(() => {
     let live = true;
-    loadCheckIn(store, request.day)
+    Promise.resolve()
+      .then(() => loadCheckIn(queryCtx(), request.day))
       .then((r) => {
         if (!live) return;
         if (!r.ok) return setLoadError(true);
-        setData({ day: request.day, ...r.data });
+        setData({ day: request.day, ...r.data, tags: r.data.tags.map(withQuestion) });
         if (request.keep) return;
         setValues({ ...r.data.checkIn.entries });
-        setDetails({ ...r.data.checkIn.details });
-        setNote(r.data.checkIn.note);
+        setDetails({});
+        setNote("");
       })
       .catch(() => live && setLoadError(true));
     return () => {
@@ -181,13 +191,15 @@ export function CheckInSheet() {
     setSaving(true);
     setSaveError(false);
     const changes = changedEntries(values, details, saved, savedDetails);
-    const text = note.trim();
-    const r = await saveCheckIn(store, loaded.day, changes, text !== loaded.checkIn.note ? text : null).catch(() => ({ ok: false as const }));
+    const r = await saveCheckIn(actionCtx(), loaded.day, changes).catch(() => ({ ok: false as const }));
     setSaving(false);
     if (!r.ok) {
       haptic.error();
       return setSaveError(true);
     }
+    // The check-in feeds stage 2 (journal impact, Insights, the Monitor's context): rescore, as halo does.
+    dataChanged();
+    void refresh();
     setDone(true); // the Saved screen plays the success haptic
   };
 
@@ -198,13 +210,13 @@ export function CheckInSheet() {
     const key = name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
     if (tags.some((t) => t.tag === key || t.label.toLowerCase() === name.toLowerCase())) return invalid("That behaviour already exists.");
     setAdding(true);
-    const r = await addCustomTag(store, { label: name }).catch(() => ({ ok: false as const, error: "network" }));
+    const r = await addCustomTag(actionCtx(), { label: name }).catch(() => ({ ok: false as const, error: "network" }));
     setAdding(false);
     if (!r.ok) return invalid(r.error.startsWith("Tag already exists") ? "That behaviour already exists." : r.error.startsWith("Too many") ? "You’ve reached the behaviour limit." : "Couldn’t add it. Try again.");
     setAddError(null);
     setLabel("");
     // A new behaviour starts as "Yes": you add one because you just did it. It joins the list until the next load.
-    setData((d) => d && { ...d, tags: [...d.tags, { tag: r.data.tag, label: name, question: questionOf(r.data.tag, name), section: "custom", isDefault: false, hidden: false }] });
+    setData((d) => d && { ...d, tags: [...d.tags, withQuestion({ tag: r.data.tag, label: name, group: "custom", isDefault: false, hidden: false })] });
     setValues((v) => ({ ...v, [r.data.tag]: 1 }));
   };
 
@@ -306,7 +318,7 @@ export function CheckInSheet() {
                           </View>
                         </View>
                         {/* journal-12: a "yes" opens its follow-up; "--" until the slider moves. */}
-                        {f && v !== undefined && v > 0 && (
+                        {DETAILS && f && v !== undefined && v > 0 && (
                           <View className="border-t border-border pb-1 pt-3">
                             <View className="flex-row items-baseline justify-between gap-3 px-2">
                               <Text className="shrink text-[15px] leading-[22px] text-foreground-secondary">{f.question}</Text>
@@ -354,7 +366,7 @@ export function CheckInSheet() {
               </View>
             );
           })}
-        {loaded && (
+        {DETAILS && loaded && (
           <View className="mt-7">
             <SheetSection>Notes</SheetSection>
             <Input

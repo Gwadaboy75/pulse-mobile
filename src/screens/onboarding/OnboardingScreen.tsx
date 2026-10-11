@@ -1,86 +1,77 @@
-// First run `/onboarding` (docs/onboarding.md). Three steps, no form up front: Welcome (connect Google Health or explore
-// with sample data), the explainer that comes before Google's consent screen, then the profile. The profile step is pulse's
-// src/app/onboarding/Onboarding.tsx on the AuthShell frame: only what Google can't tell us, its Health profile has an age in
-// whole years but no birth date and no sex; height and weight come from Google data later, max HR is estimated, and the
-// time zone is the device's, one tap to change. It comes after the connect so it can fill the wait of the first sync.
+// First run `/onboarding` (docs/onboarding.md). Welcome (connect Health Connect or explore with sample data), then the
+// profile, then the explainer before Health Connect's permission sheet, then the first import with its progress. The
+// profile step is pulse's src/app/onboarding/Onboarding.tsx on the AuthShell frame: birth date, sex and the time zone
+// (the device's, one tap to change); height and max HR wait for Settings. Where to start comes from the app state
+// (src/state/app.ts): a saved profile without a source opens on the connect step, an import in flight on its progress.
 import { useState } from "react";
-import { ActivityIndicator, View } from "react-native";
-import { store } from "@/data/store";
-import { loadDemoData, type SeedProgress } from "@/seed/load";
+import { View } from "react-native";
+import { Lock } from "lucide-react-native";
+import { exploreSample, refresh, stepLabel, useApp, type Progress } from "@/state/app";
 import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
-import { Lock } from "lucide-react-native";
 import { Text } from "@/ui/Text";
-import { useTheme } from "@/ui/theme";
-import { scoreAfterSync, syncNow } from "../settings/connect";
 import { ConnectFlow } from "./Connect";
 import { Frame } from "./Frame";
-import { onboardingStart, profileSaved } from "./gate";
-import { GoogleButton, TextButton } from "./buttons";
+import { ConnectButton, TextButton } from "./buttons";
 import { HeartbeatMark } from "./HeartbeatMark";
 import { ProfileForm, SaveButton } from "./ProfileForm";
 
-type Step = "welcome" | "connect" | "profile";
+type Step = "welcome" | "profile" | "connect";
 
 export function OnboardingScreen() {
-  const [step, setStep] = useState<Step>(onboardingStart);
-  if (step === "welcome") return <Welcome onConnect={() => setStep("connect")} />;
-  if (step === "connect")
-    return (
-      <ConnectFlow
-        onCancel={() => setStep("welcome")}
-        onConnected={async () => {
-          // The first sync starts now and runs while the profile is asked.
-          void syncNow();
-          setStep("profile");
-          return null;
-        }}
-      />
-    );
-  return <Profile />;
+  const hasProfile = useApp((s) => s.profile !== null);
+  const source = useApp((s) => s.source);
+  const status = useApp((s) => s.status);
+  // A profile and no source: carry on at the connect step. A source and no profile (the sample was left before a
+  // profile was ever saved): the profile step, and the import starts once it is saved.
+  const [step, setStep] = useState<Step>(() => (hasProfile ? "connect" : source === "health_connect" ? "profile" : "welcome"));
+  // The first import (or the sample's build) runs: its progress, or its failure with a way to try again.
+  if (hasProfile && source && (status === "syncing" || status === "error")) return <Importing sample={source === "demo"} />;
+  if (step === "welcome") return <Welcome onConnect={() => setStep("profile")} />;
+  if (step === "profile") return <Profile onSaved={() => setStep("connect")} />;
+  return <ConnectFlow onCancel={() => setStep(hasProfile ? "profile" : "welcome")} />;
 }
 
-/** A month of the demo story: enough for baselines and every score, and quick to build on a phone. */
-const SAMPLE_DAYS = 30;
+/** One bar for the run: the step's share done. */
+const fraction = (p: Progress | null) => (p && p.total > 0 ? Math.min(1, p.done / p.total) : 0);
 
-const PHASE_LABEL: Record<SeedProgress["phase"], string> = { generate: "Generating days", write: "Saving", score: "Scoring" };
-/** One bar for the whole build: where each phase starts and how much of the bar it fills (scoring is the long one). */
-const PHASE_SPAN: Record<SeedProgress["phase"], [number, number]> = { generate: [0, 0.15], write: [0.15, 0.25], score: [0.4, 0.6] };
-const overall = (p: SeedProgress | null) => (p ? PHASE_SPAN[p.phase][0] + PHASE_SPAN[p.phase][1] * (p.total ? p.done / p.total : 0) : 0);
+function ProgressFooter({ progress, fallback }: { progress: Progress | null; fallback: string }) {
+  const pct = Math.round(fraction(progress) * 100);
+  return (
+    <View accessibilityLiveRegion="polite" className="h-[132px] items-center justify-center gap-3 px-6">
+      <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: pct }} className="h-2 w-full overflow-hidden rounded-full bg-fill-pressed">
+        <View className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+      </View>
+      <Text className="text-[13px] leading-[18px] text-foreground-secondary">{progress ? stepLabel(progress.step) : fallback}…</Text>
+    </View>
+  );
+}
 
 function Welcome({ onConnect }: { onConnect: () => void }) {
-  const [progress, setProgress] = useState<SeedProgress | "starting" | null>(null);
+  const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const progress = useApp((s) => (building ? s.progress : null));
 
   const explore = async () => {
     setError(null);
-    setProgress("starting");
+    setBuilding(true);
     try {
-      // The flag goes first: a seed that stops halfway still shows the Sample data card that offers the way out.
-      await store.settings.set("sample", true);
-      await loadDemoData(store, { onProgress: setProgress, days: SAMPLE_DAYS });
+      // The demo writes its own profile and runs the pipeline; the gate opens once the first run ends.
+      await exploreSample();
       haptic.success();
-      // The demo saved its own profile: the gate opens on the sample data.
-      profileSaved();
     } catch (e) {
-      setProgress(null);
+      setBuilding(false);
       setError(e instanceof Error ? e.message : "Couldn’t build the sample data. Try again.");
       haptic.error();
     }
   };
 
-  const p = progress === "starting" ? null : progress;
   return (
     <Frame
       wordmark={false}
       footer={
-        progress ? (
-          <View accessibilityLiveRegion="polite" className="h-[132px] items-center justify-center gap-3 px-6">
-            <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(overall(p) * 100) }} className="h-2 w-full overflow-hidden rounded-full bg-fill-pressed">
-              <View className="h-full rounded-full bg-primary" style={{ width: `${Math.round(overall(p) * 100)}%` }} />
-            </View>
-            <Text className="text-[13px] leading-[18px] text-foreground-secondary">{p ? PHASE_LABEL[p.phase] : "Building sample data"}…</Text>
-          </View>
+        building ? (
+          <ProgressFooter progress={progress} fallback="Building sample data" />
         ) : (
           <>
             {error && (
@@ -88,7 +79,7 @@ function Welcome({ onConnect }: { onConnect: () => void }) {
                 {error}
               </Text>
             )}
-            <GoogleButton onPress={onConnect} />
+            <ConnectButton onPress={onConnect} />
             <TextButton label="Explore with sample data" onPress={explore} />
             <View className="mt-2 flex-row items-center justify-center gap-1.5">
               <Icon icon={Lock} size={13} tone="muted-foreground" strokeWidth={2} />
@@ -104,34 +95,27 @@ function Welcome({ onConnect }: { onConnect: () => void }) {
           <Text accessibilityRole="header" className="text-center text-[24px] font-bold leading-[30px] tracking-[-0.02em]">
             Your Fitbit, scored every morning
           </Text>
-          <Text className="max-w-[300px] text-center text-[15px] leading-[22px] text-foreground-secondary">Sleep, Recovery and Strain from Google Health, worked out on this phone.</Text>
+          <Text className="max-w-[300px] text-center text-[15px] leading-[22px] text-foreground-secondary">Sleep, Recovery and Strain from Health Connect, worked out on this phone.</Text>
         </View>
       </View>
     </Frame>
   );
 }
 
-function Profile() {
-  const { c } = useTheme();
+function Profile({ onSaved }: { onSaved: () => void }) {
   return (
     <Frame>
-      {/* Baro's "Loading your Google Health data": the first sync runs behind this step, and Home fills in as it lands. */}
-      <View accessibilityLiveRegion="polite" className="mb-8 flex-row items-center gap-2.5">
-        <ActivityIndicator size="small" color={c["muted-foreground"]} />
-        <Text className="min-w-0 flex-1 text-[13px] leading-[18px] text-muted-foreground">Loading your Google Health data in the background</Text>
-      </View>
       <Text accessibilityRole="header" className="text-[28px] font-bold leading-[34px] tracking-[-0.02em]">
-        Two things Google doesn’t share
+        Two things Health Connect doesn’t share
       </Text>
       <Text className="mb-7 mt-2 text-base leading-6 text-foreground-secondary">Pulse scores your heart rate against your age and sex. You can change these later in Settings.</Text>
       <ProfileForm
         onboarding
         defaults={{ birthDate: "", sex: null, maxHr: null, heightCm: null, timeZone: null }}
-        // The gate opens: the root layout swaps onboarding for the tabs, so Home is next (app/_layout.tsx).
+        // With a source already chosen (leaving the sample) the import starts now; otherwise Health Connect is next.
         onSaved={() => {
           haptic.success();
-          profileSaved();
-          void scoreAfterSync();
+          onSaved();
         }}
         footer={({ pending, submit }) => (
           <View className="mt-4">
@@ -139,6 +123,37 @@ function Profile() {
           </View>
         )}
       />
+    </Frame>
+  );
+}
+
+/** The first import (or the sample's build), with its progress; the tabs open when it ends. */
+function Importing({ sample }: { sample: boolean }) {
+  const progress = useApp((s) => s.progress);
+  const error = useApp((s) => (s.status === "error" ? s.error : null));
+  return (
+    <Frame
+      footer={
+        error ? (
+          <>
+            <Text accessibilityRole="alert" className="mb-2 text-center text-[13px] font-medium leading-[18px] text-recovery-red-text">
+              {error}
+            </Text>
+            <ConnectButton label="Try again" onPress={() => void refresh()} />
+          </>
+        ) : (
+          <ProgressFooter progress={progress} fallback={sample ? "Building sample data" : "Importing from Health Connect"} />
+        )
+      }
+    >
+      <View className="items-center gap-2">
+        <Text accessibilityRole="header" className="text-center text-[22px] font-semibold leading-7 tracking-[-0.01em]">
+          {error ? "The import stopped" : sample ? "Building your sample data" : "Importing your data"}
+        </Text>
+        <Text className="max-w-[300px] text-center text-[15px] leading-[22px] text-foreground-secondary">
+          {sample ? "Half a year of a demo person’s days, scored on this phone." : "Up to 180 days from Health Connect, scored on this phone. The first import takes a few minutes."}
+        </Text>
+      </View>
     </Frame>
   );
 }

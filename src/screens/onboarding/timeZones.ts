@@ -3,7 +3,7 @@
 // `Intl.supportedValuesOf` when the runtime has it and from the static list otherwise, and the offset is read with
 // `utcOffsetS` (the formatter the scoring already uses) instead of `timeZoneName: "shortOffset"`.
 import { isTimeZone } from "@/lib/timeZone";
-import { utcOffsetS } from "../../time";
+import { utcOffsetS } from "@/lib/time";
 import { ZONE_IDS } from "./zones";
 
 /** Old names some runtimes still report (ICU keeps them canonical), mapped to today's names. */

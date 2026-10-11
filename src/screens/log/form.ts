@@ -1,8 +1,8 @@
 // The log sheets' form state and its translation to the log action's input: the pure half of pulse's
 // (app)/journal/Log.tsx (EMPTY, toInput, num, wallNow), unchanged, so it is tested in Node (form.test.ts).
 import type { LogInput } from "@/actions/log";
-import type { LogKind } from "@/lib/log";
-import { wall } from "../../time";
+import type { LogKind } from "@/queries/log";
+import { wall } from "@/lib/time";
 
 const NUM = /^\d+([.,]\d+)?$/;
 
@@ -22,6 +22,7 @@ export const EMPTY: Record<LogKind, Form> = {
   water: { ml: "" },
   food: { name: "", meal: "", kcal: "", protein: "", carbs: "", fat: "" },
   weight: { kg: "", fat: "" },
+  spo2: { pct: "" },
   mood: { valence: "", moods: [] },
   symptoms: { symptoms: [] },
   period: { start: "", end: "", flow: "" },
@@ -50,6 +51,10 @@ export function toInput(kind: LogKind, f: Form, at: string): LogInput | string {
       if (kg == null || Number.isNaN(kg)) return "Enter your weight in kilograms.";
       if (Number.isNaN(fatPct)) return "Body fat is a percentage, as a number.";
       return { kind, kg, fatPct, at };
+    }
+    case "spo2": {
+      const pct = num(s("pct"));
+      return pct == null || Number.isNaN(pct) ? "Enter blood oxygen as a percentage, e.g. 95." : { kind, pct, at };
     }
     case "mood":
       return a("moods").length ? { kind, moods: a("moods") as never, valence: (s("valence") || null) as never, at } : "Choose how you feel.";

@@ -1,7 +1,7 @@
-import { useEffect } from "react";
 import { View } from "react-native";
-import { useIsFocused, useLocalSearchParams } from "expo-router";
-import { getAppPrefs, getSettings } from "@/queries/settings";
+import { useLocalSearchParams } from "expo-router";
+import { loadPrefs } from "@/actions/preferences";
+import { getSettings } from "@/queries/settings";
 import { useScreen } from "../useScreen";
 import { Skeleton, SkeletonText } from "@/ui/Skeleton";
 import { DetailShell } from "@/ui/shells/DetailShell";
@@ -12,7 +12,6 @@ import { ROW, ROW_RULE } from "./controls";
 import { DataSource } from "./DataSource";
 import { DeleteEverything } from "./DeleteEverything";
 import { ProfileCard } from "./ProfileCard";
-import { useSyncVersion } from "./syncSignal";
 
 type SectionId = "profile" | "source" | "app";
 const SECTIONS: SectionId[] = ["profile", "source", "app"];
@@ -74,14 +73,8 @@ function SectionSkeleton({ section }: { section: SectionId }) {
 export function SettingsScreen() {
   const { s } = useLocalSearchParams<{ s?: string }>();
   const section = resolve(s);
-  const focused = useIsFocused();
-  const syncVersion = useSyncVersion(focused && section === "source");
-  const { data, reload } = useScreen(async (ctx) => ({ vm: await getSettings(ctx), prefs: await getAppPrefs(ctx), now: ctx.now * 1000 }), ["settings"]);
-  // A sync's progress refreshes the shown data in place. Keying the screen by syncVersion made every tick (4 s) a new,
-  // empty cache entry, so the section fell back to its skeleton on each one.
-  useEffect(() => {
-    if (syncVersion) reload();
-  }, [syncVersion, reload]);
+  // The data source reads the app state itself (src/state/app.ts), so a sync's progress redraws only that section.
+  const { data } = useScreen(async (ctx) => ({ vm: await getSettings(ctx), prefs: await loadPrefs(), now: ctx.now * 1000 }), ["settings"]);
 
   return (
     <View className="flex-1">
@@ -93,7 +86,7 @@ export function SettingsScreen() {
             {!data ? (
               <SectionSkeleton section={section} />
             ) : section === "source" ? (
-              <DataSource vm={data.vm} now={data.now} />
+              <DataSource now={data.now} />
             ) : section === "app" ? (
               <AppSettings prefs={data.prefs} />
             ) : (

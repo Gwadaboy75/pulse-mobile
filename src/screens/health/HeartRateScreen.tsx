@@ -21,6 +21,7 @@ import { ErrorView } from "./ErrorView";
 import { HEART_RATE_INFO } from "./info";
 import { LastReading } from "./LastReading";
 import { pullLiveHeartRate } from "./live";
+import { zoneBars } from "../_lib/view";
 
 const POLL_MS = 60_000;
 const MAX_BACKOFF_MS = 10 * 60_000;
@@ -144,7 +145,7 @@ export function HeartRateScreen() {
       }
       secondary={[
         <SectionShell key="zones" variant="card" title="Time in zones">
-          <ZoneBars variant="rows" data={vm.zones} note={vm.zoneNote} emptyCopy={vm.isToday ? "No heart-rate zones yet today." : "No heart-rate zones on this day."} />
+          <ZoneBars variant="rows" data={zoneBars(vm.zones)} note={vm.zoneNote} emptyCopy={vm.isToday ? "No heart-rate zones yet today." : "No heart-rate zones on this day."} />
         </SectionShell>,
       ]}
     />

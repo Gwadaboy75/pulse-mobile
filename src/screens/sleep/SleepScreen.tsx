@@ -5,6 +5,7 @@ import { View } from "react-native";
 import { clock, hmm } from "@/lib/format";
 import { trendHref } from "@/lib/url";
 import type { QueryCtx } from "@/queries/common";
+import { getSleepExtras, type SleepExtras } from "@/queries/mobileExtras";
 import { getSleep } from "@/queries/sleep";
 import { getWeeklyTrends, type TrendViewKey, type TrendViewVM } from "@/queries/trendView";
 import type { SleepVM } from "@/queries/types";
@@ -39,9 +40,20 @@ const STATUS_LEGEND = [
 
 /** The page's query and key; Home prefetches them, so Sleep opens with content. */
 export const sleepQuery = (d: string) => async (ctx: QueryCtx) => {
-  const [vm, weekly] = await Promise.all([getSleep(ctx, d), getWeeklyTrends(WEEKLY, d, ctx)]);
+  const [sleep, weekly] = await Promise.all([getSleep(d, ctx), getWeeklyTrends(WEEKLY, d, ctx)]);
+  const extras = await getSleepExtras(d, ctx, sleep.stages);
+  // The reference app's three rows, each opening its Trend View (restorative sleep sits under the stages instead; the
+  // Sleep Stress row stays out, as on the PWA).
+  const summary = sleep.summary.flatMap((k) => (k.key in SUMMARY_TREND ? [{ ...k, href: trendHref(SUMMARY_TREND[k.key]) }] : []));
+  const vm: SleepPageVM = { ...sleep, ...extras, summary };
   return { vm, weekly };
 };
+
+/** The summary rows the page shows, by key, and the Trend View each opens. */
+const SUMMARY_TREND: Record<string, TrendViewKey> = { hours: "hours_need", consistency: "consistency", efficiency: "efficiency" };
+
+/** halo's SleepVM with Pulse's Restorative Sleep row and Sleep Efficiency card (src/queries/mobileExtras.ts). */
+type SleepPageVM = Omit<SleepVM, "restorative"> & SleepExtras;
 export const sleepKey = (d: string) => ["sleep", d] as const;
 
 export function SleepScreen() {
@@ -53,7 +65,7 @@ export function SleepScreen() {
   return shown && timeZone ? <Sleep vm={shown.vm} weekly={shown.weekly} timeZone={timeZone} /> : <SleepSkeleton />;
 }
 
-function Sleep({ vm, weekly, timeZone }: { vm: SleepVM; weekly: TrendViewVM[]; timeZone: string }) {
+function Sleep({ vm, weekly, timeZone }: { vm: SleepPageVM; weekly: TrendViewVM[]; timeZone: string }) {
   const { today } = useShellCalendar();
   const d = vm.day;
   const p = vm.performance;
@@ -118,7 +130,7 @@ function Sleep({ vm, weekly, timeZone }: { vm: SleepVM; weekly: TrendViewVM[]; t
   );
 }
 
-function Planner({ vm, timeZone }: { vm: SleepVM; timeZone: string }) {
+function Planner({ vm, timeZone }: { vm: Pick<SleepVM, "planner">; timeZone: string }) {
   const m = vm.planner;
   if (m.value === null)
     return <ReasonPlaceholder reason={m.reason} nightsLeft={m.nightsLeft} size="md" copy={m.reason === "calibrating" ? "Sleep Planner needs 7 nights to learn your wake time." : undefined} />;

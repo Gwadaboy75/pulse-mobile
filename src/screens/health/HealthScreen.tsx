@@ -88,12 +88,12 @@ function AgeBlock({ m }: { m: HealthHubVM["healthspan"] }) {
                 <TickScale
                   variant="marker"
                   label="Pace of Aging"
-                  metric={{ value: v.pace, reason: null, provisional: meta.provisional }}
+                  metric={v.pace === null ? { value: null, reason: "calibrating", provisional: false } : { value: v.pace, reason: null, provisional: meta.provisional }}
                   min={-1}
                   max={3}
                   format="decimal1"
                   unit="x"
-                  describe={v.pace < 1 ? "aging slower than your 6-month average" : v.pace > 1 ? "aging faster than your 6-month average" : "aging at the normal rate"}
+                  describe={v.pace === null ? undefined : v.pace < 1 ? "aging slower than your 6-month average" : v.pace > 1 ? "aging faster than your 6-month average" : "aging at the normal rate"}
                   ends={["−1.0x", "1.0x", "3.0x"]}
                   leading={SLOW}
                   trailing={FAST}

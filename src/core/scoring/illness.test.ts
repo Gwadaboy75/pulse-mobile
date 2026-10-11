@@ -5,6 +5,7 @@ import {
   type IllnessDay,
   illnessFromDays,
   type IllnessInputs,
+  illnessSdFloor,
   joinReasons,
   kZToScore,
   perSignalCap,
@@ -143,5 +144,21 @@ describe("V5HealthSignalsTest (illness half)", () => {
     expect(r.baselineTrusted).toBe(true);
     expect(r.level).toBe("raised");
     expect(r.firedSignals).toEqual(["RHR up", "HRV down", "respiration up"]);
+  });
+
+  it("floors each signal's SD at half the baselines' σ floor, so a near-constant history can't fire (mobile)", () => {
+    expect(illnessSdFloor.restingHR).toBeCloseTo(1.253, 9); // 0.5 × 1.253 × 2 bpm
+    expect(illnessSdFloor.hrv).toBeCloseTo(3.1325, 9);
+    expect(illnessSdFloor.respiration).toBeCloseTo(0.31325, 9);
+    expect(illnessSdFloor.skinTemp).toBeCloseTo(0.18795, 9);
+    // 20 nights at exactly 72 bpm and a steady HRV (40–42 ms): +1 bpm and −1.5 ms used to read "raised" (61).
+    const flat = range(20).map((o) => day(o, { rhr: 72, hrv: 40 + (o % 3) }));
+    const r = illnessFromDays([...flat, day(20, { rhr: 73, hrv: 38.5 })]);
+    expect(r.level).toBe("quiet");
+    expect(r.firedSignals).toEqual([]);
+    // A real shift on the same flat history still fires: +4 bpm is z 3.2 against the 1.25 bpm floor.
+    const ill = illnessFromDays([...flat, day(20, { rhr: 76, hrv: 33 })]);
+    expect(ill.firedSignals).toEqual(["RHR up", "HRV down"]);
+    expect(ill.level).not.toBe("quiet");
   });
 });

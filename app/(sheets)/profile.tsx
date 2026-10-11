@@ -16,7 +16,7 @@ export default function EditProfile() {
       <View className="px-4">
         {data && (
           <ProfileForm
-            defaults={{ birthDate: data.birthDate, sex: data.sex, maxHr: data.maxHrSource === "set" ? data.maxHr : null, heightCm: data.heightCm, timeZone: data.timeZone }}
+            defaults={{ birthDate: data.birthDate, sex: data.sex, maxHr: data.maxHr, heightCm: data.heightCm, timeZone: data.timeZone }}
             onSaved={() => {
               closeSheet();
               toast.success("Profile saved. Scores are being recomputed.");

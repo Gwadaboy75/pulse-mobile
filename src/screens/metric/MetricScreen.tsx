@@ -81,8 +81,8 @@ export default function MetricScreen() {
             <EmptyState
               body={
                 vm.group === "nutrition"
-                  ? `No ${vm.label.toLowerCase()} logged yet. Log it in Journal, or in Fitbit or Google Health, and it shows here.`
-                  : `No ${vm.label.toLowerCase()} from Google Health yet. It shows here once your phone, Fitbit or a connected device records it and syncs.`
+                  ? `No ${vm.label.toLowerCase()} logged yet. Log it in Journal, or in Fitbit, and it shows here.`
+                  : `No ${vm.label.toLowerCase()} from Health Connect yet. It shows here once your phone, Fitbit or a connected device records it and syncs.`
               }
               action={vm.group === "nutrition" ? { label: "Open Journal", href: "/journal" } : undefined}
             />

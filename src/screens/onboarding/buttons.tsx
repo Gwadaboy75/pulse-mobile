@@ -9,8 +9,8 @@ import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { GoogleFit } from "../settings/GoogleFit";
 
-/** "Connect Google Health": an outline pill with the Google Health mark, label in the foreground token. */
-export function GoogleButton({ label = "Connect Google Health", pending, onPress }: { label?: string; pending?: boolean; onPress: () => void }) {
+/** "Connect Health Connect": an outline pill with the Google Health mark (Fitbit data reaches Health Connect through the Google Health app), label in the foreground token. */
+export function ConnectButton({ label = "Connect Health Connect", pending, onPress }: { label?: string; pending?: boolean; onPress: () => void }) {
   const { c } = useTheme();
   return (
     <Press

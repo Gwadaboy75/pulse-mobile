@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EFFECTS } from "../../server/sources/seed/scenario";
+import { EFFECTS } from "@/data/seed";
 import { healthMonitor, type HealthMonitorDay } from "./healthMonitor";
 
 const iso = (i: number) => new Date(Date.UTC(2026, 5, 1 + i)).toISOString().slice(0, 10);

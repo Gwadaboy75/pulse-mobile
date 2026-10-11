@@ -2,18 +2,18 @@ import { useEffect } from "react";
 import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { DAY, formatDay } from "@/lib/format";
-import { addDays } from "@/time";
+import { addDays } from "@/lib/time";
 import type { getJournal } from "@/queries/journal";
-import type { getLog } from "@/queries/log";
+import type { getDayLog } from "@/queries/journalExtras";
 import { CheckInCard } from "@/screens/journal/CheckInCard";
 import { History } from "@/screens/journal/History";
 import { LoadError } from "@/screens/journal/LoadError";
 import { LogTiles } from "@/screens/journal/LogTiles";
-import { journalKey, journalQuery } from "@/screens/journal/query";
+import { journalKey, journalQuery, YESTERDAY_OFFERED_KEY } from "@/screens/journal/query";
 import { JournalSkeleton } from "@/screens/journal/skeleton";
 import { WeekCard } from "@/screens/journal/WeekCard";
 import { useScreen } from "@/screens/useScreen";
-import { store } from "@/data/store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DayStrip } from "@/ui/metrics/DayStrip";
 import { InsightCard } from "@/ui/metrics/InsightCard";
 import { useSelectedDay } from "@/ui/shells/DateSwitcher";
@@ -38,7 +38,7 @@ export default function Journal() {
   );
 }
 
-function Page({ vm, log, onSelect }: { vm: Awaited<ReturnType<typeof getJournal>>; log: Awaited<ReturnType<typeof getLog>>; onSelect: (day: string) => void }) {
+function Page({ vm, log, onSelect }: { vm: Awaited<ReturnType<typeof getJournal>>; log: Awaited<ReturnType<typeof getDayLog>>; onSelect: (day: string) => void }) {
   const { day: d, today } = vm;
   const date = formatDay(d, DAY.short);
   return (
@@ -83,6 +83,6 @@ function useOfferYesterday(vm: Awaited<ReturnType<typeof getJournal>> | undefine
   const offer = offered === false && !!yesterday && !yesterday.done;
   useEffect(() => {
     if (!offer || !yesterday) return;
-    store.settings.set("journal.yesterdayOffered", true).then(() => openSheet(`/checkin?d=${yesterday.day}`), () => {});
+    AsyncStorage.setItem(YESTERDAY_OFFERED_KEY, "1").then(() => openSheet(`/checkin?d=${yesterday.day}`), () => {});
   }, [offer, yesterday]);
 }

@@ -1,12 +1,11 @@
 // Settings › Profile › Delete everything. The web's "Delete account" (a quiet red-outlined pill at the foot of Account, a
-// dialog that asks for the password) without an account: the confirmation is entered twice in place of the password, then the
-// database file is deleted and the app restarts into onboarding (src/actions/reset.ts).
+// dialog that asks for the password) without an account: the confirmation is entered twice in place of the password, then
+// every row and setting is deleted and the app goes back to onboarding (src/state/app.ts reset).
 import { useState } from "react";
 import { View } from "react-native";
-import { deleteEverything } from "@/actions/reset";
+import { reset } from "@/state/app";
 import { haptic } from "@/ui/haptics";
 import { Text } from "@/ui/Text";
-import { forgetCoachKey, forgetGoogleTokens } from "./connect";
 import { ConfirmDialog } from "./controls";
 import { Press } from "@/ui/Press";
 
@@ -22,13 +21,13 @@ export function DeleteEverything() {
   const run = async () => {
     setPending(true);
     setError(null);
-    const r = await deleteEverything(async () => {
-      await forgetGoogleTokens();
-      await forgetCoachKey();
-    });
-    // On success the app restarts; only a failure comes back.
+    try {
+      // On success the gate closes and onboarding shows; only a failure comes back here.
+      await reset();
+    } catch {
+      setError("Couldn’t delete everything. Try again.");
+    }
     setPending(false);
-    if (!r.ok) setError(r.error);
   };
   return (
     <>
@@ -49,7 +48,7 @@ export function DeleteEverything() {
       <ConfirmDialog
         open={step === 1}
         title="Delete everything?"
-        description="Removes everything Pulse stored on this phone: synced data, scores, journal, profile, coach chats and the Google connection. Export what you want to keep first (More › Your data)."
+        description="Removes everything Pulse stored on this phone: imported data, scores, journal, logs, profile and settings. Health Connect keeps its own copy. Export what you want to keep first (More › Your data)."
         confirmLabel="Delete everything"
         pendingLabel="Delete everything"
         pending={false}
@@ -59,7 +58,7 @@ export function DeleteEverything() {
       <ConfirmDialog
         open={step === 2}
         title="Delete everything for good?"
-        description="This can’t be undone: your data is only on this phone, so nothing can bring it back. Pulse restarts and asks for your profile again."
+        description="This can’t be undone: your data is only on this phone, so nothing can bring it back. Pulse asks for your profile again."
         error={error}
         confirmLabel="Yes, delete it all"
         pendingLabel="Deleting…"

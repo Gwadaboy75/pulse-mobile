@@ -2,7 +2,7 @@
 import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { DAY, formatDay } from "@/lib/format";
-import { getEcgReading } from "@/queries/health";
+import { getMonitor } from "@/queries/health";
 import { StatusChip, ValueUnit, CAPTION } from "@/ui/metrics/primitives";
 import { SheetScreen } from "@/ui/shells/SheetScreen";
 import { Text } from "@/ui/Text";
@@ -11,7 +11,8 @@ import { bpm, RHYTHM_DISCLAIMER } from "./HeartRhythm";
 
 export function EcgSheet() {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { data: shown } = useScreen((ctx) => getEcgReading(ctx, id ?? ""), ["ecgSheet", id]);
+  // halo has no single-reading query: the reading comes from the Health Monitor's heart rhythm (ECGs from an older Google import).
+  const { data: shown } = useScreen(async (ctx) => (await getMonitor(ctx.today, ctx)).heartRhythm.ecg.find((e) => e.id === id) ?? null, ["ecgSheet", id]);
   return (
     <SheetScreen title="ECG reading" size="default">
       {shown && (

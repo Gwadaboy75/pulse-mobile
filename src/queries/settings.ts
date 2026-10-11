@@ -1,196 +1,146 @@
-import { missingScopes } from "../google/oauth";
-import { CORE_SYNC_TYPES, importProgress } from "../google/progress";
-import { SCORING_VERSION } from "../pipeline";
-import { addDays, wholeYears } from "../time";
+// More, Settings and Your data (spec §7.14), ported from Pulse's src/server/queries/settings.ts and src/server/export.ts.
+// The phone has no server, account or Google grant: the data source's live state (Health Connect permissions, the sync
+// run) lives in the app state and the screens read it there; these queries read the Store.
+import { wholeYears } from "@/lib/time";
+import { LEARNED_MAX_HR_KEY, resolveMaxHr } from "@/pipeline";
+import { SCORING_VERSION } from "@/pipeline/types";
+import { finite, firstDay, loadDays, type QueryCtx, todayOf } from "./common";
 import { latestReport } from "./home";
-import { firstDay, type QueryCtx, todayOf } from "./common";
-import type { MoreVM, SettingsVM, ShellStatusVM, YourDataVM } from "./types";
+import { tagRows } from "./journal";
+import { TREND_METRICS } from "./trends";
+import type { MoreVM, SettingsVM, YourDataVM } from "./types";
+import app from "../../app.json";
 
-export const APP_VERSION = "0.1.0";
-const STALE_MS = 2 * 3600_000;
+/** From app.json. */
+export const APP_VERSION = app.expo.version;
+export { SCORING_VERSION };
 
-/** Google sync jobs grouped as Settings lists them. */
-const GROUPS: { key: string; label: string; types: string[] }[] = [
-  { key: "heart-rate", label: "Heart rate", types: ["heart-rate"] },
-  { key: "steps", label: "Steps", types: ["steps", "steps-daily"] },
-  { key: "sleep", label: "Sleep", types: ["sleep"] },
-  { key: "hrv", label: "Heart rate variability", types: ["daily-heart-rate-variability"] },
-  { key: "rhr", label: "Resting heart rate", types: ["daily-resting-heart-rate"] },
-  { key: "resp", label: "Respiratory rate", types: ["daily-respiratory-rate"] },
-  { key: "temp", label: "Skin temperature", types: ["daily-sleep-temperature-derivations"] },
-  { key: "zones", label: "Heart rate zones", types: ["daily-heart-rate-zones", "time-in-heart-rate-zone"] },
-  { key: "spo2", label: "Blood oxygen", types: ["daily-oxygen-saturation"] },
-  { key: "exercise", label: "Exercise", types: ["exercise"] },
-  { key: "vo2max", label: "VO2 max", types: ["daily-vo2-max", "run-vo2-max"] },
-  { key: "calories", label: "Calories", types: ["total-calories"] },
-  { key: "weight", label: "Weight and body fat", types: ["weight", "body-fat", "height"] },
-  { key: "activity", label: "Distance, floors and active minutes", types: ["distance", "floors", "altitude", "active-zone-minutes", "active-minutes", "active-energy-burned", "sedentary-period", "heart-rate-daily", "swim-lengths-data"] },
-  // logged-entries: Journal › Log's import of entries logged in other apps (sync.ts LOG_IMPORT_KEY).
-  { key: "nutrition", label: "Food and water", types: ["hydration-log", "nutrition-log", "logged-entries"] },
-  { key: "vitals", label: "Glucose and core temperature", types: ["blood-glucose", "core-body-temperature"] },
-  { key: "rhythm", label: "ECG and irregular rhythm", types: ["electrocardiogram", "irregular-rhythm-notification"] },
-];
+/** The web's demo / google split: on the phone, demo data or the person's own (Health Connect or a Google account). */
+export type Mode = MoreVM["mode"];
 
-type SyncRow = {
-  type: string;
-  lastSuccessAt: number | null;
-  lastError: string | null;
-  backfillDaysDone: number | null;
-  backfillDaysTotal: number | null;
-};
+/** Settings › Profile: the saved profile as the web shows it (age, the max HR in use and where it came from). */
+export type SettingsProfileVM = SettingsVM["profile"];
 
-const syncRows = (ctx: QueryCtx): Promise<SyncRow[]> => ctx.store.settings.readSyncState();
-
-/** The sync's paired-device check (src/google/sync.ts `DEVICES_KEY`): account state, not a data type. */
-const DEVICES_ROW = "paired-devices";
-
-/**
- * "not_linked": the grant works but the Google account has no Google Health profile, so every type fails the same way.
- * "no_device": it has a profile but no paired Fitbit device, so every type imports nothing.
- */
-async function authState(ctx: QueryCtx, rows: SyncRow[]): Promise<"not_connected" | "not_linked" | "no_device" | "connected" | "revoked"> {
-  const grant = await ctx.store.settings.get("google.grant");
-  if (!grant) return "not_connected";
-  if (grant.revokedAt != null) return "revoked";
-  if (rows.some((r) => r.lastError?.includes("ACCOUNT_NOT_LINKED"))) return "not_linked";
-  return rows.some((r) => r.type === DEVICES_ROW && r.lastError?.includes("NO_PAIRED_DEVICE")) ? "no_device" : "connected";
-}
-
-/**
- * A sync error as a person reads it. `last_error` is `[google] <type>: <CODE> (HTTP n)` (GoogleError); the
- * code is kept in brackets for a bug report, the rest is dropped.
- */
-export function syncErrorText(raw: string): string {
-  const code = /: ([A-Za-z_0-9]+)(?: \(HTTP \d+\))?$/.exec(raw)?.[1] ?? raw;
-  const text: Record<string, string> = {
-    ACCOUNT_NOT_LINKED: "No Google Health profile",
-    auth_revoked: "Access revoked",
-    not_connected: "Not connected",
-    RESOURCE_EXHAUSTED: "Rate limited, retrying",
-    http_429: "Rate limited, retrying",
-    PERMISSION_DENIED: "Permission missing",
-  };
-  return text[code] ?? (/^http_5\d\d$/.test(code) ? "Google is having trouble, retrying" : `Failed (${code})`);
-}
-
-/** Settings `/settings`: data source, auth, per-type sync status, backfill progress and the profile. */
-export async function getSettings(ctx: QueryCtx): Promise<SettingsVM> {
-  const nowMs = ctx.now * 1000;
-  const rows = await syncRows(ctx);
-  const statusOf = (last: number | null, error: string | null) => (error ? "error" : last == null ? "never" : nowMs - last * 1000 > STALE_MS ? "stale" : "ok");
-  const auth = await authState(ctx, rows);
-  const needsPermissions = (auth === "connected" || auth === "no_device") && (await missingScopes(ctx.store)).length > 0;
-  // Not linked is one account-level problem, shown once in Data source, not on every row.
-  const rowError = (e: string | null) => (e && auth !== "not_linked" ? syncErrorText(e) : null);
-  const sync: SettingsVM["sync"] = GROUPS.map((g) => {
-    const members = rows.filter((r) => g.types.includes(r.type));
-    const successes = members.map((r) => r.lastSuccessAt);
-    const last = members.length && successes.every((s) => s != null) ? Math.min(...(successes as number[])) : null;
-    const error = rowError(members.find((r) => r.lastError)?.lastError ?? null);
-    return { key: g.key, label: g.label, lastSuccessAt: last && last * 1000, status: statusOf(last, error), error };
-  });
+/** Settings `/settings`: the read-only profile, the version and the scoring version. */
+export async function getSettings(ctx: QueryCtx): Promise<{ profile: SettingsProfileVM; version: string; scoringVersion: number }> {
   const p = ctx.profile;
+  const today = todayOf(ctx);
+  const age = wholeYears(p.birthDate, today);
+  // The pipeline's max HR: the profile's own, else Tanaka's raised to the one learned from workouts (pipeline/index.ts).
+  const learned = p.maxHr ? null : ((await ctx.store.dailyValues({ from: "latest", to: "latest" })).find((v) => v.key === LEARNED_MAX_HR_KEY)?.value ?? null);
+  const maxHr = resolveMaxHr(p, today, learned);
   return {
-    mode: "google",
-    source: { label: "Google Health", status: auth, needsPermissions },
-    import: auth === "connected" ? importProgress(rows) : null,
-    sync,
     profile: {
       birthDate: p.birthDate,
-      age: wholeYears(p.birthDate, todayOf(ctx)),
+      age,
       sex: p.sex,
-      maxHr: p.maxHr,
-      maxHrSource: p.maxHrSource,
+      maxHr,
+      maxHrSource: p.maxHr ? "set" : learned != null && learned >= maxHr ? "learned" : "estimated",
       timeZone: ctx.timeZone,
       heightCm: p.heightCm,
+      waistCm: p.waistCm ?? null,
     },
     version: APP_VERSION,
     scoringVersion: SCORING_VERSION,
   };
 }
 
-/** More `/more`. */
-export async function getMore(ctx: QueryCtx): Promise<MoreVM> {
-  const [tags, latestWeek, latestMonth, reportCount] = await Promise.all([
-    ctx.store.journal.tagCounts(),
-    latestReport(ctx, "week"),
-    latestReport(ctx, "month"),
-    ctx.store.scores.countReportsWithData(),
-  ]);
-  return { latestWeek, latestMonth, reportCount, behaviours: tags, mode: "google", version: APP_VERSION, scoringVersion: SCORING_VERSION };
+// ── Behaviours (journal tags) ────────────────────────────────────────────────
+
+export type Behaviour = { tag: string; label: string; custom: boolean; hidden: boolean };
+
+/** Every behaviour, hidden ones included, in check-in order (the web's journalBehaviours); the defaults are ensured first. */
+export async function behaviours(ctx: QueryCtx): Promise<Behaviour[]> {
+  return (await tagRows(ctx.store)).map((t) => ({ tag: t.tag, label: t.label, custom: !t.isDefault, hidden: t.hidden }));
 }
+
+// ── More ─────────────────────────────────────────────────────────────────────
+
+/** More `/more`: the latest complete week and month, the report count and the behaviours shown on the check-in. */
+export async function getMore(ctx: QueryCtx, mode: Mode = "google"): Promise<MoreVM> {
+  const [tags, latestWeek, latestMonth, reports] = await Promise.all([behaviours(ctx), latestReport(ctx, "week"), latestReport(ctx, "month"), ctx.store.getReports()]);
+  return {
+    latestWeek,
+    latestMonth,
+    reportCount: reports.filter((r) => r.data.days > 0).length,
+    behaviours: { shown: tags.filter((t) => !t.hidden).length, total: tags.length },
+    mode,
+    version: APP_VERSION,
+    scoringVersion: SCORING_VERSION,
+  };
+}
+
+// ── Your data ────────────────────────────────────────────────────────────────
 
 /** Your data `/more/data`: what each export holds. */
-export async function getYourData(ctx: QueryCtx): Promise<YourDataVM> {
-  const [first, days, answers] = await Promise.all([firstDay(ctx), ctx.store.scores.countDays(todayOf(ctx)), ctx.store.journal.answerCount()]);
-  return { first, days: first ? days : 0, answers, mode: "google" };
-}
-
-/** Settings › App: the theme and the notification toggles (all off until the person turns them on). */
-export type AppPrefs = { theme: "system" | "light" | "dark"; notifyRecovery: boolean; notifySyncProblem: boolean };
-
-export async function getAppPrefs(ctx: QueryCtx): Promise<AppPrefs> {
-  const { settings } = ctx.store;
-  const [theme, recovery, syncProblem] = await Promise.all([settings.get("theme"), settings.get("notify.recovery"), settings.get("notify.syncProblem")]);
-  return { theme: theme ?? "system", notifyRecovery: recovery ?? false, notifySyncProblem: syncProblem ?? false };
-}
-
-/** Your data › Coach: the card shows only once a chat is saved. */
-export async function hasCoachChats(ctx: QueryCtx): Promise<boolean> {
-  return (await ctx.store.coach.listChats()).chats.length > 0;
-}
-
-/** Today counts toward the streak once it has this many minutes of heart rate; until then the streak ends yesterday. */
-const STREAK_TODAY_MIN = 6 * 60;
-
-/**
- * Consecutive worn days: the reference app's "continuous data" streak. A day is worn when it has any
- * heart rate, the same rule that keeps `band_not_worn` off its Strain. Null when the streak is 0.
- */
-export async function getWearStreak(ctx: QueryCtx): Promise<{ days: number; asOf: string } | null> {
+export async function getYourData(ctx: QueryCtx, mode: Mode = "google"): Promise<YourDataVM> {
   const today = todayOf(ctx);
-  // ponytail: reads every scored day to find the first gap; page by a few hundred days if histories grow long.
-  const rows = await ctx.store.scores.wearDays(today);
-  let expected = today;
-  let asOf: string | null = null;
-  let days = 0;
-  for (const r of rows) {
-    if (r.day !== expected) break;
-    expected = addDays(r.day, -1);
-    // Today neither counts nor breaks the streak until it has enough data.
-    if (r.day === today && r.hrMinutes < STREAK_TODAY_MIN) continue;
-    if (r.hrCount <= 0) break;
-    asOf ??= r.day;
-    days++;
-  }
-  return days > 0 && asOf ? { days, asOf } : null;
+  const [first, journal] = await Promise.all([firstDay(ctx), ctx.store.allJournal()]);
+  const days = first ? (await ctx.store.scoresIn({ from: first, to: today })).length : 0;
+  return { first, days, answers: journal.length, mode };
 }
 
+type Cell = string | number | null;
+export type Table = { columns: string[]; rows: Cell[][] };
+
+/** Every day from the first stored day to today: one column per daily metric, rounded as the app shows it. */
+export async function dailyTable(ctx: QueryCtx): Promise<Table> {
+  const columns = ["day", ...TREND_METRICS.map((m) => m.column)];
+  const first = await firstDay(ctx);
+  if (!first) return { columns, rows: [] };
+  const today = todayOf(ctx);
+  const rows: Cell[][] = [];
+  for (const [day, r] of await loadDays(ctx, first, today)) {
+    const values = TREND_METRICS.map((m) => {
+      const v = m.partialToday && day === today ? null : m.pick(r);
+      const k = m.format === "decimal2" ? 100 : 10; // distance keeps its 10 m
+      return finite(v) ? Math.round(v * k) / k : null;
+    });
+    rows.push([day, ...values]);
+  }
+  return { columns, rows };
+}
+
+/** Journal answers, one row per (day, behaviour): answer 1 for yes (or a count), 0 for no. Hidden behaviours included. */
+export async function journalTable(ctx: QueryCtx): Promise<Table> {
+  const [entries, tags] = await Promise.all([ctx.store.allJournal(), behaviours(ctx)]);
+  const label = new Map(tags.map((t) => [t.tag, t.label]));
+  const sorted = [...entries].sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0));
+  return { columns: ["day", "behaviour", "label", "answer"], rows: sorted.map((e) => [e.day, e.tag, label.get(e.tag) ?? e.tag, e.value]) };
+}
+
+/** The behaviour list itself, for the journal JSON. */
+export const journalBehaviours = (ctx: QueryCtx) => behaviours(ctx);
+
 /**
- * The shell's ShellStatus (top bar, sync dot, ConnectionBanner). `syncing` is whether a sync run is going: the
- * background stream knows, so it passes it (pulse read the worker's global).
+ * RFC 4180 CSV. A text cell that starts with = + - @ (a custom behaviour's label is user input) gets a leading
+ * apostrophe, so a spreadsheet shows it as text instead of running it as a formula.
  */
-export async function getShellStatus(ctx: QueryCtx, syncing = false): Promise<ShellStatusVM> {
-  const [all, first, streak] = await Promise.all([syncRows(ctx), firstDay(ctx), getWearStreak(ctx)]);
-  // The device check is account state (connection below), not a sync that succeeded or failed.
-  // Core types only: an optional type, or a retired job's leftover row (rhr/hrv personal ranges), never turns the dot red.
-  const auth = await authState(ctx, all);
-  const rows = all.filter((r) => CORE_SYNC_TYPES.has(r.type));
-  const successes = rows.map((r) => r.lastSuccessAt).filter((s): s is number => s != null);
-  const lastSuccessAt = successes.length ? Math.max(...successes) * 1000 : null;
-  const stale = lastSuccessAt == null || ctx.now * 1000 - lastSuccessAt > STALE_MS;
-  const error = rows.some((r) => r.lastError);
-  const progress = auth === "connected" ? importProgress(rows) : null;
-  const connection: ShellStatusVM["connection"] =
-    auth === "not_connected" || auth === "not_linked" || auth === "no_device" ? auth : auth === "revoked" ? "auth_revoked" : progress ? "importing" : stale ? "stale" : "connected";
-  return {
-    mode: "google",
-    sync: { state: syncing ? "syncing" : error ? "error" : stale ? "stale" : "ok", lastSuccessAt },
-    connection,
-    ...(progress && { importProgress: progress }),
-    today: todayOf(ctx),
-    ...(first && { firstDay: first }),
-    timeZone: ctx.timeZone,
-    streak,
+export function toCsv({ columns, rows }: Table): string {
+  const cell = (v: Cell) => {
+    if (v === null) return "";
+    if (typeof v === "number") return String(v);
+    const s = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
+  return [columns, ...rows].map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";
+}
+
+export const toObjects = ({ columns, rows }: Table) => rows.map((r) => Object.fromEntries(columns.map((c, i) => [c, r[i]])));
+
+export type ExportKind = "daily" | "journal";
+export type ExportFormat = "csv" | "json";
+export type ExportFile = { name: string; mimeType: string; body: string };
+
+/** One export as the web's /export/<kind>?format= answers it: "pulse-<kind>-<today>.<ext>" with the same body. */
+export async function exportFile(ctx: QueryCtx, kind: ExportKind, format: ExportFormat): Promise<ExportFile> {
+  const name = `pulse-${kind}-${todayOf(ctx)}.${format}`;
+  const csv = (t: Table): ExportFile => ({ name, mimeType: "text/csv", body: toCsv(t) });
+  const json = (v: unknown): ExportFile => ({ name, mimeType: "application/json", body: JSON.stringify(v, null, 2) });
+  if (kind === "daily") {
+    const table = await dailyTable(ctx);
+    return format === "csv" ? csv(table) : json({ timeZone: ctx.timeZone, days: toObjects(table) });
+  }
+  const [table, tags] = await Promise.all([journalTable(ctx), journalBehaviours(ctx)]);
+  return format === "csv" ? csv(table) : json({ behaviours: tags, entries: toObjects(table) });
 }

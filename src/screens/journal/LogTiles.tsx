@@ -2,10 +2,10 @@
 // one tile per thing to log, with the day's figure, each opening its sheet. A row that scrolls edge to edge, as the
 // day strip above it.
 import { ScrollView, View } from "react-native";
-import { CalendarHeart, Droplet, FlaskConical, Plus, Scale, Smile, Thermometer, Utensils, type LucideIcon } from "lucide-react-native";
+import { CalendarHeart, Droplet, FlaskConical, HeartPulse, Plus, Scale, Smile, Thermometer, Utensils, type LucideIcon } from "lucide-react-native";
 import { DAY, formatDay } from "@/lib/format";
-import { KIND_LABEL, MOODS, VALENCES, type LogData, type LogKind } from "@/lib/log";
-import type { LogVM } from "@/queries/log";
+import { KIND_LABEL, MOODS, VALENCES, type LogData, type LogKind } from "@/queries/log";
+import type { DayLogVM as LogVM } from "@/queries/journalExtras";
 import { CARD_CLASS, CardFill, useCardStyle } from "@/ui/Card";
 import { Icon } from "@/ui/Icon";
 import { openSheet } from "@/ui/shells/sheets";
@@ -16,6 +16,7 @@ export const ICON: Record<LogKind, LucideIcon> = {
   water: Droplet,
   food: Utensils,
   weight: Scale,
+  spo2: HeartPulse,
   mood: Smile,
   symptoms: Thermometer,
   period: CalendarHeart,
@@ -31,11 +32,13 @@ function tileValue(k: LogKind, vm: LogVM): { value: string; sub?: string } | nul
     case "water":
       return vm.water.total ? { value: `${n(vm.water.total)} ml` } : { value: "None" };
     case "food":
-      return vm.food.total ? { value: `${n(vm.food.total.kcal)} kcal` } : { value: "None" };
+      return vm.food.kcal ? { value: `${n(vm.food.kcal)} kcal` } : { value: "None" };
     case "weight": {
       const w = vm.body.latest;
       return w ? { value: `${w.kg} kg`, sub: w.day === vm.day ? undefined : formatDay(w.day, DAY.monthDay) } : null;
     }
+    case "spo2":
+      return vm.spo2 !== null ? { value: `${vm.spo2}%` } : null;
     case "mood": {
       const m = vm.moods.at(-1)?.data as LogData["moods"] | undefined;
       return m ? { value: MOOD_LABEL[m.moods[0] ?? m.valence ?? ""] ?? "Logged" } : null;
@@ -53,7 +56,8 @@ export const logHref = (kind: LogKind, vm: Pick<LogVM, "day" | "today">) => `/lo
 function Tile({ k, vm }: { k: LogKind; vm: LogVM }) {
   const shadow = useCardStyle();
   const t = tileValue(k, vm);
-  const label = KIND_LABEL[k] === "Ovulation test" ? "Ovulation" : KIND_LABEL[k];
+  // Short names fit the 96 px tile on one line.
+  const label = k === "ovulation" ? "Ovulation" : k === "spo2" ? "SpO₂" : KIND_LABEL[k];
   return (
     <Press
       activeScale={0.96}

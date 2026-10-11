@@ -42,6 +42,12 @@ export const respCfg = metricCfg.resp;
 export const skinTempCfg = metricCfg.skin_temp;
 export const strainCfg = metricCfg.strain;
 export const readinessHRVLnCfg = metricCfg.readiness_hrv_ln;
+/**
+ * Recovery's HRV baseline (version 17), in ln(ms): the readiness ln range and floor, with a 21-night half-life for the
+ * centre, about a 30-night effective window, as WHOOP's (inferred: The Locker 2026-01-30, "about 30 days to full
+ * calibration"; docs/research/whoop-garmin.md C6).
+ */
+export const recoveryHRVLnCfg: MetricCfg = { ...metricCfg.readiness_hrv_ln, halfLifeB: 21.0 };
 export const daytimeHRCfg = metricCfg.daytime_hr;
 export const daytimeRMSSDCfg = metricCfg.daytime_rmssd;
 

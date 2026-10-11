@@ -16,7 +16,7 @@ import {
   type TrendViewBar,
   type TrendViewRange,
 } from "@/lib/trend";
-import { addDays, localMinutes } from "../time";
+import { addDays, localMinutes } from "@/lib/time";
 import { activityKind, exercisesBetween, finite, firstDay, loadDays, meanSd, todayOf, toStrain, type DayRow, type ExerciseRow, type QueryCtx } from "./common";
 
 // The Trend View `/trend/[key]` (spec §11 R29): one metric over a W / M / 6M window that steps back through time,

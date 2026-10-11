@@ -9,7 +9,8 @@ import { GestureHandlerRootView, Gesture, GestureDetector } from "react-native-g
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from "react-native-reanimated";
 import { ChartNoAxesColumn, Equal, Minus, Pencil, Plus, Search } from "lucide-react-native";
 import { saveDashboard } from "@/actions/dashboard";
-import { store } from "@/data/store";
+import { dashboardDefault } from "@/queries/homeExtras";
+import { dataChanged, queryCtx } from "@/state/app";
 import { DASHBOARD_GROUPS, DASHBOARD_LABEL, DASHBOARD_METRICS, isDashboardKey, type DashboardKey } from "@/lib/dashboard";
 import { Button } from "@/ui/Button";
 import { cn } from "@/ui/cn";
@@ -89,7 +90,10 @@ export function EditDashboardSheet({ keys: rawKeys, empty: rawEmpty }: { keys?: 
   const save = async () => {
     setSaving(true);
     setFailed(false);
-    const r = await saveDashboard(store, { keys: shown }).catch(() => ({ ok: false as const, error: "storage" }));
+    const r = await dashboardDefault(queryCtx())
+      .then((defaults) => saveDashboard({ keys: shown }, defaults))
+      .catch(() => ({ ok: false as const, error: "storage" }));
+    if (r.ok) dataChanged();
     setSaving(false);
     if (!r.ok) {
       haptic.error();

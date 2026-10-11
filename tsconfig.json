@@ -19,8 +19,6 @@
     "nativewind-env.d.ts"
   ],
   "exclude": [
-    "node_modules",
-    "src/core/algorithms/healthMonitor.test.ts",
-    "src/lib/behaviors.test.ts"
+    "node_modules"
   ]
 }

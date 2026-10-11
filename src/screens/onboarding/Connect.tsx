@@ -1,92 +1,96 @@
-// Connecting Google Health (docs/onboarding.md): the explainer that comes before Google's consent, then the screen that
-// waits behind it while Google's sheet is up, and "Reconnect Google Health" when the person closes Google's consent. Used by
-// onboarding's Connect and by `/connect` (leaving sample data). Android shows Google's own account chooser and consent
-// screens over the app; iOS shows Google's consent in the in-app sign-in sheet. Neither leaves the app.
+// Connecting Health Connect (docs/onboarding.md): the explainer that comes before Health Connect's permission sheet, then
+// the screen that waits behind it while the sheet is up, and "Allow Health Connect" when the person grants nothing.
+// Used by onboarding's connect step and by `/connect` (leaving sample data). The sheet is Health Connect's own, over the
+// app (halo's askPermissions: every read type, older data and background reads).
 import { useEffect, useState } from "react";
 import { ActivityIndicator, BackHandler, View } from "react-native";
-import { Activity, Footprints, HeartPulse, Moon, Utensils, Watch, type LucideIcon } from "lucide-react-native";
+import { Activity, Footprints, HeartPulse, Moon, Utensils, Weight, type LucideIcon } from "lucide-react-native";
+import { openHealthConnectSettings } from "@/health/connect";
+import { connectHealth, useApp } from "@/state/app";
 import { Card } from "@/ui/Card";
 import { Divided } from "@/ui/Divided";
 import { Icon } from "@/ui/Icon";
 import { haptic } from "@/ui/haptics";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
-import { connectGoogle } from "../settings/connect";
-import { GoogleButton, TextButton } from "./buttons";
+import { ConnectButton, TextButton } from "./buttons";
 import { Frame } from "./Frame";
 
-// What the health scopes in src/google/oauth.ts SCOPES let Pulse read, in the person's words, with the app's icons. Titles
-// only, so the screen fits without scrolling; Google's own consent screen has the detail.
+// What the read permissions in src/health/connect.ts READ_TYPES let Pulse read, in the person's words, with the app's
+// icons. Titles only, so the screen fits without scrolling; Health Connect's own sheet has the detail.
 const READS: { icon: LucideIcon; title: string }[] = [
-  { icon: Footprints, title: "Activity and workouts" },
-  { icon: HeartPulse, title: "Heart rate, HRV and body" },
-  { icon: Moon, title: "Sleep" },
-  { icon: Activity, title: "ECG and heart rhythm" },
-  { icon: Utensils, title: "Food and water you log" },
-  { icon: Watch, title: "Your age and tracker" },
+  { icon: Footprints, title: "Steps, distance and workouts" },
+  { icon: HeartPulse, title: "Heart rate and HRV" },
+  { icon: Moon, title: "Sleep and its stages" },
+  { icon: Activity, title: "Breathing, oxygen and temperature" },
+  { icon: Utensils, title: "Food and water you log in Fitbit" },
+  { icon: Weight, title: "Weight, body fat and VO2 max" },
 ];
 
-/**
- * `onConnected` runs once Google grants access; it may fail (clearing the sample data), and its error shows here.
- * `sample`: the person is leaving sample data, so the explainer says it goes.
- */
-export function ConnectFlow({ sample, onConnected, onCancel }: { sample?: boolean; onConnected: () => Promise<string | null>; onCancel: () => void }) {
+/** `sample`: the person is leaving sample data, so the explainer says it goes. */
+export function ConnectFlow({ sample, onCancel }: { sample?: boolean; onCancel: () => void }) {
   const [waiting, setWaiting] = useState(false);
-  const [cancelled, setCancelled] = useState(false);
+  const [refused, setRefused] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const availability = useApp((s) => s.availability);
   const { c } = useTheme();
-  // Android back is "Not now"; while Google's sheet is up there is nothing to go back to.
+  // Android back is "Not now"; while Health Connect's sheet is up there is nothing to go back to.
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => (waiting || onCancel(), true));
     return () => sub.remove();
   }, [waiting, onCancel]);
 
+  const unavailable = availability === "unavailable" ? "Health Connect isn’t available on this phone." : availability === "update_required" ? "Health Connect needs an update. Open it, update it, then come back." : null;
+
   const connect = async () => {
+    if (availability === "update_required") return void openHealthConnectSettings();
+    if (availability === "unavailable") return haptic.error();
     setWaiting(true);
     setError(null);
-    const r = await connectGoogle();
-    const failed = r.ok ? await onConnected() : r.error;
-    setWaiting(false);
-    setCancelled(!r.ok && !!r.cancelled);
-    if (failed) {
-      setError(failed);
+    try {
+      const perms = await connectHealth();
+      // Granted: the app state starts the import, and onboarding shows its progress.
+      setRefused(!!perms && perms.granted.length === 0);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn’t open Health Connect. Try again.");
       haptic.error();
     }
+    setWaiting(false);
   };
 
   if (waiting)
     return (
-      // Behind Google's consent sheet: what the person sees if they look past it, or come back before answering.
+      // Behind Health Connect's permission sheet: what the person sees if they look past it.
       <Frame>
         <View accessibilityLiveRegion="polite" className="items-center gap-5">
           <ActivityIndicator size="large" color={c["foreground-secondary"]} />
           <View className="items-center gap-2">
             <Text accessibilityRole="header" className="text-center text-[22px] font-semibold leading-7 tracking-[-0.01em]">
-              Waiting for Google
+              Waiting for Health Connect
             </Text>
-            <Text className="max-w-[300px] text-center text-[15px] leading-[22px] text-foreground-secondary">Choose what Pulse can read in Google’s window. You come back here when you’re done.</Text>
+            <Text className="max-w-[300px] text-center text-[15px] leading-[22px] text-foreground-secondary">Choose what Pulse can read in Health Connect’s window. You come back here when you’re done.</Text>
           </View>
         </View>
       </Frame>
     );
 
-  if (cancelled)
-    // Google's consent was closed without an answer: the way back in, and the way out.
+  if (refused)
+    // Nothing was granted: the way back in, and the way out.
     return (
       <Frame
         footer={
           <>
-            <GoogleButton onPress={connect} />
+            <ConnectButton onPress={connect} />
             <TextButton label="Not now" onPress={onCancel} />
           </>
         }
       >
         <View className="items-center gap-2">
           <Text accessibilityRole="header" className="text-center text-[22px] font-semibold leading-7 tracking-[-0.01em]">
-            Reconnect Google Health
+            Allow Health Connect
           </Text>
           <Text className="max-w-[300px] text-center text-[15px] leading-[22px] text-foreground-secondary">
-            Google Health is asking for access. Choose what Pulse can read to continue.
+            Pulse needs at least heart rate and sleep. Allow every permission, including access to older data.
           </Text>
         </View>
       </Frame>
@@ -96,12 +100,12 @@ export function ConnectFlow({ sample, onConnected, onCancel }: { sample?: boolea
     <Frame
       footer={
         <>
-          {error && (
+          {(error ?? unavailable) && (
             <Text accessibilityRole="alert" className="mb-2 text-center text-[13px] font-medium leading-[18px] text-recovery-red-text">
-              {error}
+              {error ?? unavailable}
             </Text>
           )}
-          <GoogleButton onPress={connect} />
+          <ConnectButton label={availability === "update_required" ? "Open Health Connect" : undefined} onPress={connect} />
           <TextButton label="Not now" onPress={onCancel} />
         </>
       }
@@ -110,7 +114,7 @@ export function ConnectFlow({ sample, onConnected, onCancel }: { sample?: boolea
         What Pulse reads
       </Text>
       <Text className="mt-2 text-[15px] leading-[22px] text-foreground-secondary">
-        From Google Health, kept on this phone.{sample ? " Your sample data is cleared once you connect." : ""}
+        From Health Connect, kept on this phone. The first import reads the last 180 days.{sample ? " Your sample data is cleared once you connect." : ""}
       </Text>
       <Card className="mt-6 px-4 py-1">
         <Divided>

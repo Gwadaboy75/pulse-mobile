@@ -56,17 +56,17 @@ describe("stress and training load", () => {
   it("ACWR tones", () => {
     expect(acwrTone(0.7)).toBe("neutral");
     expect(acwrTone(1.1)).toBe("optimal");
-    expect(acwrTone(1.4)).toBe("warning");
-    expect(acwrTone(1.6)).toBe("alert");
+    expect(acwrTone(1.6)).toBe("warning");
+    expect(acwrTone(2.1)).toBe("alert");
   });
   it("ACWR tone and the Reports band agree at the boundaries", () => {
     const cases = [
       [0.79, "neutral", "LOAD_RAMPING_DOWN"],
       [0.8, "optimal", "LOAD_SWEET_SPOT"],
-      [1.29, "optimal", "LOAD_SWEET_SPOT"],
-      [1.3, "warning", "LOAD_BUILDING_FAST"],
-      [1.49, "warning", "LOAD_BUILDING_FAST"],
-      [1.5, "alert", "LOAD_SPIKING"],
+      [1.49, "optimal", "LOAD_SWEET_SPOT"],
+      [1.5, "warning", "LOAD_BUILDING_FAST"],
+      [1.99, "warning", "LOAD_BUILDING_FAST"],
+      [2.0, "alert", "LOAD_SPIKING"],
     ] as const;
     for (const [acwr, tone, band] of cases) {
       expect(acwrTone(acwr), String(acwr)).toBe(tone);

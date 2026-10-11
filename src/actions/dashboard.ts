@@ -1,27 +1,43 @@
-// Home's My Dashboard (spec §11 CD1): which metrics it shows, in which order. Ported from pulse src/server/actions/dashboard.ts:
-// the Store replaces the user and the database, and `dataChanged()` (every mounted screen reloads) replaces revalidatePath.
-import { z } from "zod";
-import { isDashboardKey } from "@/lib/dashboard";
-import type { Store } from "../data/repos";
-import { dashboardDefault } from "../queries/home";
-import { dataChanged } from "../screens/useScreen";
+// Home's My Dashboard: which metrics it shows, in which order. Kept on the phone as halo keeps it
+// (src/screens/home/dashboard.ts there): AsyncStorage "pulse.dashboard", read once, the default list stored as nothing.
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { isDashboardKey, type DashboardKey } from "@/lib/dashboard";
 import type { ActionResult } from "./journal";
 
-const Dashboard = z.object({
-  keys: z
-    .array(z.string().refine(isDashboardKey, { message: "Unknown metric" }))
-    .min(1, "Choose at least one metric")
-    .refine((k) => new Set(k).size === k.length, { message: "A metric is listed twice" }),
-});
+export const DASHBOARD_KEY = "pulse.dashboard";
 
-/** Saves the chosen metrics in order. The default list is stored as no rows, so a later default change reaches it. */
-export async function saveDashboard(store: Store, input: z.input<typeof Dashboard>): Promise<ActionResult> {
-  const r = Dashboard.safeParse(input);
-  if (!r.success) return { ok: false, error: r.error.issues[0].message };
-  const { keys } = r.data;
-  const def = await dashboardDefault(store);
-  const isDefault = keys.length === def.length && keys.every((k, i) => k === def[i]);
-  await store.settings.saveDashboard(isDefault ? [] : keys);
-  dataChanged();
+/** undefined until read; null when nothing is chosen (Home shows the default list). */
+let saved: DashboardKey[] | null | undefined;
+
+const parse = (raw: string | null): DashboardKey[] | null => {
+  try {
+    const v: unknown = raw ? JSON.parse(raw) : null;
+    if (!Array.isArray(v)) return null;
+    const keys = v.filter((k): k is DashboardKey => typeof k === "string" && isDashboardKey(k));
+    return keys.length ? keys : null;
+  } catch {
+    return null;
+  }
+};
+
+/** The chosen keys, or null for the default list. */
+export async function dashboardChoice(): Promise<DashboardKey[] | null> {
+  if (saved === undefined) saved = parse(await AsyncStorage.getItem(DASHBOARD_KEY).catch(() => null));
+  return saved;
+}
+
+/**
+ * Saves the chosen metrics in order. The default list is stored as nothing (the web stores no rows), so a later change
+ * of default (a band synced for the first time) still reaches it.
+ */
+export async function saveDashboard(input: { keys: string[] }, defaults: DashboardKey[]): Promise<ActionResult> {
+  const { keys } = input;
+  if (!keys.every(isDashboardKey)) return { ok: false, error: "Unknown metric" };
+  if (keys.length < 1) return { ok: false, error: "Choose at least one metric" };
+  if (new Set(keys).size !== keys.length) return { ok: false, error: "A metric is listed twice" };
+  const isDefault = keys.length === defaults.length && keys.every((k, i) => k === defaults[i]);
+  if (isDefault) await AsyncStorage.removeItem(DASHBOARD_KEY);
+  else await AsyncStorage.setItem(DASHBOARD_KEY, JSON.stringify(keys));
+  saved = isDefault ? null : [...keys];
   return { ok: true, data: undefined };
 }

@@ -1,13 +1,16 @@
-// Shared by the screen queries: the query context, batched day loaders and the Metric builders. Ported from pulse
-// src/server/queries/common.ts: reads go through the repositories, there is no user id (one person per install) and no
-// demo mode (the phone only reads Google). Everything below the loaders is unchanged.
-import type { ExtraKey } from "@/lib/extraMetrics";
-import type { Store } from "../data/repos";
-import type { ExerciseRow } from "../data/repos/sessions";
-import { getProfile, type Profile } from "../profile";
+// Shared by the screen queries: the batched day loader over the Store and the Metric builders.
+// Ported from Pulse's src/server/queries/common.ts; every Postgres read is a Store read.
+import type { DetectedActivity } from "@/core/algorithms/autoWorkout";
+import { STRENGTH_TYPES } from "@/core/algorithms/healthspan";
+import { tanakaHRmax, toStrainScale } from "@/core/scoring/strain";
+import type { Exercise, Metrics } from "@/data/types";
+import type { Metric, MetricTag, ReasonCode } from "@/lib/reasons";
+import { addDays, localMidnight, wholeYears } from "@/lib/time";
 import type {
   EnergyBankRow,
   FitnessRow,
+  HrvStatusRow,
+  TrainingRow,
   HealthMonitorRow,
   HealthspanRow,
   RecoveryRow,
@@ -18,54 +21,30 @@ import type {
   StrainTargetRow,
   StressRow,
   TrainingLoadRow,
-} from "../pipeline";
-import { STRENGTH_TYPES } from "@/core/algorithms/healthspan";
-import { toStrainScale } from "@/core/scoring/strain";
-import { stressLevel } from "@/lib/bands";
-import { addDays, localDay, localMidnight } from "../time";
-import type { ActivityKind, DayPoint, Metric, MetricTag, ReasonCode, SleepPlanVM, Span, StressDayChart, TimelineItem, TimePoint } from "./types";
+} from "@/pipeline/types";
+import type { SeriesKind } from "@/data/store";
+import { type ExtraKey, recoveryBand, stressLevel } from "./_lib";
+import type { QueryCtx } from "./ctx";
+import type { ActivityKind, DayPoint, SleepPlanVM, Span, TimelineItem, TimePoint } from "./types";
+import { metricsWithLoggedBody } from "@/data/body";
+import { pulseFoodByDay, withFood } from "./food";
 
-export type QueryCtx = {
-  store: Store;
-  timeZone: string;
-  profile: Profile;
-  /** Unix seconds. */
-  now: number;
-};
+export type { QueryCtx } from "./ctx";
 
-/** The query context: throws `profile_missing` before onboarding (the root layout sends the person there first). */
-export async function ctxOf(store: Store, now = Math.floor(Date.now() / 1000)): Promise<QueryCtx> {
-  const profile = await getProfile(store);
-  if (!profile) throw new Error("profile_missing");
-  return { store, timeZone: profile.timeZone, profile, now };
-}
+export const todayOf = (ctx: QueryCtx) => ctx.today;
 
-export const todayOf = (ctx: QueryCtx) => localDay(ctx.now, ctx.timeZone);
+/** The person's max HR: their own, else Tanaka (208 − 0.7·age) on `today`, as the pipeline resolves it. */
+export const maxHrOf = (ctx: QueryCtx) => ctx.profile.maxHr ?? Math.round(tanakaHRmax(wholeYears(ctx.profile.birthDate, ctx.today)));
 
-export type MetricsRow = {
-  day: string;
-  hrvMs: number | null;
-  rhrBpm: number | null;
-  respBpm: number | null;
-  nightlyTempC: number | null;
-  spo2Pct: number | null;
-  vo2maxDaily: number | null;
-  vo2maxRun: number | null;
-  steps: number | null;
-  calories: number | null;
-  weightKg: number | null;
-  bodyFatPct: number | null;
-  /** Google's all-day minutes in Light + Moderate and Vigorous + Peak. */
-  lightModerateMin: number | null;
-  vigorousPeakMin: number | null;
-  /** Google's 30-night SD of skin temperature from its baseline, °C. */
-  tempSdC: number | null;
-};
+/** The daily aggregates row; the Store's `Metrics` is a superset of the web's `MetricsRow`. */
+export type MetricsRow = Metrics;
 
 export type DayRow = {
   day: string;
   s1: Stage1Day | null;
   activities: Stage1Activity[];
+  /** Mobile: workouts stage 1 detected from elevated HR with none recorded (autoWorkout.ts); shown, never scored. */
+  detected: DetectedActivity[];
   sessionRhr: number | null;
   recovery: RecoveryRow | null;
   sleep: SleepRow | null;
@@ -77,68 +56,61 @@ export type DayRow = {
   healthMonitor: HealthMonitorRow | null;
   healthspan: HealthspanRow | null;
   fitness: FitnessRow | null;
+  /** Version 19: HRV Status and the Garmin-style training row; null on older rows. */
+  hrvStatus: HrvStatusRow | null;
+  training: TrainingRow | null;
   metrics: MetricsRow | null;
-  /** Google's shown-only daily roll-ups (src/lib/extraMetrics.ts); a key is absent when that day has none. */
+  /** Shown-only daily roll-ups (`_lib.ts` EXTRA_METRICS); a key is absent when that day has none. */
   extra: Partial<Record<ExtraKey, number>>;
 };
 
-/** Recent `loadDays` results per store, valid while its data version stands. Callers must not change what they get. */
-const dayCache = new WeakMap<Store, { version: string; ranges: Map<string, Promise<Map<string, DayRow>>> }>();
-const CACHED_RANGES = 16;
-
-/**
- * Every day in [from, to], one query per table (in parallel); days without rows come back empty. A range read since the
- * last database write comes from memory: the screens ask for the same 30 to 180 days again and again, and parsing them
- * is most of a screen's query time.
- */
+/** Every day in [from, to], one Store read per table (in parallel); days without rows come back empty. */
 export async function loadDays(ctx: QueryCtx, from: string, to: string): Promise<Map<string, DayRow>> {
   const { store } = ctx;
-  // The version is read before the rows, so a write landing in between only costs a re-read later, never a stale hit.
-  const version = await store.dataVersion();
-  let cache = dayCache.get(store);
-  if (cache?.version !== version) dayCache.set(store, (cache = { version, ranges: new Map() }));
-  const key = `${from}|${to}`;
-  let rows = cache.ranges.get(key);
-  if (rows) {
-    cache.ranges.delete(key); // re-inserted below: the Map's order is least recently used first
-  } else {
-    rows = readDays(store, from, to);
-    rows.catch(() => cache.ranges.delete(key));
-    if (cache.ranges.size >= CACHED_RANGES) cache.ranges.delete(cache.ranges.keys().next().value!);
-  }
-  cache.ranges.set(key, rows);
-  return rows;
-}
-
-async function readDays(store: Store, from: string, to: string): Promise<Map<string, DayRow>> {
-  const [scoreRows, metricRows, extraRows] = await Promise.all([
-    store.scores.readDays(from, to),
-    store.daily.readMetricsBetween(from, to),
-    store.daily.readValuesBetween(from, to),
+  const [scoreRows, metricRows, extraRows, logged] = await Promise.all([
+    store.scoresIn({ from, to }),
+    metricsWithLoggedBody(store),
+    store.dailyValues({ from, to }),
+    store.loggedEntries(localMidnight(from, ctx.timeZone), Number.MAX_SAFE_INTEGER),
   ]);
   const scores = new Map(scoreRows.map((r) => [r.day, r]));
-  const metrics = new Map<string, MetricsRow>(metricRows.map((r) => [r.day, r]));
+  const metrics = new Map<string, MetricsRow>();
+  for (const m of metricRows) if (m.day >= from && m.day <= to) metrics.set(m.day, m);
   const extra = new Map<string, Partial<Record<ExtraKey, number>>>();
-  // daily_values.day is text ('latest' sorts after every date, so the range already excludes it).
-  for (const r of extraRows) extra.set(r.day, { ...extra.get(r.day), [r.key as ExtraKey]: r.value });
+  for (const r of extraRows) if (r.day >= from && r.day <= to) extra.set(r.day, { ...extra.get(r.day), [r.key as ExtraKey]: r.value });
+  // Water logged in Pulse never reaches Health Connect (Pulse writes nothing there), so it adds to the synced total here,
+  // as the Log's waterOn does: the water goal, the Water screen and Trends count what the Log shows.
+  for (const e of logged) {
+    if (e.type !== "hydration-log" || e.source !== "pulse" || e.day < from || e.day > to) continue;
+    const ml = Number((e.data as { ml?: unknown } | null)?.ml ?? 0);
+    if (!(ml > 0)) continue;
+    const day = extra.get(e.day) ?? {};
+    extra.set(e.day, { ...day, water: (day.water ?? 0) + ml });
+  }
+  // Food logged in Pulse, the same way: its calories and macros add to the synced totals (calories eaten, protein,
+  // carbs, fat), except entries that repeat a meal Fitbit's log already counts (src/queries/food.ts).
+  for (const [day, add] of pulseFoodByDay(logged, from, to)) extra.set(day, withFood(extra.get(day) ?? {}, add));
   const out = new Map<string, DayRow>();
   for (let d = from; d <= to; d = addDays(d, 1)) {
     const r = scores.get(d);
     out.set(d, {
       day: d,
-      s1: (r?.strain as Stage1Day | null) ?? null,
-      activities: (r?.activities as Stage1Activity[] | null) ?? [],
-      sessionRhr: r?.sessionRhr ?? null,
-      recovery: (r?.recovery as RecoveryRow | null) ?? null,
-      sleep: (r?.sleep as SleepRow | null) ?? null,
-      trainingLoad: (r?.trainingLoad as TrainingLoadRow | null) ?? null,
-      strainTarget: (r?.strainTarget as StrainTargetRow | null) ?? null,
-      sleepPlanner: (r?.sleepPlanner as SleepPlannerRow | null) ?? null,
-      energyBank: (r?.energyBank as EnergyBankRow | null) ?? null,
-      stress: (r?.stress as StressRow | null) ?? null,
-      healthMonitor: (r?.healthMonitor as HealthMonitorRow | null) ?? null,
-      healthspan: (r?.healthspan as HealthspanRow | null) ?? null,
-      fitness: (r?.fitness as FitnessRow | null) ?? null,
+      s1: r?.strain ?? null,
+      activities: r?.activities ?? [],
+      detected: r?.detected ?? [],
+      sessionRhr: r?.sessionRhrBpm ?? null,
+      recovery: r?.recovery ?? null,
+      sleep: r?.sleep ?? null,
+      trainingLoad: r?.training_load ?? null,
+      strainTarget: r?.strain_target ?? null,
+      sleepPlanner: r?.sleep_planner ?? null,
+      energyBank: r?.energy_bank ?? null,
+      stress: r?.stress ?? null,
+      healthMonitor: r?.health_monitor ?? null,
+      healthspan: r?.healthspan ?? null,
+      fitness: r?.fitness ?? null,
+      hrvStatus: r?.hrv_status ?? null,
+      training: r?.training ?? null,
       metrics: metrics.get(d) ?? null,
       extra: extra.get(d) ?? {},
     });
@@ -146,9 +118,23 @@ async function readDays(store: Store, from: string, to: string): Promise<Map<str
   return out;
 }
 
-export const loadSeries = (ctx: QueryCtx, day: string, kind: string): Promise<(number | null)[] | null> => ctx.store.series.loadSeries(day, kind);
+export const loadSeries = (ctx: QueryCtx, day: string, kind: SeriesKind): Promise<(number | null)[] | null> => ctx.store.getSeries(day, kind);
 
-export const firstDay = (ctx: QueryCtx): Promise<string | null> => ctx.store.scores.firstDay();
+/** The first day with scores (the sync's first imported day), or null before any data. */
+export async function firstDay(ctx: QueryCtx): Promise<string | null> {
+  return ctx.sync.firstDay ?? (await ctx.store.getSyncState()).firstDay;
+}
+
+/**
+ * The latest stored score day on or before `today` (looking back `lookback` days), else `today`. The web asks
+ * Postgres for max(day); here one ranged read does it.
+ */
+export async function lastStored(ctx: QueryCtx, today: string, lookback = 60): Promise<string> {
+  const rows = await ctx.store.scoresIn({ from: addDays(today, -lookback), to: today });
+  let last: string | null = null;
+  for (const r of rows) if (last === null || r.day > last) last = r.day;
+  return last ?? today;
+}
 
 // ── Metric builders ─────────────────────────────────────────────────────────
 
@@ -247,9 +233,14 @@ export const ACTIVITY_NAME: Record<ActivityKind, string> = {
   workout: "Workout",
 };
 
-export type { ExerciseRow };
+export type ExerciseRow = Exercise;
 
-export const exercisesBetween = (ctx: QueryCtx, from: string, to: string): Promise<ExerciseRow[]> => ctx.store.sessions.exercisesBetween(from, to);
+const byStart = (a: ExerciseRow, b: ExerciseRow) => a.startTs - b.startTs || a.id.localeCompare(b.id);
+
+/** Workouts with `from <= day <= to`, by start time then id. */
+export async function exercisesBetween(ctx: QueryCtx, from: string, to: string): Promise<ExerciseRow[]> {
+  return (await ctx.store.allExercises()).filter((e) => e.day >= from && e.day <= to).sort(byStart);
+}
 
 export function activityItem(e: ExerciseRow, row: DayRow | undefined): Extract<TimelineItem, { kind: "activity" }> {
   const kind = activityKind(e.type);
@@ -314,6 +305,7 @@ export function planVM(ctx: QueryCtx, row: DayRow | undefined, isToday: boolean)
     parts: p.parts,
     wakeAt: ms(wakeMidnight + Math.round(p.wakeMin * 60)),
     weekend: p.weekend,
+    latencyMin: p.latencyMin ?? 0,
     plans: p.plans.map((x, i) => ({
       key: PLAN_LABELS[i][0],
       label: PLAN_LABELS[i][1],
@@ -324,10 +316,14 @@ export function planVM(ctx: QueryCtx, row: DayRow | undefined, isToday: boolean)
   });
 }
 
-export { recoveryBand, stressLevel } from "@/lib/bands";
+export { recoveryBand, stressLevel };
 
 /** Recovery tags: stale baselines and a late-gained term. */
-export const recoveryTags = (r: RecoveryRow): MetricTag[] => [...(r.stale.length ? ["stale_baseline" as const] : []), ...(r.updated ? ["updated" as const] : [])];
+export const recoveryTags = (r: RecoveryRow): MetricTag[] => [
+  // Skin temperature isn't part of Recovery since version 17, so its stale baseline doesn't mark the score.
+  ...(r.stale.some((k) => k !== "skinTemp") ? ["stale_baseline" as const] : []),
+  ...(r.updated ? ["updated" as const] : []),
+];
 
 export function recoveryMetric(row: DayRow | undefined, isToday: boolean): Metric<number> {
   const r = row?.recovery;
@@ -335,6 +331,13 @@ export function recoveryMetric(row: DayRow | undefined, isToday: boolean): Metri
   if (r.value == null) return fromReason(r.reason, isToday, r.nightsLeft);
   return ok(r.value, r.provisional, recoveryTags(r));
 }
+
+/**
+ * The night's need in minutes: the full need it was scored against (the evening's plan: baseline + strain + debt − naps,
+ * version 16), else the baseline need on older rows.
+ */
+export const nightNeedMin = (s: Pick<SleepRow, "needHours" | "needMin"> | null | undefined): number | null =>
+  s ? (s.needMin ?? s.needHours * 60) : null;
 
 export function sleepMetric(row: DayRow | undefined, isToday: boolean): Metric<number> {
   const s = row?.sleep;
@@ -346,14 +349,6 @@ export function sleepMetric(row: DayRow | undefined, isToday: boolean): Metric<n
 export function strainMetric(row: DayRow | undefined): Metric<number> {
   const s1 = row?.s1;
   return s1?.effort != null ? ok(toStrain(s1.effort)) : none(hrReason(s1 ?? null));
-}
-
-/** The day's stress line for the Stress Monitor screen and Home's tile: every 2nd still minute, spans, now (spec §7.9). */
-export function stressChartOf(ctx: QueryCtx, row: DayRow | undefined, day: string, isToday: boolean, series: (number | null)[] | null, exs: ExerciseRow[]): Metric<StressDayChart> {
-  const st = row?.stress;
-  if (!st || st.average == null) return none(row?.s1?.hrCount ? "no_data" : "band_not_worn");
-  const start = dayStartOf(ctx, day);
-  return ok({ points: minutePoints(series, start, 2), spans: daySpansOf(row, start, exs), now: isToday && st.latest ? ms(st.latest.ts) : null }, st.provisional);
 }
 
 export function stressNow(row: DayRow | undefined, isToday: boolean): Metric<{ value: number; level: "low" | "medium" | "high"; at: number | null; dayAverage: boolean }> {

@@ -1,19 +1,23 @@
-// Settings › App: the theme and the notification toggles. They are device preferences, stored in the `settings` table
-// (`theme`, `notify.recovery`, `notify.syncProblem`); the web kept the theme in localStorage and the toggles as a push
-// subscription. Scheduling the notifications is the background stream's.
-import type { Store } from "../data/repos";
-import type { SettingValues } from "../data/repos/settings";
-import { dataChanged } from "../screens/useScreen";
+// Settings › App: the theme and the notification toggles, device preferences kept in AsyncStorage as halo keeps its
+// own. Scheduling the notifications is the background stream's.
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { THEME_KEY } from "@/state/app";
 
-export type Theme = SettingValues["theme"];
+export type Theme = "system" | "light" | "dark";
 export type NotifyKey = "notify.recovery" | "notify.syncProblem";
+export type AppPrefs = { theme: Theme; notifyRecovery: boolean; notifySyncProblem: boolean };
 
-export async function saveTheme(store: Store, theme: Theme): Promise<void> {
-  await store.settings.set("theme", theme);
-  dataChanged();
+const notifyKey = (k: NotifyKey) => `pulse.${k}`;
+
+export async function loadPrefs(): Promise<AppPrefs> {
+  const [theme, recovery, syncProblem] = await Promise.all([THEME_KEY, notifyKey("notify.recovery"), notifyKey("notify.syncProblem")].map((k) => AsyncStorage.getItem(k).catch(() => null)));
+  return { theme: theme === "light" || theme === "dark" ? theme : "system", notifyRecovery: recovery === "1", notifySyncProblem: syncProblem === "1" };
 }
 
-export async function saveNotify(store: Store, key: NotifyKey, on: boolean): Promise<void> {
-  await store.settings.set(key, on);
-  dataChanged();
+export async function saveTheme(theme: Theme): Promise<void> {
+  await AsyncStorage.setItem(THEME_KEY, theme);
+}
+
+export async function saveNotify(key: NotifyKey, on: boolean): Promise<void> {
+  await AsyncStorage.setItem(notifyKey(key), on ? "1" : "0");
 }

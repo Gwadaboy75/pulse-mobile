@@ -35,7 +35,7 @@ export function ActivitiesScreen() {
   const sp = useLocalSearchParams<{ days?: string; kind?: string }>()
   const pages = Math.min(120, Math.max(1, Math.round(Number(sp.days) / ACTIVITY_PAGE_DAYS) || 1))
   const days = pages * ACTIVITY_PAGE_DAYS
-  const { data, error, reload } = useScreen(async (ctx) => ({ timeZone: ctx.timeZone, vm: await getActivities(ctx, days) }), ["activities", days])
+  const { data, error, reload } = useScreen(async (ctx) => ({ timeZone: ctx.timeZone, vm: await getActivities(days, ctx) }), ["activities", days])
 
   if (!data) return error ? <ScreenError retry={reload} /> : <ActivitiesSkeleton />
   const { vm, timeZone } = data

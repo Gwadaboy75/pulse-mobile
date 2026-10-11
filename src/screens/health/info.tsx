@@ -14,7 +14,7 @@ export const MONITOR_INFO: InfoContent = {
   title: "About Health Monitor",
   body: (
     <P>
-      Health Monitor compares last night’s vitals with your personal normal range: Google’s own range where it gives one, else your baseline plus or minus two standard deviations. Blood
+      Health Monitor compares last night’s vitals with your personal normal range: your baseline plus or minus two standard deviations. Blood
       oxygen also flags anything below 95%. A change in several vitals at once can be an early sign of illness. Pulse is not a medical device; if you
       feel unwell, talk to a doctor.
     </P>
@@ -72,7 +72,7 @@ export const HEART_RATE_INFO: InfoContent = {
   title: "About heart rate",
   body: (
     <>
-      <P>Your band records heart rate through the day. Fitbit uploads it to Google Health, and Pulse reads it from there.</P>
+      <P>Your band records heart rate through the day. The Google Health app shares it with Health Connect, and Pulse reads it from there.</P>
       <P>While this screen is open on today, Pulse checks for new readings every minute. A reading usually arrives one to three minutes after your band takes it, so the newest one is never quite now.</P>
       <P>The chart shows each minute’s average. Minutes without a reading, when the band was off or not syncing, stay blank.</P>
     </>

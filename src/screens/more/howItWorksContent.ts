@@ -28,10 +28,10 @@ export const SCORE_DOCS: ScoreDoc[] = [
         ],
         rows: [
           { term: "Heart rate variability", detail: "Fitbit’s nightly HRV, in ms. Higher is better." },
-          { term: "Resting heart rate", detail: "Fitbit’s daily resting heart rate from Google, in bpm; the lowest 5-minute average during sleep only on a day Google has none. Lower is better." },
+          { term: "Resting heart rate", detail: "Fitbit’s daily resting heart rate from Health Connect, in bpm; the lowest 5-minute average during sleep only on a day it has none. Lower is better." },
           { term: "Sleep performance", detail: "Last night’s Sleep Performance. 85% is neutral." },
           { term: "Respiratory rate", detail: "Breaths per minute asleep, in rpm. Higher counts against you." },
-          { term: "Skin temperature", detail: "Distance from Google’s skin-temperature baseline (your 30-night median), in °C; Pulse’s own baseline only when Google gives none. Either direction counts against you." },
+          { term: "Skin temperature", detail: "Distance from your skin-temperature baseline (your 30-night median), in °C. Either direction counts against you." },
         ],
       },
       {
@@ -76,7 +76,7 @@ export const SCORE_DOCS: ScoreDoc[] = [
         title: "What goes in",
         rows: [
           { term: "Heart rate", detail: "Every reading from local midnight to midnight, sleep included. Each reading covers the gap to the next one, up to 2\u00a0minutes." },
-          { term: "Resting heart rate", detail: "Fitbit’s daily value from Google, else last night’s sleeping resting heart rate, else 60\u00a0bpm." },
+          { term: "Resting heart rate", detail: "Fitbit’s daily value from Health Connect, else last night’s sleeping resting heart rate, else 60\u00a0bpm." },
           { term: "Max heart rate", detail: "The value in Settings; else 208 − 0.7 × your age." },
         ],
       },
@@ -278,7 +278,7 @@ export const SCORE_DOCS: ScoreDoc[] = [
         paragraphs: ["Nine habits and vitals, averaged over 6\u00a0months, each against a reference: a fit person of your age and sex."],
         rows: [
           { term: "VO2 max", detail: "From runs in the last 90\u00a0days, else Fitbit’s daily estimate at half weight. Reference: your age’s 75th percentile." },
-          { term: "Resting heart rate", detail: "Fitbit’s daily value from Google. Reference 60\u00a0bpm." },
+          { term: "Resting heart rate", detail: "Fitbit’s daily value from Health Connect. Reference 60\u00a0bpm." },
           { term: "Steps", detail: "Reference and cap: 10,000 a day under 60, 8,000 from 60." },
           { term: "Sleep hours", detail: "Reference 7.5\u00a0hours; 7 to 8\u00a0scores the same." },
           { term: "Sleep consistency", detail: "Reference 86.3." },
@@ -404,17 +404,17 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "What goes in",
         rows: [
-          { term: "Resting heart rate", detail: "Fitbit’s daily resting heart rate from Google, in bpm." },
+          { term: "Resting heart rate", detail: "Fitbit’s daily resting heart rate from Health Connect, in bpm." },
           { term: "Heart rate variability", detail: "Fitbit’s nightly HRV, in ms." },
           { term: "Respiratory rate", detail: "Breaths per minute asleep, in rpm." },
           { term: "SpO2", detail: "Blood oxygen overnight, in %." },
-          { term: "Skin temperature", detail: "Last night against Google’s skin-temperature baseline, in °C." },
+          { term: "Skin temperature", detail: "Last night against your skin-temperature baseline, in °C." },
         ],
       },
       {
         title: "How it is weighted",
         paragraphs: [
-          "Resting heart rate and HRV use Google’s personal ranges when Google gives them, and skin temperature uses ± 2 of Google’s 30-night standard deviation around its baseline. Otherwise, and always for respiratory rate and SpO2, a normal range is your baseline ± 2 of your usual night-to-night swings, built from earlier nights only. Pulse’s narrowest ranges are about ±5\u00a0bpm, ±12.5\u00a0ms, ±1.25\u00a0rpm, ±1.25\u00a0points of SpO2 and ±0.75\u00a0°C. SpO2 is one-sided: below 95% is always low, and a high value is never flagged.",
+          "For every vital, a normal range is your baseline ± 2 of your usual night-to-night swings, built from earlier nights only. Pulse’s narrowest ranges are about ±5\u00a0bpm, ±12.5\u00a0ms, ±1.25\u00a0rpm, ±1.25\u00a0points of SpO2 and ±0.75\u00a0°C. SpO2 is one-sided: below 95% is always low, and a high value is never flagged.",
           "The illness signal compares resting heart rate, HRV, skin temperature and respiratory rate with your 30\u00a0nights before. A vital fires at 2 standard deviations in the unwell direction and adds 22\u00a0points per extra deviation, up to 40. With at least 2 vitals firing, 25\u00a0points is mild and 50 is raised. If you logged alcohol, sauna or travel the day before, Pulse takes that as the likely cause instead.",
         ],
       },
@@ -430,7 +430,7 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "Limits",
         paragraphs: [
-          "A range from Google is there as soon as Google sends one. Pulse’s own range needs 4 earlier nights and lapses after 14\u00a0nights without a value; without Google’s baseline, skin temperature needs Pulse’s own first, so it takes about 8\u00a0nights. The illness signal stays quiet until 14 of your last 30\u00a0nights have resting heart rate or HRV. A flagged vital is a prompt to notice, not a diagnosis.",
+          "A range needs 4 earlier nights and lapses after 14\u00a0nights without a value; skin temperature needs its own baseline first, so it takes about 8\u00a0nights. The illness signal stays quiet until 14 of your last 30\u00a0nights have resting heart rate or HRV. A flagged vital is a prompt to notice, not a diagnosis.",
         ],
       },
     ],

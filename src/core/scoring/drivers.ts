@@ -1,8 +1,10 @@
 // Ports RecoveryDrivers.kt: the "What shaped it" rows under the Charge score. Each row's deltaPoints is
 // the score minus the score with that term held at its baseline (z = 0): a marginal effect, so the rows
-// are not additive far from baseline.
+// are not additive far from baseline. Since version 17: HRV's baseline is the ln baseline shown in ms (its geometric
+// mean), respiratory rate has a row only when it lowered the score (it never raises it), and skin temperature has none
+// (it is not part of Recovery; Health Monitor shows it).
 import { isUsable } from "./baselines";
-import { parasympatheticSaturation, recoveryFromStates, sleepPerfCenter, zScore } from "./recovery";
+import { driverBaseline, hrvLnZ, parasympatheticSaturation, recoveryFromStates, sleepPerfCenter, zScore } from "./recovery";
 import type { BaselineState } from "./types";
 
 export type ChargeDriverLabel =
@@ -39,7 +41,7 @@ export interface ChargeDriver {
   /** Signed points versus this signal sitting at its baseline. */
   deltaPoints: number;
   value: number;
-  /** null for skin temp (already relative) and sleep quality (fixed centre). */
+  /** null for sleep quality (fixed centre); rows stored before version 17 may also carry skin temperature, with null. */
   baseline: number | null;
   unit: ChargeDriverUnit;
   verdict: ChargeDriverVerdict;
@@ -49,12 +51,12 @@ export interface ChargeDriverArgs {
   hrv: number;
   rhr: number | null;
   resp?: number | null;
+  /** In ln(ms), as Recovery folds it. */
   hrvBaseline: BaselineState;
   rhrBaseline?: BaselineState | null;
   respBaseline?: BaselineState | null;
   /** In [0, 1]. */
   sleepPerf?: number | null;
-  skinTempDev?: number | null;
 }
 
 /** Driver rows sorted biggest mover first; empty when the score itself cannot compute. */
@@ -71,20 +73,22 @@ export function chargeDrivers(a: ChargeDriverArgs): ChargeDriver[] {
     return n === 0 ? 0 : n; // no -0: Kotlin Int has none
   };
 
-  const hrvZFull = zScore(a.hrv, a.hrvBaseline.baseline, a.hrvBaseline.spread);
+  const hrvZFull = hrvLnZ(a.hrv, driverBaseline(a.hrvBaseline));
   const rhrZFull = rhrB && a.rhr != null ? zScore(rhrB.baseline, a.rhr, rhrB.spread) : null;
   const saturationDetected = parasympatheticSaturation(hrvZFull, rhrZFull).active;
+  // The ln baseline in ms: its geometric mean.
+  const hrvBaselineMs = Math.exp(a.hrvBaseline.baseline);
 
   const drivers: ChargeDriver[] = [];
 
-  const hrvPoints = points(recoveryFromStates({ ...args, hrv: a.hrvBaseline.baseline }));
+  const hrvPoints = points(recoveryFromStates({ ...args, hrv: hrvBaselineMs }));
   drivers.push({
     label: "HEART_RATE_VARIABILITY",
     deltaPoints: hrvPoints,
     value: a.hrv,
-    baseline: a.hrvBaseline.baseline,
+    baseline: hrvBaselineMs,
     unit: "MILLISECONDS",
-    verdict: hrvVerdict(a.hrv, a.hrvBaseline.baseline, hrvPoints, saturationDetected),
+    verdict: hrvVerdict(a.hrv, hrvBaselineMs, hrvPoints, saturationDetected),
   });
 
   if (rhrB && a.rhr != null) {
@@ -111,27 +115,18 @@ export function chargeDrivers(a: ChargeDriverArgs): ChargeDriver[] {
   }
 
   if (a.resp != null && a.respBaseline) {
+    // Only ever a penalty: a row when it cost points.
     const respPoints = points(recoveryFromStates({ ...args, resp: a.respBaseline.baseline }));
-    drivers.push({
-      label: "RESPIRATORY_RATE",
-      deltaPoints: respPoints,
-      value: a.resp,
-      baseline: a.respBaseline.baseline,
-      unit: "BREATHS_PER_MINUTE",
-      verdict: baselineVerdict(a.resp, a.respBaseline.baseline, respPoints, 1),
-    });
-  }
-
-  if (a.skinTempDev != null) {
-    const skinPoints = points(recoveryFromStates({ ...args, skinTempDev: 0.0 }));
-    drivers.push({
-      label: "SKIN_TEMPERATURE",
-      deltaPoints: skinPoints,
-      value: a.skinTempDev,
-      baseline: null,
-      unit: "CELSIUS_DEVIATION",
-      verdict: skinTempVerdict(a.skinTempDev, skinPoints),
-    });
+    if (respPoints < 0) {
+      drivers.push({
+        label: "RESPIRATORY_RATE",
+        deltaPoints: respPoints,
+        value: a.resp,
+        baseline: a.respBaseline.baseline,
+        unit: "BREATHS_PER_MINUTE",
+        verdict: baselineVerdict(a.resp, a.respBaseline.baseline, respPoints, 1),
+      });
+    }
   }
 
   // Stable sort keeps the append order on ties.

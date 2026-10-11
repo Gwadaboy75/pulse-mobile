@@ -3,12 +3,14 @@ import { View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { CalendarRange, Check, ChevronRight, CircleAlert, Info, Lightbulb, Maximize2, Moon, Plus, Sun, TriangleAlert } from "lucide-react-native";
 import { isDashboardKey } from "@/lib/dashboard";
-import type { QueryCtx } from "@/queries/common";
-import { addDays } from "@/time";
+import { dashboardChoice } from "@/actions/dashboard";
+import type { QueryCtx } from "@/queries/ctx";
+import { addDays } from "@/lib/time";
 import { clock, DAY, formatDay, formatValue, MISSING, rangeLabel } from "@/lib/format";
 import { reasonCopy } from "@/lib/reasons";
 import { activityHref, dayHref, napHref } from "@/lib/url";
-import { dashboardKeys, getHome } from "@/queries/home";
+import { getHome } from "@/queries/home";
+import { dashboardKeys, getHomeDashboard, type HomeDashboard } from "@/queries/homeExtras";
 import type { HomeVM, KeyStat, StressLevel } from "@/queries/types";
 import { Wordmark } from "@/ui/brand";
 import { EnergyBankChart } from "@/ui/charts/EnergyBankChart";
@@ -73,14 +75,20 @@ const NO_BAND_INFO = {
 
 const go = (href: string) => push(href);
 
-const homeQuery = (d: string) => (ctx: QueryCtx) => getHome(ctx, d);
+/** halo's Home with My Dashboard from Pulse's catalogue (src/queries/homeExtras.ts) and the stress tile's line. */
+type HomePageVM = Omit<HomeVM, "dashboard"> & { dashboard: { empty: HomeDashboard["empty"] }; stressChart: HomeDashboard["stressChart"] };
+const homeQuery = (d: string) => async (ctx: QueryCtx): Promise<HomePageVM> => {
+  const chosen = await dashboardChoice();
+  const [vm, dash] = await Promise.all([getHome(d, ctx), getHomeDashboard(d, ctx, chosen)]);
+  return { ...vm, keyStats: dash.keyStats, dashboard: { empty: dash.empty }, stressChart: dash.stressChart };
+};
 const homeKey = (d: string) => ["home", d] as const;
 
 export function HomeScreen() {
   const [d] = useSelectedDay();
   const { timeZone } = useShellCalendar();
   const { data } = useScreen(homeQuery(d), homeKey(d));
-  const keys = useScreen((ctx) => dashboardKeys(ctx.store), ["home-keys"]).data;
+  const keys = useScreen(async (ctx) => dashboardKeys(ctx, await dashboardChoice()), ["home-keys"]).data;
   // The web shows its skeleton on every navigation: another day's data is not this day's.
   const vm = data?.day === d && timeZone ? data : undefined;
   // What is one tap away loads while Home is in view and settled, one item per idle moment: the other tabs and, on
@@ -111,7 +119,7 @@ export function HomeScreen() {
   return vm && timeZone ? <Home vm={vm} timeZone={timeZone} /> : <HomeSkeleton stats={keys} />;
 }
 
-function Home({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
+function Home({ vm, timeZone }: { vm: HomePageVM; timeZone: string }) {
   const d = vm.day;
   const { today } = vm;
   const at = (href: string) => dayHref(href, d, today);
@@ -277,7 +285,7 @@ function DayBanner({ outlook }: { outlook: NonNullable<HomeVM["outlook"]> }) {
   );
 }
 
-function JournalWeek({ vm, at }: { vm: HomeVM; at: (href: string) => string }) {
+function JournalWeek({ vm, at }: { vm: HomePageVM; at: (href: string) => string }) {
   return (
     <SectionShell variant="card" title="My journal" action={<IconLink href={at("/journal")} label="Open Journal" icon={ChevronRight} />}>
       <View accessibilityRole="list" className="flex-row pt-1">
@@ -375,7 +383,7 @@ function MonitorLine({ chip, chipClass, top, topClass, bottom }: { chip: ReactNo
 
 const NO_READING_CHIP = <Text className="font-numeric text-base font-bold text-muted-foreground">{MISSING}</Text>;
 
-function MonitorCard({ vm, href }: { vm: HomeVM; href: string }) {
+function MonitorCard({ vm, href }: { vm: HomePageVM; href: string }) {
   const m = vm.monitor;
   return (
     <SectionShell variant="card" title="Health Monitor" info={false} href={href} fill>
@@ -391,7 +399,7 @@ function MonitorCard({ vm, href }: { vm: HomeVM; href: string }) {
   );
 }
 
-function StressCard({ vm, href, timeZone }: { vm: HomeVM; href: string; timeZone: string }) {
+function StressCard({ vm, href, timeZone }: { vm: HomePageVM; href: string; timeZone: string }) {
   const s = vm.stress;
   if (s.value === null)
     return (
@@ -413,7 +421,7 @@ function StressCard({ vm, href, timeZone }: { vm: HomeVM; href: string; timeZone
   );
 }
 
-function StressTile({ vm, href, timeZone }: { vm: HomeVM; href: string; timeZone: string }) {
+function StressTile({ vm, href, timeZone }: { vm: HomePageVM; href: string; timeZone: string }) {
   const s = vm.stress.value;
   const tone = s && STRESS_TONE[s.level];
   const data = useMemo(() => vm.stressChart && stressSeries(vm.stressChart), [vm.stressChart]);
@@ -441,7 +449,7 @@ function StressTile({ vm, href, timeZone }: { vm: HomeVM; href: string; timeZone
   );
 }
 
-function EnergyCard({ vm, timeZone }: { vm: HomeVM; timeZone: string }) {
+function EnergyCard({ vm, timeZone }: { vm: HomePageVM; timeZone: string }) {
   const e = vm.energyBank;
   return (
     <SectionShell variant="card" title="Energy Bank" info={ENERGY_INFO} aside={e.value && e.provisional ? <MetricTags provisional /> : undefined} fill>

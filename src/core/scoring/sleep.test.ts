@@ -7,18 +7,13 @@ import {
   ledger,
   maxNeedHours,
   personalizedNeedHours,
-  rest,
-  restFromTotals,
-  restorativeTargetShare,
   round1,
   sleepConsistency,
-  wConsistency,
-  wDuration,
-  wEfficiency,
-  wRestorative,
+  sleepPerformance,
+  sleepPerformanceParts,
+  sleepPerformanceWeights,
 } from "./sleep";
 
-const H = 3600;
 const EPS = 9;
 
 describe("hypnogramMetrics", () => {
@@ -47,46 +42,44 @@ describe("hypnogramMetrics", () => {
   });
 });
 
-describe("ChargeEffortRestScoringTest: Rest", () => {
-  it("weight constants", () => {
-    expect([wDuration, wEfficiency, wRestorative, wConsistency, defaultSleepNeedHours, restorativeTargetShare]).toEqual([
-      0.5, 0.2, 0.2, 0.1, 8, 0.5,
-    ]);
+describe("Sleep Performance: WHOOP's 2025 four parts", () => {
+  const night = (over: Partial<Parameters<typeof sleepPerformance>[0]> = {}) => ({
+    asleepMin: 480,
+    needMin: 480,
+    efficiency: 0.92,
+    consistency: 80,
+    stressPct: 10,
+    ...over,
   });
 
-  it("null when there is no asleep time", () => {
-    expect(rest(0, 0.9, 0, 0)).toBeNull();
+  it("weighs hours vs needed 0.70, consistency, efficiency and sleep stress 0.10 each", () => {
+    expect(sleepPerformanceWeights).toEqual({ hours: 0.7, consistency: 0.1, efficiency: 0.1, stress: 0.1 });
+    expect(defaultSleepNeedHours).toBe(8);
   });
 
-  it("no consistency uses a neutral 50 at full weight", () => {
-    expect(rest(8 * H, 0.92, 1.5 * H, 2 * H)).toBeCloseTo(100 * 0.5 + 92 * 0.2 + 87.5 * 0.2 + 50 * 0.1, EPS);
+  it("8 h against an 8 h need, 92 % efficiency, consistency 80, sleep stress 10 % → 0.7·100 + 8 + 9.68 + 9 = 96.68", () => {
+    expect(sleepPerformance(night())).toBeCloseTo(96.68, EPS);
   });
 
-  it("the consistency term is included", () => {
-    expect(rest(8 * H, 0.92, 1.5 * H, 2 * H, null, 0.8)).toBeCloseTo(100 * 0.5 + 92 * 0.2 + 87.5 * 0.2 + 80 * 0.1, EPS);
+  it("6 h against 8 h is 75 % of the hours part", () => {
+    expect(sleepPerformanceParts(night({ asleepMin: 360 })).hours).toBe(75);
+    expect(sleepPerformance(night({ asleepMin: 360 }))).toBeCloseTo(0.7 * 75 + 8 + 9.68 + 9, EPS);
   });
 
-  it("duration dominates a short night", () => {
-    expect(rest(4 * H, 0.95, H, H)).toBeCloseTo(50 * 0.5 + 95 * 0.2 + 100 * 0.2 + 50 * 0.1, EPS);
+  it("scores against the night's full need: a bigger need lowers it, oversleeping clamps at 100", () => {
+    expect(sleepPerformance(night({ needMin: 540 }))!).toBeLessThan(sleepPerformance(night())!);
+    expect(sleepPerformanceParts(night({ asleepMin: 600 })).hours).toBe(100);
+    expect(sleepPerformanceParts(night({ efficiency: 0.97 })).efficiency).toBe(100);
   });
 
-  it("a refined lower need raises duration; oversleep clamps at 100", () => {
-    expect(rest(6 * H, 0.9, H, 1.5 * H, 6)!).toBeGreaterThan(rest(6 * H, 0.9, H, 1.5 * H)!);
-    const share = (2 + 2.5) / 10;
-    expect(rest(10 * H, 0.9, 2 * H, 2.5 * H)).toBeCloseTo(100 * 0.5 + 90 * 0.2 + (share / 0.5) * 100 * 0.2 + 50 * 0.1, EPS);
+  it("without sleep stress (or consistency) the other weights renormalise", () => {
+    const eff = (0.1 * 92) / 0.95;
+    expect(sleepPerformance(night({ stressPct: null }))).toBeCloseTo((70 + 8 + eff) / 0.9, 2);
+    expect(sleepPerformance(night({ stressPct: null, consistency: null }))).toBeCloseTo((70 + eff) / 0.8, 2);
   });
 
-  it("low deep share scales the restorative term down to half", () => {
-    // 8 h, no deep, 4 h REM: share 0.5 → 100, deep factor 0.5 → 50.
-    expect(rest(8 * H, 0.9, 0, 4 * H)).toBeCloseTo(100 * 0.5 + 90 * 0.2 + 50 * 0.2 + 50 * 0.1, EPS);
-  });
-
-  it("restFromTotals reads a night's stored minutes", () => {
-    expect(restFromTotals({ totalSleepMin: 420, efficiency: 0.85, deepMin: 80, remMin: 90 })).toBe(
-      rest(420 * 60, 0.85, 80 * 60, 90 * 60, null, null),
-    );
-    expect(restFromTotals({ totalSleepMin: null, efficiency: 0.85, deepMin: 80, remMin: 90 })).toBeNull();
-    expect(restFromTotals({ totalSleepMin: 0, efficiency: 0.85, deepMin: null, remMin: null })).toBeNull();
+  it("is null without asleep time", () => {
+    expect(sleepPerformance(night({ asleepMin: 0 }))).toBeNull();
   });
 });
 

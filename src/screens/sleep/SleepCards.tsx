@@ -8,6 +8,7 @@ import { View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { deltaTone } from "@/lib/bands";
 import { hmm } from "@/lib/format";
+import type { SleepExtras } from "@/queries/mobileExtras";
 import type { KeyStat, SleepVM } from "@/queries/types";
 import { cn } from "@/ui/cn";
 import { alpha } from "@/ui/color";
@@ -57,7 +58,7 @@ function Legend({ rows }: { rows: { swatch: string; label: string; value: string
   );
 }
 
-export function HoursVsNeed({ vm }: { vm: SleepVM }) {
+export function HoursVsNeed({ vm }: { vm: Pick<SleepVM, "hoursVsNeed" | "summary"> }) {
   const { c } = useTheme();
   const m = vm.hoursVsNeed;
   if (m.value === null) return <ReasonPlaceholder reason={m.reason} nightsLeft={m.nightsLeft} size="md" />;
@@ -156,7 +157,7 @@ function optimalPath(points: ({ x: number; y: number } | null)[], k: number) {
 /** The plot's height: the web's h-52. */
 const PLOT_H = 208;
 
-export function SleepConsistency({ vm }: { vm: SleepVM }) {
+export function SleepConsistency({ vm }: { vm: Pick<SleepVM, "consistency" | "summary"> }) {
   const { c } = useTheme();
   const [w, setW] = useState(0);
   const m = vm.consistency;
@@ -251,7 +252,7 @@ function Wakes({ wakes, className }: { wakes: { at: number; width: number }[]; c
  * The reference app's Sleep Efficiency card (sleep-24, sleep-25): the share with its arrow and prior mean, an asleep bar
  * cut where each spell awake fell, an awake bar on the hatched track marked at the same places, then the wake events.
  */
-export function SleepEfficiency({ vm }: { vm: SleepVM }) {
+export function SleepEfficiency({ vm }: { vm: Pick<SleepExtras, "efficiency"> }) {
   const m = vm.efficiency;
   if (m.value === null) return <ReasonPlaceholder reason={m.reason} nightsLeft={m.nightsLeft} size="md" />;
   const e = m.value;

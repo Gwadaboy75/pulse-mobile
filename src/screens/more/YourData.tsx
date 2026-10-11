@@ -1,13 +1,13 @@
-// Your data `/more/data` (U21): your daily scores, journal answers and coach chats as CSV or JSON. Ported from pulse
+// Your data `/more/data` (U21): your daily scores and journal answers as CSV or JSON. Ported from pulse
 // (app)/more/data/page.tsx and loading.tsx. A download becomes the system share sheet (src/actions/export.ts): Save to
 // Files, AirDrop, Drive, mail. The web's Backup card was never in the page; there is nothing else to export or restore here.
 import { useState } from "react";
 import { View } from "react-native";
 import { Download } from "lucide-react-native";
 import { type ExportFormat, type ExportKind, shareExport } from "@/actions/export";
-import { store } from "@/data/store";
 import { DAY, formatDay } from "@/lib/format";
-import { getYourData, hasCoachChats } from "@/queries/settings";
+import { getYourData } from "@/queries/settings";
+import { queryCtx } from "@/state/app";
 import { Button } from "@/ui/Button";
 import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
@@ -34,7 +34,7 @@ function DownloadLink({ kind, format, busy, setBusy }: { kind: ExportKind; forma
       onPress={async () => {
         haptic.tap();
         setBusy(id);
-        const r = await shareExport(store, kind, format);
+        const r = await shareExport(queryCtx(), kind, format);
         setBusy(null);
         if (!r.ok) toast.error(r.error);
       }}
@@ -77,10 +77,10 @@ function Loading() {
 }
 
 export function YourDataScreen() {
-  const { data } = useScreen(async (ctx) => ({ vm: await getYourData(ctx), coach: await hasCoachChats(ctx) }), ["yourData"]);
+  const { data } = useScreen(async (ctx) => ({ vm: await getYourData(ctx) }), ["yourData"]);
   const [busy, setBusy] = useState<string | null>(null);
   if (!data) return <Loading />;
-  const { vm, coach } = data;
+  const { vm } = data;
   const since = vm.first ? ` since ${formatDay(vm.first, DAY.full)}` : "";
   const link = (kind: ExportKind, format: ExportFormat) => <DownloadLink kind={kind} format={format} busy={busy} setBusy={setBusy} />;
 
@@ -108,14 +108,7 @@ export function YourDataScreen() {
               </View>
             </SectionShell>
 
-            {coach && (
-              <SectionShell variant="card" title="Coach">
-                <Text className={BODY}>Every saved coach chat, with the data cards it showed.</Text>
-                <View className="mt-4 flex-row">{link("coach", "json")}</View>
-              </SectionShell>
-            )}
-
-            <Text className={CAPTION}>No export includes your Google access tokens or your AI provider key.</Text>
+            <Text className={CAPTION}>Exports hold only what Pulse stored on this phone.</Text>
           </View>
         }
       />
