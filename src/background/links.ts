@@ -2,8 +2,10 @@
 // (the cold-start one too) and pushes the route once the root navigator exists. The `url` is the app's own scheme
 // ("pulse://journal", app.json `scheme`), the same links Android hands expo-router from outside.
 import * as React from "react";
+import { Linking } from "react-native";
 import * as Notifications from "expo-notifications";
-import { router, useRootNavigationState, type Href } from "expo-router";
+import { useRootNavigationState } from "expo-router";
+import { isTabRoot, openLink } from "@/ui/navigate";
 
 /** "pulse://settings?s=source" → "/settings?s=source"; a path passes through. */
 export function pathOf(url: string): string {
@@ -24,8 +26,23 @@ export function useNotificationDeepLinks(): void {
     handled.current = key;
     const data = response.notification.request.content.data as Record<string, unknown> | null | undefined;
     const url = data?.url;
-    if (typeof url === "string") router.push(pathOf(url) as Href);
+    if (typeof url === "string") openLink(pathOf(url));
     // Consumed: a later mount (a reload) must not open it again.
     void Notifications.clearLastNotificationResponseAsync().catch(() => {});
   }, [navReady, response]);
+}
+
+/**
+ * Mount once, under the root layout: a link from outside while Pulse runs (a launcher shortcut, another app) to a tab
+ * root. expo-router navigates to it but leaves the detail screens stacked over the tabs, so close those and show the tab.
+ */
+export function useTabLinks(): void {
+  React.useEffect(() => {
+    const sub = Linking.addEventListener("url", ({ url }) => {
+      const path = pathOf(url);
+      // After expo-router has handled the same event.
+      if (isTabRoot(path)) setTimeout(() => openLink(path), 0);
+    });
+    return () => sub.remove();
+  }, []);
 }

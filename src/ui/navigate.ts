@@ -17,3 +17,17 @@ export function push(href: string) {
   if (typeof __DEV__ !== "undefined" && __DEV__) console.info(`[screen] push at-ms=${Math.round(performance.now())}`);
   router.push(href as Href);
 }
+
+/** A tab root ("/", "/health", "/journal", "/more"), with or without a query. */
+export const isTabRoot = (path: string) => ["/", "/health", "/journal", "/more"].includes(path.split("?")[0]);
+
+/**
+ * Opens a link from outside a tap (a notification, a launcher shortcut, another app). A tab root first closes what is
+ * stacked over the tabs: pushing or navigating to a tab under a detail screen left that screen on top.
+ */
+export function openLink(path: string) {
+  if (isTabRoot(path)) {
+    if (router.canDismiss()) router.dismissAll();
+    router.navigate(path as Href);
+  } else router.push(path as Href);
+}
