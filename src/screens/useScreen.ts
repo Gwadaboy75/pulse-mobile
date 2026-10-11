@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import type { QueryCtx } from "@/queries/ctx";
 import { dataChanged, dataVersion, queryCtx, useDataVersion } from "@/state/app";
 import { useScreenReady } from "../ui/shells/useScreenReady";
+import { keepEqual } from "./keepEqual";
 
 export { dataChanged, useDataVersion };
 
@@ -16,7 +17,7 @@ const ctxOf = async (): Promise<QueryCtx> => queryCtx();
  */
 type Entry = { data: unknown; version: number; at: number };
 const cache = new Map<string, Entry>();
-const loading = new Map<string, Promise<void>>();
+const loading = new Map<string, { p: Promise<void>; version: number }>();
 const cacheListeners = new Set<() => void>();
 const FRESH_MS = 60_000;
 // ponytail: a plain size cap, oldest first; a byte budget if results ever grow large.
@@ -29,22 +30,29 @@ const subscribeCache = (l: () => void) => {
 
 const fresh = (e: Entry | undefined): e is Entry => !!e && e.version === dataVersion() && Date.now() - e.at < FRESH_MS;
 
+/**
+ * Runs `query` for `k` and caches its result. A load already running for this data version is joined; one started
+ * before a `dataChanged` is not (it may have read the old rows), and if it lands after the newer one it is dropped.
+ * The new result keeps every part equal to the last one's (keepEqual): a page re-renders only the parts that changed.
+ */
 function load(k: string, query: (ctx: QueryCtx) => Promise<unknown>): Promise<void> {
-  const running = loading.get(k);
-  if (running) return running;
   const started = dataVersion();
+  const running = loading.get(k);
+  if (running?.version === started) return running.p;
   const at = performance.now();
-  const p = ctxOf()
+  const p: Promise<void> = ctxOf()
     .then(query)
     .then((data) => {
       if (__DEV__) console.info(`[screen] ${k} loaded ms=${Math.round(performance.now() - at)}`);
+      const prev = cache.get(k);
+      if (prev && prev.version > started) return;
       cache.delete(k);
-      cache.set(k, { data, version: started, at: Date.now() });
+      cache.set(k, { data: keepEqual(prev?.data, data), version: started, at: Date.now() });
       if (cache.size > MAX_ENTRIES) cache.delete(cache.keys().next().value!);
       for (const l of cacheListeners) l();
     })
-    .finally(() => loading.delete(k));
-  loading.set(k, p);
+    .finally(() => loading.get(k)?.p === p && loading.delete(k));
+  loading.set(k, { p, version: started });
   return p;
 }
 
