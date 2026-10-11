@@ -3,7 +3,7 @@
 // built here from the same classes and tokens, never from a platform control.
 import { useEffect, useState, type ReactNode, type Ref } from "react";
 import { Modal, Pressable, TextInput, View, type TextInputProps } from "react-native";
-import Animated, { useAnimatedStyle, withTiming } from "react-native-reanimated";
+import Animated, { interpolateColor, useAnimatedStyle, useDerivedValue, withTiming } from "react-native-reanimated";
 import type { LucideIcon } from "lucide-react-native";
 import { FACES } from "@/ui/fontClasses";
 import { alpha } from "@/ui/color";
@@ -151,23 +151,31 @@ export function SmallButton({ label, accessibilityLabel, onPress, icon, solid, c
   );
 }
 
-/** The web's Switch (default size: 32 × 18.4 track, 16 px thumb), with a larger touch area. */
+/**
+ * A native-sized switch (51 × 31 track, 27 px white thumb with a soft shadow), as WHOOP and the platform draw theirs:
+ * the web's 32 × 18 shadcn switch read as a toy on a phone (owner's call). On, the track is the optimal green.
+ */
 export function Switch({ value, onValueChange, disabled, label }: { value: boolean; onValueChange: (v: boolean) => void; disabled?: boolean; label: string }) {
-  const thumb = useAnimatedStyle(() => ({ transform: [{ translateX: withTiming(value ? 14 : 0, { duration: DURATION.fast }) }] }), [value]);
+  const { c } = useTheme();
+  const on = useDerivedValue(() => withTiming(value ? 1 : 0, { duration: DURATION.fast }), [value]);
+  const track = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(on.value, [0, 1], [c.input, c.optimal]) }));
+  const thumb = useAnimatedStyle(() => ({ transform: [{ translateX: on.value * 20 }] }));
   return (
     <Pressable
       accessibilityRole="switch"
       accessibilityLabel={label}
       accessibilityState={{ checked: value, disabled: !!disabled }}
       disabled={disabled}
-      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       onPress={() => {
         haptic.toggle(!value);
         onValueChange(!value);
       }}
-      className={cn("h-[18.4px] w-8 justify-center rounded-full border border-transparent px-px", value ? "bg-primary" : "bg-input dark:bg-input/80", disabled && "opacity-disabled")}
+      className={cn(disabled && "opacity-disabled")}
     >
-      <Animated.View className={cn("size-4 rounded-full", value ? "bg-background dark:bg-primary-foreground" : "bg-background dark:bg-foreground")} style={thumb} />
+      <Animated.View style={[{ width: 51, height: 31, borderRadius: 15.5, padding: 2, justifyContent: "center" }, track]}>
+        <Animated.View style={[{ width: 27, height: 27, borderRadius: 13.5, backgroundColor: "#ffffff", boxShadow: "0 2px 4px rgba(0, 0, 0, 0.25)" }, thumb]} />
+      </Animated.View>
     </Pressable>
   );
 }

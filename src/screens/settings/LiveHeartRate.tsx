@@ -1,14 +1,13 @@
 // Settings › Live heart rate (`/settings?s=live`), from halo src/screens/settings/liveHr.tsx (its behaviour and copy;
 // drawn with Pulse's kit). Three cards: the band (status, the remembered band, auto-connect, Go live / Stop, Forget),
 // the permissions, and Go live: the three steps in Google Health, then the scan, the bands it finds and the
-// connection. With `go=1` (Heart rate's Go live) the scan starts on arrival and again on coming back from Google
-// Health, as halo's Go-live sheet does.
+// connection. A scan runs only when asked: Search / Go live here, or once on arrival from Heart rate's Go live (`go=1`).
 //
 // The band shares heart rate with the standard Bluetooth Heart Rate Service once Google Health › Fitbit Air ›
 // Connections › Share heart rate is on (src/health/ble.ts). Live readings are for viewing only: scores keep using what
 // Pulse reads from Health Connect.
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ActivityIndicator, AppState, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { BatteryMedium, Bluetooth, BluetoothOff, ChevronRight, ExternalLink, Info, Watch, type LucideIcon } from "lucide-react-native";
 import { BACKGROUND_GRACE_MS } from "@/health/ble";
@@ -349,39 +348,26 @@ function BandAction({ live }: { live: Live }) {
 }
 
 /**
- * Scans on arrival (or once the controller has loaded) and on coming back from Google Health while nothing is
- * connected, and as soon as the permission is granted or Bluetooth comes on. Leaving stops a scan still running.
+ * Scans only when the person asks: Search / Go live here, or once on arrival from Heart rate's Go live button (`go=1`).
+ * Never again by itself, not on coming back to the app nor when Bluetooth comes on. Leaving stops a scan still running.
  */
-function useAutoScan(live: Live, on: boolean) {
+function useScanOnce(live: Live, on: boolean) {
   const latest = useRef(live);
   useEffect(() => {
     latest.current = live;
   });
-  const loaded = live.loaded;
+  const done = useRef(false);
+  const ready = live.loaded && live.status === "idle";
   useEffect(() => {
-    if (!on || !loaded) return;
-    const kick = () => {
-      const s = latest.current;
-      if (s.status === "idle") void s.scan();
-    };
-    kick();
-    const sub = AppState.addEventListener("change", (st) => st === "active" && kick());
-    return () => {
-      sub.remove();
-      latest.current.stopScan();
-    };
-  }, [on, loaded]);
-  const status = live.status;
-  const prevStatus = useRef(status);
-  useEffect(() => {
-    const was = prevStatus.current;
-    prevStatus.current = status;
-    if (on && status === "idle" && (was === "off" || was === "unauthorized")) void latest.current.scan();
-  }, [on, status]);
+    if (!on || !ready || done.current) return;
+    done.current = true;
+    void latest.current.scan();
+  }, [on, ready]);
+  useEffect(() => () => latest.current.stopScan(), []);
 }
 
 function GoLiveCard({ live, scanOnArrival }: { live: Live; scanOnArrival: boolean }) {
-  useAutoScan(live, scanOnArrival);
+  useScanOnce(live, scanOnArrival);
   return (
     <SectionShell variant="card" title="Go live">
       <Text className={cn(BODY, "mb-4")}>Beat by beat from your band, over Bluetooth.</Text>
@@ -405,14 +391,10 @@ function GoLiveCard({ live, scanOnArrival }: { live: Live; scanOnArrival: boolea
 export function LiveHeartRate() {
   const live = useLiveBle();
   const { go } = useLocalSearchParams<{ go?: string }>();
-  const [find, setFind] = useState(go === "1");
   return (
     <>
-      <BandCard live={live} onFind={() => {
-          setFind(true);
-          void live.scan();
-        }} />
-      <GoLiveCard live={live} scanOnArrival={find} />
+      <BandCard live={live} onFind={() => void live.scan()} />
+      <GoLiveCard live={live} scanOnArrival={go === "1"} />
       <PermissionsCard live={live} />
     </>
   );
