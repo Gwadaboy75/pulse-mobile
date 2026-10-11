@@ -702,4 +702,156 @@ export const SCORE_DOCS: ScoreDoc[] = [
       },
     ],
   },
+  {
+    slug: "hrv-status",
+    name: "HRV Status",
+    summary: "Your 7-day HRV against your usual range, in Garmin’s manner.",
+    href: "/health",
+    sections: [
+      {
+        title: "What goes in",
+        paragraphs: ["Fitbit’s nightly HRV (RMSSD, in ms), one value a night."],
+      },
+      {
+        title: "How it is weighted",
+        paragraphs: [
+          "Pulse averages the natural log of your HRV over the last 7\u00a0nights (it needs 4 of them) and compares it with the mean and spread of the 60\u00a0nights before. Your usual range is the mean ± 0.75 of a spread; the Low line is 1.5 spreads under the mean. The log scale is the one HRV research uses, so a night twice your usual counts as much above as half your usual counts below.",
+        ],
+      },
+      {
+        title: "What the bands mean",
+        rows: [
+          { term: "Balanced", detail: "Your 7-day average is in your usual range." },
+          { term: "Unbalanced", detail: "Above your usual range, or a little below it." },
+          { term: "Low", detail: "Well below your usual range: often strain, illness or poor sleep." },
+        ],
+      },
+      {
+        title: "Limits",
+        paragraphs: [
+          "It needs 21\u00a0nights of HRV first. Garmin reads HRV across the whole night from its own sensor and adds a Poor status when your range is low for your age; Pulse uses Fitbit’s nightly value and leaves Poor out until it has a published age norm. The spread and the 0.75 and 1.5 lines are Pulse’s choices: Garmin doesn’t publish its own. This is Pulse’s implementation of Garmin’s published idea, not Garmin’s number.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "training-readiness",
+    name: "Training Readiness",
+    summary: "How ready you are for hard training today, from 1 to 100.",
+    href: "/strain",
+    sections: [
+      {
+        title: "What goes in",
+        rows: [
+          { term: "Last night’s sleep", detail: "Sleep Performance." },
+          { term: "Recovery time", detail: "Hours left before your next hard session (below)." },
+          { term: "HRV Status", detail: "Balanced, Unbalanced above or below, or Low." },
+          { term: "Load ratio", detail: "Garmin’s acute against chronic load." },
+          { term: "Sleep history", detail: "Sleep Performance over the last 3\u00a0nights." },
+          { term: "Stress history", detail: "Your average awake stress over the last 3\u00a0days." },
+        ],
+      },
+      {
+        title: "How it is weighted",
+        paragraphs: [
+          "Each factor is scored 0 to 100: recovery time as 100 × (1 − hours ÷ 72)^1.3; HRV Balanced 100, Unbalanced above 75, below 55, Low 25; load ratio 100 from 0.8 to 1.5, falling to 30 at 2.0, and 90 under 0.8; stress 100 less 50 for each point of average stress above 0.75.",
+          "Readiness = 25% sleep + 25% recovery time + 15% HRV + 15% load + 10% sleep history + 10% stress history, a missing factor’s weight shared among the rest. It is never more than the weakest factor + 30, and a day of more than 18\u00a0hours awake before last night’s sleep takes 10 off.",
+          "Recovery time: each workout adds 72 × ((Training Effect − 1) ÷ 4)^2.32 hours (about 24 at 3.5, 72 at 5); on top of time left, the larger plus a quarter of the smaller, up to 96, and 15% more with a load ratio of 1.5 or more. It counts down an hour an hour, 1.4 asleep after a night of 85% or better, 0.7 in a stressed hour or after a night under 70%.",
+        ],
+      },
+      {
+        title: "What the bands mean",
+        rows: [
+          { term: "95-100", detail: "Prime" },
+          { term: "75-94", detail: "High" },
+          { term: "50-74", detail: "Moderate" },
+          { term: "25-49", detail: "Low" },
+          { term: "1-24", detail: "Poor" },
+        ],
+      },
+      {
+        title: "Limits",
+        paragraphs: [
+          "Garmin publishes the factors, that sleep and recovery time count most, and the bands; it doesn’t publish weights or recovery-time constants, so these are Pulse’s, fitted to Garmin’s published recovery-time table. It is set at wake and drops after training. It needs a scored night and three of its factors. It is a guide for today’s training, not a medical reading.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "training-effect",
+    name: "Training Effect",
+    summary: "How much a workout improves your aerobic fitness, from 0 to 5.",
+    href: null,
+    sections: [
+      {
+        title: "What goes in",
+        rows: [
+          { term: "Heart rate in the workout", detail: "As a share of your heart-rate reserve, turned into a share of your VO2 max." },
+          { term: "VO2 max", detail: "Fitbit’s or a measured one from the last 90\u00a0days; else Uth’s estimate, 15.3 × max ÷ resting heart rate." },
+          { term: "Your training background", detail: "An activity class from 0 to 10: from your VO2 max, age, BMI and sex (Jackson 1990), or from your weekly workout hours over the last 4\u00a0weeks, whichever is higher." },
+        ],
+      },
+      {
+        title: "How it is weighted",
+        paragraphs: [
+          "Pulse estimates the workout’s EPOC, the extra oxygen your body uses afterwards to recover, second by second: it rises with intensity and fades when you ease off, on curves fitted to Firstbeat’s published figures (an hour at 70% of VO2 max is about 137\u00a0ml/kg). The peak is compared with the EPOC that makes each Training Effect level for your activity class (Firstbeat’s published lines), linearly between them.",
+          "The main benefit comes from the effect and your time by share of max heart rate: Recovery under 2; VO2 max at 4 or more with over 10\u00a0minutes above 90%; Threshold when most of it was at 80% or more; Tempo when a quarter or more was; else Base.",
+        ],
+      },
+      {
+        title: "What the bands mean",
+        rows: [
+          { term: "0-0.9", detail: "No benefit" },
+          { term: "1.0-1.9", detail: "Minor" },
+          { term: "2.0-2.9", detail: "Maintaining" },
+          { term: "3.0-3.9", detail: "Improving" },
+          { term: "4.0-4.9", detail: "Highly improving" },
+          { term: "5.0", detail: "Overreaching" },
+        ],
+      },
+      {
+        title: "Limits",
+        paragraphs: [
+          "Garmin estimates EPOC with beat-to-beat data and unpublished constants; Pulse’s comes from heart rate alone, so read it as an estimate. There is no anaerobic Training Effect, which needs pace or power. A workout without enough heart rate has none. This is Pulse’s implementation of Garmin’s published method, not Garmin’s number.",
+        ],
+      },
+    ],
+  },
+  {
+    slug: "training-status",
+    name: "Training Status",
+    summary: "What your recent training is doing to your fitness.",
+    href: "/strain",
+    sections: [
+      {
+        title: "What goes in",
+        rows: [
+          { term: "Load ratio", detail: "Garmin’s acute against chronic load, and whether the acute load is falling (under 90% of a week ago)." },
+          { term: "VO2 max trend", detail: "Fitbit’s VO2 max over the last 28\u00a0days, recent days weighted more, as a change a month." },
+          { term: "HRV Status", detail: "Today’s, and the last 3\u00a0days’." },
+        ],
+      },
+      {
+        title: "How it is weighted",
+        paragraphs: [
+          "Rules, in order, the first that fits: Detraining, acute load under 20% of your 12-week median for 7\u00a0days; Strained, HRV Low, or Unbalanced below for 3\u00a0days, at a ratio of 0.8 or more; Overreaching, a ratio of 1.5 or more with VO2 max falling 1.5 a month or more or HRV Low; Recovery, a ratio under 0.8 and load falling; Peaking, VO2 max rising 1.5 a month or more while load falls; Productive, a ratio from 0.8 to 1.5 with VO2 max rising, or HRV Balanced at 1.0 or more; Unproductive, that ratio with VO2 max falling; otherwise Maintaining.",
+        ],
+      },
+      {
+        title: "What the bands mean",
+        rows: [
+          { term: "Productive, Peaking", detail: "Training is paying off." },
+          { term: "Maintaining, Recovery", detail: "Holding fitness, or recovering for more." },
+          { term: "Unproductive, Strained, Detraining", detail: "Something is off: recovery, or too little load." },
+          { term: "Overreaching", detail: "Load is high enough to cost you. Ease off." },
+        ],
+      },
+      {
+        title: "Limits",
+        paragraphs: [
+          "It needs about 3\u00a0weeks of training data and a VO2 max or an HRV Status. Fitbit’s VO2 max is an estimate that moves slowly, so Pulse reads its trend over 28\u00a0days rather than Garmin’s 14. Garmin’s Paused status (time off for illness or injury) isn’t detected. This is Pulse’s implementation of the rules in Firstbeat’s published patent, not Garmin’s number.",
+        ],
+      },
+    ],
+  },
 ]

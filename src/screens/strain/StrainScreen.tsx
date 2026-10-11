@@ -31,6 +31,7 @@ import { CAPTION, hrSeries, LABEL, statProps, TodayVsLegend } from "@/screens/_l
 import { DialDetailSkeleton, Divided, ScreenError } from "@/screens/recovery/shared"
 import { WeeklyTrends, WeeklyTrendsSkeleton } from "@/screens/trends/WeeklyTrends"
 import { useScreen } from "@/screens/useScreen"
+import { TrainingSection } from "./TrainingCards"
 
 /** Weekly Trends in the reference app's order (strain-25..38). */
 const WEEKLY: readonly TrendViewKey[] = ["strain", "zones13", "zones45", "steps", "calories", "strength"]
@@ -81,6 +82,7 @@ export function StrainScreen() {
         </SectionShell>
       }
       secondary={[
+        <TrainingSection key="training" d={d} timeZone={timeZone} />,
         <SectionShell key="zones" variant="card" title="Time in zones">
           <ZoneBars variant="rows" data={dayZones(vm.zones)} note={vm.zoneNote} emptyCopy={vm.isToday ? "No heart-rate zones yet today." : "No heart-rate zones on this day."} />
         </SectionShell>,

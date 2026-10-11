@@ -136,7 +136,8 @@ export type HomeVM = {
   monitorAlert: { kind: "flagged" | "illness"; count: number; names: string[] } | null;
   monitor: Metric<{ inRange: number; total: number; flagged: number }>;
   stress: Metric<{ value: number; level: StressLevel; at: number | null; dayAverage: boolean }>;
-  activities: { title: "Today’s activities" | "Activities"; items: TimelineItem[] };
+  /** Mobile: `detected` are workouts stage 1 found from raised heart rate with none recorded; shown dashed, never scored. */
+  activities: { title: "Today’s activities" | "Activities"; items: TimelineItem[]; detected: DetectedItem[] };
   energyBank: Metric<EnergyBankVM>;
   tonight: Metric<SleepPlanVM>;
   keyStats: KeyStat[];
