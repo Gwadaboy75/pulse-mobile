@@ -374,7 +374,7 @@ flowchart LR
 
 ## Sync while the app is open
 
-halo's rule (`src/state/app.ts`): boot shows the last scores at once and starts a run in the background, and coming back to the foreground after 10 minutes away runs again, because Health Connect gets new nights while the app sleeps. A run is serialised: a second call joins the one in flight. Pulling any tab root or detail page down runs Sync now through `ShellSync.syncNow`. The background task (WorkManager) comes in a later stream and shares the run body, `src/background/runSync.ts`, guarded by its lock.
+halo's rule (`src/state/app.ts`): boot shows the last scores at once and starts a run in the background, and coming back to the foreground after 10 minutes away runs again, because Health Connect gets new nights while the app sleeps. A run is serialised: a second call joins the one in flight. Pulling any tab root or detail page down runs Sync now through `ShellSync.syncNow`. The background task (WorkManager) shares the run body, `src/background/runSync.ts`, guarded by its lock.
 
 ```mermaid
 flowchart LR
@@ -514,4 +514,24 @@ flowchart LR
   Q --> K[keepEqual with the cached result]
   K -->|equal parts keep their objects| R[compiled components with the same props skip]
   K -->|changed parts are new| D[only those redraw]
+
+## Background sync and local notifications
+
+Copied from halo's `src/background`. `expo-background-task` on `expo-task-manager` runs the task `pulse.background.sync` on WorkManager, asking for every 15 minutes (Android stretches it to 15-30 and pauses it under Doze or Battery Saver). `TaskManager.defineTask` must run in global scope, so `index.ts` (package.json `main`) imports `src/background/task.ts` before `expo-router/entry`: a headless launch finds the task with no UI. The task and the app call the same `runSync`, which takes the cross-runtime lock (`lock.ts`, AsyncStorage with a 20-minute stale time), imports Health Connect, scores, and then runs `notifyAfterRun`. Health Connect answers a closed app only with `READ_HEALTH_DATA_IN_BACKGROUND`, asked for in Settings › Notifications & background.
+
+Notifications are local (`expo-notifications`), with no push server. Each alert keeps a marker (the day, the ISO week, or the bedtime last scheduled) so it never repeats. The check-in reminder is a daily trigger. The wind-down reminder is one date trigger that is planned again after every run. A tap goes to `data.url` through `useNotificationDeepLinks`, which reads `useLastNotificationResponse` (a cold start too) once the root navigator exists. Everything is off by default. The old `pulse.notify.*` toggles move into the new settings on first read.
+
+```mermaid
+flowchart TB
+  WM[WorkManager, every 15-30 min] --> Task[task.ts: settings, source, background permission]
+  Task -->|skip| Log[log.ts: last 20 runs]
+  Task --> Run[runSync]
+  App[App boot, foreground, pull to sync] --> Run
+  Run --> Lock{lock.ts: free?}
+  Lock -->|no| Log
+  Lock -->|yes| Sync[Health Connect import, then pipeline]
+  Sync --> Alerts[alerts.ts: decide + smart, markers]
+  Alerts --> Send[notify.ts: sendNow, wind down re-planned]
+  Send --> Tap[Tap] --> Links[links.ts: deep link to the screen]
+  Run --> Log
 ```

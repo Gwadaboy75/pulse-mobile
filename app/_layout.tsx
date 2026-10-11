@@ -17,6 +17,7 @@ import { Figtree_500Medium } from "@expo-google-fonts/figtree/500Medium";
 import { Figtree_600SemiBold } from "@expo-google-fonts/figtree/600SemiBold";
 import { Figtree_700Bold } from "@expo-google-fonts/figtree/700Bold";
 
+import { useNotificationDeepLinks } from "@/background/links";
 import { Opening } from "@/screens/Opening";
 import { ShellData } from "@/screens/ShellData";
 import { boot, useApp } from "@/state/app";
@@ -72,6 +73,8 @@ export default function RootLayout() {
 
 function Screens({ onboarded }: { onboarded: boolean }) {
   const { c, scheme } = useTheme();
+  // A tapped notification opens its screen once the navigator exists, a cold start included (src/background/links.ts).
+  useNotificationDeepLinks();
   // Without a theme React Navigation paints its own white card and light grey ground while a screen slides in or out, and the
   // window itself is the system's default: a white flash on every push, back and sheet. Both are the app's ground instead.
   const theme = useMemo(() => {
