@@ -18,6 +18,7 @@ import { ReasonPlaceholder } from "@/ui/metrics/ReasonPlaceholder";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { EASE } from "@/ui/motion";
+import { haptic } from "@/ui/haptics";
 import { ageDelta } from "./format";
 import { blobRadius, mixRGB, ORB, orbColors, particleCount, particleLayer, rgba, rng, shadeRGB, swirlVelocity, type RGB, type Token } from "./orb";
 
@@ -43,7 +44,9 @@ const SETTLED_T = 10;
 const MAX_PARTICLES = 640;
 const DUST_EVERY = 3;
 /** A finger that moves this far is scrolling, not holding the orb. */
-const TOUCH_SLOP = 10;
+/** The web's lean (gather × (1 − depth), inner particles at depth 0.18 to 0.73) and outline bulge, against the aim. */
+const LEAN = 0.5;
+const BULGE = 0.12;
 const M = ORB.motion;
 const S = M.swirl;
 /** The release's coast: a decay at `deceleration` per ms as a timing of the same distance and start speed. */
@@ -92,7 +95,10 @@ function OrbLayers({ delta, size, compact }: { delta: number | null; size: numbe
   const clock = useSharedValue(0);
   const spin = useSharedValue(0);
   const gather = useSharedValue(0);
-  const a = useOrbStyles(enter, clock, spin, gather);
+  // Where the finger is, from the centre, at half scale (the web's `aim`): the field leans toward it.
+  const ax = useSharedValue(0);
+  const ay = useSharedValue(0);
+  const a = useOrbStyles(enter, clock, spin, gather, ax, ay);
 
   useEffect(() => {
     if (settled) return;
@@ -143,7 +149,9 @@ function OrbLayers({ delta, size, compact }: { delta: number | null; size: numbe
   );
 
   // --- Press and hold: raw touches, not a responder, so the page still scrolls and a card around the orb still taps. ---
-  const press = useRef<{ t0: number; x: number; y: number } | null>(null);
+  const press = useRef<{ t0: number } | null>(null);
+  /** The orb box's page position, from the press (the children never take touches, so the box is the target). */
+  const origin = useRef<{ x: number; y: number } | null>(null);
   const release = () => {
     const p = press.current;
     if (!p) return;
@@ -158,9 +166,10 @@ function OrbLayers({ delta, size, compact }: { delta: number | null; size: numbe
     });
     if (live) wake();
   };
-  const onTouchStart = (e: GestureResponderEvent) => {
-    if (press.current || e.nativeEvent.touches.length > 1) return;
-    press.current = { t0: Date.now(), x: e.nativeEvent.pageX, y: e.nativeEvent.pageY };
+  const pressStart = () => {
+    if (press.current) return;
+    press.current = { t0: Date.now() };
+    haptic.tap();
     gather.set(withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) }));
     // Relative turns from where the field stopped: a ramp up, then a turn per period, each repeat on a whole turn.
     scheduleOnUI(() => {
@@ -176,10 +185,23 @@ function OrbLayers({ delta, size, compact }: { delta: number | null; size: numbe
     });
     if (live) wake();
   };
-  const onTouchMove = (e: GestureResponderEvent) => {
-    const p = press.current;
-    if (p && (Math.abs(e.nativeEvent.pageX - p.x) > TOUCH_SLOP || Math.abs(e.nativeEvent.pageY - p.y) > TOUCH_SLOP)) release();
+  // The web's pointer handlers: a press gathers and swirls the field and leans it toward the finger, which it follows
+  // sideways. A vertical drag is the page's scroll (`touch-pan-y`): the scroll view takes the touch and cancels it here.
+  const onTouchStart = (e: GestureResponderEvent) => {
+    if (e.nativeEvent.touches.length > 1) return;
+    const { locationX, locationY, pageX, pageY } = e.nativeEvent;
+    origin.current = { x: pageX - locationX, y: pageY - locationY };
+    ax.set((locationX - size / 2) * 0.5);
+    ay.set((locationY - size / 2) * 0.5);
+    pressStart();
   };
+  const onTouchMove = (e: GestureResponderEvent) => {
+    const o = origin.current;
+    if (!press.current || !o) return;
+    ax.set((e.nativeEvent.pageX - o.x - size / 2) * 0.5);
+    ay.set((e.nativeEvent.pageY - o.y - size / 2) * 0.5);
+  };
+
 
   // The web's per-theme --orb-lift and --orb-sparkle (global.css).
   const art = useMemo(
@@ -224,12 +246,19 @@ function OrbLayers({ delta, size, compact }: { delta: number | null; size: numbe
 }
 
 /** Every layer's style from the four drivers: worklets evaluated on the UI thread, one per animated view. */
-function useOrbStyles(enter: SharedValue<number>, clock: SharedValue<number>, spin: SharedValue<number>, gather: SharedValue<number>) {
+function useOrbStyles(enter: SharedValue<number>, clock: SharedValue<number>, spin: SharedValue<number>, gather: SharedValue<number>, ax: SharedValue<number>, ay: SharedValue<number>) {
   const glow = useAnimatedStyle(() => ({
     opacity: (M.enter.body + (1 - M.enter.body) * enter.value) * wave(clock.value, M.breath, M.glowDim, 1),
     transform: [{ scale: wave(clock.value, M.breath, 1, 1 + M.glowScale) + gather.value * S.glowGrow }],
   }));
-  const breath = useAnimatedStyle(() => ({ transform: [{ scale: wave(clock.value, M.breath, 1, 1 + M.breathScale) + gather.value * S.bodyGrow }] }));
+  // While pressed the outline leans out toward the finger (the web's bulge, ORB.touch.bulge of the radius).
+  const breath = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: ax.value * gather.value * BULGE },
+      { translateY: ay.value * gather.value * BULGE },
+      { scale: wave(clock.value, M.breath, 1, 1 + M.breathScale) + gather.value * S.bodyGrow },
+    ],
+  }));
   const body = useAnimatedStyle(() => ({ opacity: M.enter.body + (1 - M.enter.body) * enter.value }));
   const shimmer = useAnimatedStyle(() => ({ opacity: enter.value * wave(clock.value, M.shimmer, 0.3, 1), transform: [{ rotate: turns(clock.value, M.turnsShimmer) }] }));
   // Starts full and dims mid-cycle, so the settled frame shows the rim at full strength.
@@ -240,6 +269,9 @@ function useOrbStyles(enter: SharedValue<number>, clock: SharedValue<number>, sp
   const inner = useAnimatedStyle(() => ({
     opacity: enter.value,
     transform: [
+      // The inner field leans toward the finger (the web's per-particle `lean`, about half the aim on average).
+      { translateX: ax.value * gather.value * LEAN },
+      { translateY: ay.value * gather.value * LEAN },
       { rotate: `${360 * spin.value}deg` },
       { rotate: `${M.enter.turnDeg * (1 - enter.value)}deg` },
       { scale: (M.enter.scale + (1 - M.enter.scale) * enter.value) * (1 + (S.gather - 1) * gather.value) },
