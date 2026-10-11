@@ -49,6 +49,7 @@ import { strainKey, strainQuery } from "../strain/StrainScreen";
 import { useScreenReady } from "@/ui/shells/useScreenReady";
 import { preloadWhenIdle, useScreen } from "../useScreen";
 import { EditDashboardButton } from "./EditDashboard";
+import { HeartRateTile } from "./HeartRateTile";
 import { HomeInsight } from "./HomeInsight";
 import { HomeSkeleton } from "./HomeSkeleton";
 import { CardButtonContent, CardButtonLink, GradientBanner, IconLink } from "./parts";
@@ -180,6 +181,7 @@ function Home({ vm, timeZone }: { vm: HomePageVM; timeZone: string }) {
         main: (
           <View className="gap-8">
             <View className="-mt-2 gap-6">
+              {vm.isToday && <HeartRateTile phoneOnly={!!vm.phone} />}
               {vm.phone ? (
                 <PhoneActivity stats={vm.phone} link={{ d, today }} />
               ) : (

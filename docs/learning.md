@@ -500,3 +500,20 @@ flowchart LR
   Draw -->|before| All[Record every section, 50 ms]
   Draw -->|removeClippedSubviews| Visible[Record the visible ones]
 ```
+
+## The live heart-rate ticker
+
+halo's foreground ticker (`src/state/liveHr.tsx`): every 60 s while the app is active and ready, one 20-minute Health
+Connect read through `refreshRecentHeartRate`, skipped while a run or a previous read is in flight. Its state is a
+small module store of its own (`useLiveHr`), so a tick re-renders only Home's heart-rate card; `liveVersion` moves
+only when samples moved, and only the Heart rate screen re-reads on it. `LiveHrTicker` is mounted once in
+`AppProviders` and renders nothing.
+
+```mermaid
+flowchart LR
+  Active[App active and ready] --> Tick[Every 60 s: read 20 min]
+  Tick --> Store[(New samples to the Store)]
+  Tick --> Live[useLiveHr: latest, last 30 min]
+  Live --> Tile[Home heart-rate card]
+  Live -->|liveVersion moved| HR[Heart rate screen re-reads today]
+```

@@ -225,7 +225,7 @@ Open the web app at 390 px wide, light and dark, and the app side by side.
 
 ### Heart rate (`/health/heart-rate`)
 - The big reading with its three stats (Range, Average, Resting; a past day has no Average), the day chart (scrub), Time in zones with its note.
-- Live updates are a stub: the screen runs its 60 s timer while focused on today but the pull (`src/screens/health/live.ts`) says "not connected", so nothing changes until Google connect is built. Leaving the screen must stop the timer.
+- Live updates: the app's ticker (`src/state/liveHr.tsx`) reads Health Connect every minute while Pulse is open; today, a read that brought samples re-reads the day, and "n minutes ago" moves with each read. Opening the screen reads at once.
 
 ### Orb
 - Compare the entry, the idle drift, the press and swirl, and the collapsed mini orb. Check dark and light. Particle density is a third of the web's (about 880 at 300 px, `particles.at320` in `src/screens/health/orb.ts`): at the web's 2,600 the Health and Healthspan screens held Android at 30 Hz on a release build.
