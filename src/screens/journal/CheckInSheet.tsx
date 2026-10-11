@@ -253,7 +253,9 @@ export function CheckInSheet() {
         footer={
           <>
             {saveError && <FormAlert>Couldn’t save. Check your connection and try again.</FormAlert>}
-            <Button size="sheet" onPress={save} disabled={saving || !loaded}>
+            {/* Nothing answered, nothing to save: the sheet can open by itself (Log yesterday) right where the Journal tab was
+                tapped, and a second tap must not file an empty check-in. */}
+            <Button size="sheet" onPress={save} disabled={saving || !loaded || !dirty}>
               {saving ? "Saving…" : "Save journal"}
             </Button>
           </>
