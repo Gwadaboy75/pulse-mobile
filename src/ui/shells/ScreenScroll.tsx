@@ -1,13 +1,14 @@
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
-import { Platform, RefreshControl, StyleSheet, View } from "react-native";
+import { createContext, useCallback, useContext, useRef, type ReactNode } from "react";
+import { Platform, StyleSheet, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useLocalSearchParams, usePathname } from "expo-router";
-import Animated, { useAnimatedReaction, useAnimatedScrollHandler, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { useAnimatedReaction, useAnimatedRef, useAnimatedScrollHandler, useScrollViewOffset, useSharedValue, withTiming } from "react-native-reanimated";
 import { Ground, HealthspanGround } from "../Ground";
-import { haptic } from "../haptics";
 import { useTheme } from "../theme";
 import { FloatingCheckIn, showsCheckIn } from "./CheckInAction";
 import { HEADER_FADE } from "./Header";
 import { useBottomClearance } from "./layout";
+import { usePullToSync } from "./PullToSync";
 import { DURATION } from "../motion";
 
 /** A screen's scroll position as a shared value, and a 0-1 `collapsed` that eases to 1 once `threshold` is scrolled past. */
@@ -63,7 +64,7 @@ export type ScreenScrollProps = {
 /**
  * The scroll container every shell uses: the ground behind, the content padded below the header (`top` plus its fade) and clear of the
  * floating tab bar or check-in button (`bottom`), a header drawn over it (the header is absolute, so content scrolls under
- * it and its fade), the check-in button floating over the foot of a detail screen, and the platform's pull-to-refresh and
+ * it and its fade), the check-in button floating over the foot of a detail screen, the web's pull to sync, and the platform's
  * keyboard handling on the scroll view.
  */
 export function ScreenScroll({ header, top, onScroll, bottomPad, healthspan, onRefresh, children }: ScreenScrollProps) {
@@ -71,7 +72,9 @@ export function ScreenScroll({ header, top, onScroll, bottomPad, healthspan, onR
   const clearance = useBottomClearance();
   const checkIn = showsCheckIn(usePathname());
   const { section } = useLocalSearchParams<{ section?: string }>();
-  const scroll = useRef<Animated.ScrollView>(null);
+  const scroll = useAnimatedRef<Animated.ScrollView>();
+  const offset = useScrollViewOffset(scroll);
+  const pull = usePullToSync(offset, onRefresh);
   const landed = useRef<string>(null);
   const content = useRef<View>(null);
   // The anchor's place inside the content (which starts under the `top` padding, i.e. just below the header): scroll there.
@@ -87,22 +90,13 @@ export function ScreenScroll({ header, top, onScroll, bottomPad, healthspan, onR
         },
       );
     },
-    [section],
+    [section, scroll],
   );
-  const [refreshing, setRefreshing] = useState(false);
-  const refresh = async () => {
-    haptic.tap();
-    setRefreshing(true);
-    try {
-      await onRefresh?.();
-    } finally {
-      setRefreshing(false);
-    }
-  };
   return (
     <View className="flex-1 bg-background" style={{ backgroundColor: c.background }}>
       <View style={StyleSheet.absoluteFill}>
         <Ground healthspan={!!healthspan} />
+        <GestureDetector gesture={Gesture.Simultaneous(pull.gesture, Gesture.Native())}>
         <Animated.ScrollView
           ref={scroll}
           onScroll={onScroll}
@@ -114,8 +108,8 @@ export function ScreenScroll({ header, top, onScroll, bottomPad, healthspan, onR
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
           automaticallyAdjustKeyboardInsets
-          // The spinner starts below the header, which is drawn over the scroll view.
-          refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={refresh} progressViewOffset={top} tintColor={c["muted-foreground"]} colors={[c.foreground]} progressBackgroundColor={c.card} /> : undefined}
+          // Pulling at the top syncs (usePullToSync), as on the web, where the page does not stretch (`overscroll-behavior: none`).
+          overScrollMode="never"
         >
           <AnchorContext.Provider value={register}>
             <View ref={content} collapsable={false}>
@@ -123,8 +117,10 @@ export function ScreenScroll({ header, top, onScroll, bottomPad, healthspan, onR
             </View>
           </AnchorContext.Provider>
         </Animated.ScrollView>
+        </GestureDetector>
       </View>
       <HealthspanGround.Provider value={!!healthspan}>{header}</HealthspanGround.Provider>
+      {pull.indicator}
       {checkIn && (
         <FloatingCheckIn />
       )}

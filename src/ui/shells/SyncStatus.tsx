@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { View } from "react-native";
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import Svg, { Circle } from "react-native-svg";
 import { agoShort, ago } from "@/lib/format";
 import { BandIcon } from "../brand";
 import { cn } from "../cn";
@@ -49,8 +51,32 @@ export function SyncStatus({ hideText = false }: { hideText?: boolean }) {
       {/* The band with its dot at the top right, ringed in the header's colour (the web's Band). */}
       <View className="ml-1 size-6 items-center justify-center">
         <BandIcon size={22} color={c.foreground} />
-        <View className={cn("absolute -right-1.5 -top-1 size-2 rounded-full", v.dot)} style={{ boxShadow: ring(c["background-top"], { width: 2, inset: false }) }} />
+        {s.sync.state === "syncing" ? (
+          <SyncRing color={c["strain-text"]} />
+        ) : (
+          <View className={cn("absolute -right-1.5 -top-1 size-2 rounded-full", v.dot)} style={{ boxShadow: ring(c["background-top"], { width: 2, inset: false }) }} />
+        )}
       </View>
     </Press>
+  );
+}
+
+/** The web's Band while a sync runs: a faint circle round the band with two opposite arcs turning every 1.4 s. */
+function SyncRing({ color }: { color: string }) {
+  const reduce = useReducedMotion();
+  const turn = useSharedValue(0);
+  useEffect(() => {
+    if (!reduce) turn.value = withRepeat(withTiming(360, { duration: 1400, easing: Easing.linear }), -1);
+    return () => cancelAnimation(turn);
+  }, [reduce, turn]);
+  const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value}deg` }] }));
+  return (
+    <Animated.View pointerEvents="none" style={[{ position: "absolute", top: -4, left: -4, width: 32, height: 32 }, spin]}>
+      <Svg viewBox="0 0 36 36" width={32} height={32}>
+        <Circle cx={18} cy={18} r={16} fill="none" stroke={color} strokeOpacity={0.18} strokeWidth={1.8} />
+        {/* Two 25-unit arcs opposite each other on a 100.5-unit circumference. */}
+        <Circle cx={18} cy={18} r={16} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeDasharray="25 25.3" />
+      </Svg>
+    </Animated.View>
   );
 }
