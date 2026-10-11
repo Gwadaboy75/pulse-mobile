@@ -13,7 +13,7 @@ import { Gradient } from "@/ui/Gradient"
 import { Icon } from "@/ui/Icon"
 import { Text } from "@/ui/Text"
 import { useTheme } from "@/ui/theme"
-import { coachWorkoutGlance } from "./coachStub"
+import { deviceWorkoutGlance } from "@/coach/session"
 import { push } from "@/ui/navigate"
 import { Press } from "@/ui/Press";
 import { RADIUS } from "@/ui/radius";
@@ -40,7 +40,7 @@ export function CoachGlance({ id, question }: { id: string; question: string }) 
   useEffect(() => {
     if (session.has(id)) return // already in the initial state
     let live = true
-    coachWorkoutGlance(id).then(
+    deviceWorkoutGlance(id).then(
       (text) => {
         session.set(id, text)
         if (live) setS({ text, failed: false })

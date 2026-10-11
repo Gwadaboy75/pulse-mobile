@@ -4,7 +4,7 @@
 // answers; no network, and the photo is a few bytes.
 import { APICallError, RetryError } from "ai";
 import { describe, expect, it } from "vitest";
-import { modelFor, type Fetch } from "./providers";
+import { modelFor, type Fetch } from "@/coach/providers";
 import { ESTIMATE_INSTRUCTIONS, estimateFood, extractJson, FoodEstimateSchema, looksLikeRefusal, MAX_FOODS, parseEstimate, problemOf } from "./estimate";
 
 const KEY = "sk-test-key-0000";

@@ -4,7 +4,7 @@
 // row per 1 Hz sample is far too slow over months. Every batch write runs in one exclusive transaction.
 import { deleteDatabaseAsync, openDatabaseAsync, type SQLiteDatabase } from "expo-sqlite";
 import { isDeadConnection } from "./deadConnection";
-import type { DayRange, EntrySource, JournalTagChange, JournalTagRow, LoggedEntryRow, ReportRow, ScoreRow, SeriesKind, Store } from "./store";
+import type { CoachChatRow, DayRange, EntrySource, JournalTagChange, JournalTagRow, LoggedEntryRow, ReportRow, ScoreRow, SeriesKind, Store } from "./store";
 import type { DailyValue, Exercise, HealthRecord, HrSample, JournalEntry, Metrics, Profile, Segment, Session, StepsMinute, SyncState } from "./types";
 import type { ActivityCostResult } from "@/core/algorithms/activityCost";
 import { slice } from "@/lib/yield";
@@ -58,6 +58,8 @@ create table if not exists logged_entries (
 create index if not exists logged_entries_ts on logged_entries (ts);
 create table if not exists health_records (id text primary key, kind text not null, ts integer not null, day text not null, data text not null);
 create index if not exists health_records_day on health_records (day);
+create table if not exists coach_chats (id text primary key, title text not null, messages text not null, created_at integer not null, updated_at integer not null);
+create index if not exists coach_chats_recent on coach_chats (updated_at desc, id desc);
 `;
 
 /** Columns added after a release: each `alter` fails harmlessly on a database that already has it. */
@@ -630,6 +632,38 @@ class SqliteStore implements Store {
   }
   async putActivityCost(data: ActivityCostResult) {
     await this.tx((db) => db.runAsync("insert or replace into activity_cost (id, data) values (1, ?)", [JSON.stringify(data)]));
+  }
+
+  async coachChats(limit: number, before?: { updatedAt: number; id: string }) {
+    const rows = before
+      ? await this.db.getAllAsync<{ id: string; title: string; updated_at: number }>(
+          "select id, title, updated_at from coach_chats where updated_at < ? or (updated_at = ? and id < ?) order by updated_at desc, id desc limit ?",
+          [before.updatedAt, before.updatedAt, before.id, limit],
+        )
+      : await this.db.getAllAsync<{ id: string; title: string; updated_at: number }>("select id, title, updated_at from coach_chats order by updated_at desc, id desc limit ?", [limit]);
+    return rows.map((r): CoachChatRow => ({ id: r.id, title: r.title, updatedAt: r.updated_at }));
+  }
+  async coachChatCount() {
+    return (await this.db.getFirstAsync<{ n: number }>("select count(*) as n from coach_chats"))?.n ?? 0;
+  }
+  async coachChatMessages(id: string) {
+    const r = await this.db.getFirstAsync<{ messages: string }>("select messages from coach_chats where id = ?", [id]);
+    if (!r) return null;
+    try {
+      return JSON.parse(r.messages) as unknown[];
+    } catch {
+      return null;
+    }
+  }
+  async putCoachChat(id: string, title: string, messages: unknown[], updatedAt: number) {
+    await this.db.runAsync(
+      "insert into coach_chats (id, title, messages, created_at, updated_at) values (?, ?, ?, ?, ?) on conflict(id) do update set title = excluded.title, messages = excluded.messages, updated_at = excluded.updated_at",
+      [id, title, JSON.stringify(messages), updatedAt, updatedAt],
+    );
+  }
+  async deleteCoachChats(id?: string) {
+    if (id === undefined) await this.db.runAsync("delete from coach_chats");
+    else await this.db.runAsync("delete from coach_chats where id = ?", [id]);
   }
 
   async clearAll() {

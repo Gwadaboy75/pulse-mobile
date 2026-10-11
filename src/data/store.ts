@@ -96,9 +96,23 @@ export interface Store {
   getActivityCost(): Promise<ActivityCostResult | null>;
   putActivityCost(data: ActivityCostResult): Promise<void>;
 
+  // Coach chats (halo's coach.db, here in the one store). `messages` is the AI SDK's UIMessage[] as stored; the
+  // coach (src/coach/storage.ts) owns its shape. clearAll leaves them, as halo's separate file did.
+  /** Newest first (updatedAt, then id, descending), after `before` when given; at most `limit`. */
+  coachChats(limit: number, before?: { updatedAt: number; id: string }): Promise<CoachChatRow[]>;
+  coachChatCount(): Promise<number>;
+  coachChatMessages(id: string): Promise<unknown[] | null>;
+  /** Upserts by id; a new chat's createdAt is `updatedAt`. */
+  putCoachChat(id: string, title: string, messages: unknown[], updatedAt: number): Promise<void>;
+  /** Deletes one chat, or every chat without an id. */
+  deleteCoachChats(id?: string): Promise<void>;
+
   /** Drops every row (settings › disconnect, or switching demo ↔ Health Connect). */
   clearAll(): Promise<void>;
 }
+
+/** A coach chat in the list: its title follows the first question. `updatedAt` is unix seconds. */
+export type CoachChatRow = { id: string; title: string; updatedAt: number };
 
 export type SeriesKind = "hr" | "still_hr" | "load" | "stress" | "energy_bank";
 

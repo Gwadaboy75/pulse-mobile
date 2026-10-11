@@ -8,9 +8,9 @@ import type { LanguageModel } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import { modelFor, type Fetch } from "./providers";
+import { modelFor, type Fetch } from "@/coach/providers";
 
-export { providerLabel } from "./providers";
+export { providerLabel } from "@/coach/providers";
 
 /** What the sheet may know about the setup: never the key itself. */
 export type CoachSetup = { provider: string | null; model: string | null; last4: string | null; consent: boolean };

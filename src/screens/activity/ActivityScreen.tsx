@@ -32,7 +32,7 @@ import { TrainingEffectCard } from "@/screens/strain/TrainingCards"
 import { ActivityCostCard } from "./ActivityCost"
 import { ActivityMenu } from "./ActivityMenu"
 import { CoachGlance } from "./CoachGlance"
-import { coachReady } from "./coachStub"
+import { useHasCoachKey } from "@/coach/session"
 
 const STAT_LABEL = "text-xs leading-4 font-bold tracking-[0.1em] text-foreground-secondary uppercase"
 /** The profile, where max heart rate (and so the zones) is set. */
@@ -51,12 +51,14 @@ export function ActivityScreen() {
   const { id: raw } = useLocalSearchParams<{ id: string }>()
   const id = decode(raw)
   const { data, error, reload } = useScreen(async (ctx) => {
-    const [vm, extras, coach] = await Promise.all([getActivity(id, ctx), getActivityExtras(id, ctx), coachReady(ctx)])
-    return { vm: vm && { ...vm, ...extras }, coach, today: todayOf(ctx), timeZone: ctx.timeZone }
+    const [vm, extras] = await Promise.all([getActivity(id, ctx), getActivityExtras(id, ctx)])
+    return { vm: vm && { ...vm, ...extras }, today: todayOf(ctx), timeZone: ctx.timeZone }
   }, ["activity", id])
+  // The coach is set up: a provider key saved (pulse's coachReady).
+  const coach = useHasCoachKey()
 
   if (!data) return error ? <ScreenError retry={reload} /> : <ActivitySkeleton />
-  const { vm, coach, today, timeZone } = data
+  const { vm, today, timeZone } = data
   // The web answers an unknown id with its 404 page; React Native has none of its own to show, so this is the screen's empty state.
   if (!vm) return <DetailShell title="Activity" primary={<EmptyState body="This activity isn’t available." />} />
 

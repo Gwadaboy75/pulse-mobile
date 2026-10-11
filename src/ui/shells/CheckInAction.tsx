@@ -1,5 +1,6 @@
 import { View } from "react-native";
 import { useGlobalSearchParams } from "expo-router";
+import { useHasCoachKey } from "@/coach/session";
 import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 import { dayLabel } from "@/lib/format";
 import { parseDay } from "@/lib/url";
@@ -10,6 +11,7 @@ import { useTheme } from "../theme";
 import { FAB_SIZE, TAB_ROOTS, useTabBarBottom } from "./layout";
 import { useShellCalendar } from "./ShellStatus";
 import { openSheet } from "./sheets";
+import { push } from "../navigate";
 import { Press } from "../Press";
 import { GLASS_RADIUS } from "../radius";
 
@@ -36,14 +38,14 @@ function Monogram() {
  * The "Check in" action (spec §4.2.1): indigo-rimmed glass with the "P" monogram. It opens the check-in sheet, the route
  * app/(sheets)/checkin.tsx, over the screen you are on, for the day that screen shows: `/checkin?d=` carries the screen's
  * `d` as the web keeps `?d=` beside `?checkin=1`. (The tab bar sits in the tabs layout, so the day is the focused route's:
- * the global params, not the layout's own.) Where the coach is on, this button opens the coach instead (the web's coach
- * access); that wiring arrives with the coach stream, through `onPress`.
+ * the global params, not the layout's own.) With a coach key saved, it opens the coach instead (the web's coach access).
  */
 export function CheckInAction({ onPress }: { onPress?: () => void }) {
   const { today } = useShellCalendar();
   const { d: raw } = useGlobalSearchParams<{ d?: string }>();
   const { d } = parseDay(raw, today);
-  const label = `Check in for ${dayLabel(d, today)}`;
+  const coach = useHasCoachKey();
+  const label = coach ? "Coach" : `Check in for ${dayLabel(d, today)}`;
   return (
     <Press
       activeScale={0.96}
@@ -51,7 +53,7 @@ export function CheckInAction({ onPress }: { onPress?: () => void }) {
       accessibilityLabel={label}
       onPress={() => {
         haptic.tap();
-        (onPress ?? (() => openSheet(`/checkin?d=${d}`)))();
+        (onPress ?? (() => (coach ? push("/coach") : openSheet(`/checkin?d=${d}`))))();
       }}
     >
       <Glass radius={GLASS_RADIUS} action style={{ width: FAB_SIZE, height: FAB_SIZE, alignItems: "center", justifyContent: "center" }}>
