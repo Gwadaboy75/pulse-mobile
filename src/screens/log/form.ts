@@ -1,7 +1,7 @@
 // The log sheets' form state and its translation to the log action's input: the pure half of pulse's
 // (app)/journal/Log.tsx (EMPTY, toInput, num, wallNow), unchanged, so it is tested in Node (form.test.ts).
-import type { LogInput } from "@/actions/log";
-import type { LogKind } from "@/queries/log";
+import type { FoodItemInput, LogInput } from "@/actions/log";
+import type { LogKind, Meal } from "@/queries/log";
 import { wall } from "@/lib/time";
 
 const NUM = /^\d+([.,]\d+)?$/;
@@ -16,6 +16,36 @@ export const wallNow = (timeZone: string, now = Math.floor(Date.now() / 1000)) =
 export const defaultAt = (vm: { day: string; today: string; timeZone: string }) => (vm.day === vm.today ? wallNow(vm.timeZone) : `${vm.day}T12:00`);
 
 export const num = (s: string) => (s.trim() === "" ? null : NUM.test(s.trim()) ? Number(s.trim().replace(",", ".")) : NaN);
+
+/** One food's fields as typed (the food sheet's form, and each food of an estimate under review), halo's forms.ts. */
+export type FoodForm = { name: string; portion: string; kcal: string; protein: string; carbs: string; fat: string; fiber: string };
+export const EMPTY_FOOD: FoodForm = { name: "", portion: "", kcal: "", protein: "", carbs: "", fat: "", fiber: "" };
+
+/** One food's fields as the action's item (portion and fiber only when given), or the first problem to show. */
+export function foodItemOf(f: FoodForm): FoodItemInput | string {
+  const kcal = num(f.kcal);
+  if (kcal == null || Number.isNaN(kcal) || !Number.isInteger(kcal)) return "Enter calories as a whole number.";
+  const [protein, carbs, fat, fiber] = [f.protein, f.carbs, f.fat, f.fiber].map(num);
+  if ([protein, carbs, fat, fiber].some((g) => Number.isNaN(g))) return "Macros are grams, as numbers.";
+  const portion = f.portion.trim();
+  return { name: f.name, ...(portion && { portion }), kcal, protein, carbs, fat, ...(fiber !== null && { fiber }) };
+}
+
+/** A food's numbers as its fields show them: an estimate to review, an entry to edit. Unknown grams stay blank. */
+export function foodFormOf(v: { name: string | null; portion?: string | null; kcal: number; protein: number | null; carbs: number | null; fat: number | null; fiber?: number | null }): FoodForm {
+  const g = (x: number | null | undefined) => (x === null || x === undefined ? "" : String(x));
+  return { name: v.name ?? "", portion: v.portion ?? "", kcal: String(v.kcal), protein: g(v.protein), carbs: g(v.carbs), fat: g(v.fat), fiber: g(v.fiber) };
+}
+
+/** The meal a time of day suggests ("HH:mm"): breakfast before 11, lunch before 4 pm, a snack before 6, dinner before 11 pm. */
+export function mealAt(hhmm: string): Meal {
+  const h = Number(hhmm.slice(0, 2));
+  if (!(h >= 4) || h >= 23) return "SNACK";
+  if (h < 11) return "BREAKFAST";
+  if (h < 16) return "LUNCH";
+  if (h < 18) return "SNACK";
+  return "DINNER";
+}
 
 export type Form = Record<string, string | string[]>;
 export const EMPTY: Record<LogKind, Form> = {

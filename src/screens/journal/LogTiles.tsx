@@ -50,8 +50,11 @@ function tileValue(k: LogKind, vm: LogVM): { value: string; sub?: string } | nul
   }
 }
 
-/** The route of a log sheet, over Journal's day (`d` left out for today). */
-export const logHref = (kind: LogKind, vm: Pick<LogVM, "day" | "today">) => `/log?kind=${kind}${vm.day === vm.today ? "" : `&d=${vm.day}`}`;
+/** The route of a log sheet, over Journal's day (`d` left out for today). Food opens Nutrition's food sheet, as halo's does. */
+export const logHref = (kind: LogKind, vm: Pick<LogVM, "day" | "today">) => {
+  const d = vm.day === vm.today ? "" : `d=${vm.day}`;
+  return kind === "food" ? `/food${d && `?${d}`}` : `/log?kind=${kind}${d && `&${d}`}`;
+};
 
 function Tile({ k, vm }: { k: LogKind; vm: LogVM }) {
   const shadow = useCardStyle();

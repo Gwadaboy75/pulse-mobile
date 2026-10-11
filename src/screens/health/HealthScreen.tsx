@@ -234,6 +234,13 @@ function HeartRate({ hr, now }: { hr: HealthHubVM["heartRate"]; now: number }) {
 
 const FOOTNOTE = "Estimates for personal insight, not medical advice.";
 
+/** The way to Nutrition (spec §7.22): static, so the hub's query stays as it is. */
+const NUTRITION_CARD = (
+  <SectionShell variant="card" title="Nutrition" info={false} href="/nutrition">
+    <Text className={CAPTION}>Today’s food against your calorie and protein targets. Log a meal from a photo, a few words or its numbers.</Text>
+  </SectionShell>
+);
+
 /** The Health tab's query and key; Home prefetches them. */
 export const healthQuery = async (ctx: QueryCtx) => ({ vm: await getHealthHub(ctx), now: ctx.now * 1000 });
 export const HEALTH_KEY = ["health"] as const;
@@ -261,6 +268,7 @@ export function HealthScreen() {
         <SectionShell variant="card" title="Heart rate" href="/health/heart-rate">
           <HeartRate hr={vm.heartRate} now={now} />
         </SectionShell>
+        {NUTRITION_CARD}
       </View>
       <Text className={cn(CAPTION, "text-center")}>{FOOTNOTE}</Text>
     </PageShell>
@@ -334,6 +342,7 @@ function HealthLoading() {
             <SkeletonText lh={16} fs={12} className="w-28" />
           </View>
         </SectionShell>
+        {NUTRITION_CARD}
       </View>
       <Text className={cn(CAPTION, "text-center")}>{FOOTNOTE}</Text>
     </PageShell>

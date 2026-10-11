@@ -7,7 +7,7 @@ import type { Profile } from "@/data/types";
 import { DEFAULT_JOURNAL_TAGS, ensureDefaultTags, getBehaviours, MAX_TAGS } from "@/queries/journal";
 import type { QueryCtx } from "@/queries/ctx";
 import { addCustomTag, loadCheckIn, saveBehaviors, saveCheckIn, saveJournalEntry, type ActionCtx } from "./journal";
-import { deleteLogEntry, logEntry } from "./log";
+import { deleteLogEntry, logEntry, logFoods, setFoodSeparate, updateFoodEntry } from "./log";
 
 const TZ = "Asia/Kolkata";
 // 20:00 UTC on Oct 2 is 01:30 on Oct 3 in Kolkata.
@@ -221,3 +221,70 @@ describe("deleteLogEntry", () => {
   });
 });
 
+
+describe("logFoods and updateFoodEntry", () => {
+  beforeEach(() => {
+    now = MORNING;
+  });
+  const rows = () => store.loggedEntries(0);
+  const eggs = { name: "Scrambled eggs", portion: "2 large eggs (100 g)", kcal: 182, protein: 12.6, carbs: 1.6, fat: 13.9, fiber: 0 };
+  const toast = { name: "Toast", kcal: 80, protein: 4, carbs: 13.8, fat: 1.1, fiber: null };
+
+  it("saves a photo estimate's foods at one meal and time, with portion, fiber and how it was made", async () => {
+    expect(await logFoods(c(), { meal: "BREAKFAST", via: "photo", at: "2026-10-02T08:30", items: [eggs, toast] })).toEqual({ ok: true, data: { count: 2 } });
+    const saved = await rows();
+    expect(saved.map((r) => [r.type, r.day, r.ts, r.source])).toEqual([
+      ["nutrition-log", "2026-10-02", Date.parse("2026-10-02T03:00:00Z") / 1000, "pulse"],
+      ["nutrition-log", "2026-10-02", Date.parse("2026-10-02T03:00:00Z") / 1000, "pulse"],
+    ]);
+    expect(saved.map((r) => r.data)).toEqual([
+      { name: "Scrambled eggs", meal: "BREAKFAST", kcal: 182, protein: 12.6, carbs: 1.6, fat: 13.9, portion: "2 large eggs (100 g)", fiber: 0, via: "photo" },
+      { name: "Toast", meal: "BREAKFAST", kcal: 80, protein: 4, carbs: 13.8, fat: 1.1, via: "photo" },
+    ]);
+  });
+
+  it("checks every food before saving any", async () => {
+    expect(await logFoods(c(), { meal: "LUNCH", via: "photo", items: [] })).toEqual({ ok: false, error: "Add a food to save." });
+    expect(await logFoods(c(), { meal: "LUNCH", via: "photo", items: [eggs, { ...toast, kcal: 80.5 }] })).toEqual({ ok: false, error: "Toast: Enter calories as a whole number." });
+    expect(await logFoods(c(), { meal: "LUNCH", via: "manual", items: [{ ...toast, fiber: 5000 }] })).toEqual({ ok: false, error: "Macros are grams, between 0 and 1,000." });
+    expect(await logFoods(c(), { meal: "LUNCH", via: "manual", items: [{ ...toast, portion: "x".repeat(61) }] })).toMatchObject({ ok: false });
+    expect(await logFoods(c(), { meal: "BRUNCH" as never, via: "manual", items: [toast] })).toEqual({ ok: false, error: "Invalid option" });
+    expect(await logFoods(c(), { meal: "LUNCH", via: "manual", at: "2026-10-02T23:00", items: [toast] })).toEqual({ ok: false, error: "Can’t log the future" });
+    expect(await logFoods(c(), { meal: "LUNCH", via: "manual", items: Array(21).fill(toast) })).toMatchObject({ ok: false });
+    expect(await rows()).toEqual([]);
+  });
+
+  it("edits a Pulse entry in place, keeping its id and how it was made", async () => {
+    await logFoods(c(), { meal: "BREAKFAST", via: "photo", at: "2026-10-02T08:30", items: [eggs] });
+    const [before] = await rows();
+    const r = await updateFoodEntry(c(), { id: before.id, ts: before.ts, meal: "LUNCH", at: "2026-10-02T11:00", item: { name: "Egg bhurji", kcal: 240, protein: 14, carbs: 4, fat: 18 } });
+    expect(r).toEqual({ ok: true, data: undefined });
+    const after = await rows();
+    expect(after).toHaveLength(1);
+    expect(after[0]).toMatchObject({ id: before.id, createdAt: before.createdAt, ts: Date.parse("2026-10-02T05:30:00Z") / 1000, day: "2026-10-02", source: "pulse" });
+    expect(after[0].data).toEqual({ name: "Egg bhurji", meal: "LUNCH", kcal: 240, protein: 14, carbs: 4, fat: 18, via: "photo" });
+  });
+
+  it("never edits Fitbit's entries, or one that is gone", async () => {
+    const ts = Date.parse("2026-10-02T03:00:00Z") / 1000;
+    await store.replaceExternalEntries({ from: "2026-10-02", to: "2026-10-02" }, [
+      { id: "hc-food-1", type: "nutrition-log", ts, day: "2026-10-02", data: { name: "Poha", meal: "BREAKFAST", kcal: 350, protein: 7, carbs: null, fat: null }, createdAt: ts, source: "health_connect" },
+    ]);
+    const item = { name: "Poha", kcal: 300, protein: 7, carbs: null, fat: null };
+    expect(await updateFoodEntry(c(), { id: "hc-food-1", ts, meal: "BREAKFAST", item })).toEqual({ ok: false, error: "Food logged in Fitbit is changed in Fitbit." });
+    expect(await updateFoodEntry(c(), { id: "missing", ts, meal: "BREAKFAST", item })).toEqual({ ok: false, error: "This food is no longer in your log." });
+    expect((await rows())[0].data).toMatchObject({ kcal: 350 });
+  });
+
+  it("marks a food as its own (\"Count it too\") and back, keeping the mark through an edit", async () => {
+    await logFoods(c(), { meal: "LUNCH", via: "photo", at: "2026-10-02T11:00", items: [toast] });
+    const [row] = await rows();
+    expect(await setFoodSeparate(c(), { id: row.id, ts: row.ts, separate: true })).toEqual({ ok: true, data: undefined });
+    expect((await rows())[0].data).toMatchObject({ name: "Toast", separate: true, via: "photo" });
+    await updateFoodEntry(c(), { id: row.id, ts: row.ts, meal: "LUNCH", item: { ...toast, kcal: 90 } });
+    expect((await rows())[0].data).toMatchObject({ kcal: 90, separate: true });
+    expect(await setFoodSeparate(c(), { id: row.id, ts: row.ts, separate: false })).toMatchObject({ ok: true });
+    expect((await rows())[0].data).not.toHaveProperty("separate");
+    expect(await setFoodSeparate(c(), { id: "gone", ts: row.ts, separate: true })).toEqual({ ok: false, error: "This food is no longer in your log." });
+  });
+});
