@@ -15,6 +15,10 @@ export type Profile = {
   waistCm?: number | null;
   /** IANA zone, e.g. "Asia/Kolkata". */
   timeZone: string;
+  /** The owner's display name (mobile, optional), for Home's avatar initials and Settings. */
+  name?: string | null;
+  /** The profile photo's file URI in the app's document directory (mobile, optional). The photo never leaves the phone. */
+  photo?: string | null;
 };
 
 /** One sleep session; `day` is the local wake day. */

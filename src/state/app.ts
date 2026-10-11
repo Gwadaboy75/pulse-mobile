@@ -8,6 +8,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSyncExternalStore } from "react";
 import { AppState } from "react-native";
 import { markUiRuntime, runSync, type Source } from "@/background/runSync";
+import { deleteAllPhotos, deletePhoto } from "@/actions/photo";
 import { openStore } from "@/data/db";
 import { memoStore } from "@/data/memo";
 import { seedDemo } from "@/data/seed";
@@ -223,6 +224,16 @@ export async function saveProfile(p: Profile): Promise<void> {
   if (source) void run();
 }
 
+/** Sets or removes the profile photo (src/actions/photo.ts). No rescore: the photo is only shown. The old file goes. */
+export async function setPhoto(photo: string | null): Promise<void> {
+  const { store, profile } = state;
+  if (!store || !profile) return;
+  const p = { ...profile, photo };
+  await store.setProfile(p);
+  patch({ profile: p });
+  if (profile.photo && profile.photo !== photo) deletePhoto(profile.photo);
+}
+
 /** "Explore with sample data": halo's demo person, 180 days, no Health Connect needed. */
 export async function exploreSample(): Promise<void> {
   const { store, profile, source } = state;
@@ -290,6 +301,7 @@ export async function reset(): Promise<void> {
   const { store } = state;
   if (running) await running.catch(() => {});
   if (store) await store.clearAll();
+  deleteAllPhotos();
   await AsyncStorage.multiRemove([SOURCE_KEY, OWN_PROFILE_KEY]).catch(() => {});
   await forgetChanges();
   patch({ status: "needs_profile", profile: null, source: null, sync: EMPTY_SYNC, error: null, warnings: [], onboarded: false });

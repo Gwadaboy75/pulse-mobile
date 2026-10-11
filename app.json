@@ -88,6 +88,14 @@
           "modes": [],
           "neverForLocation": true
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pulse uses a photo you choose as your profile picture. It stays on this phone.",
+          "cameraPermission": "Pulse uses the camera to take your profile picture. It stays on this phone.",
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {

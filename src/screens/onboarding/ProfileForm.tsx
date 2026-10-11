@@ -14,7 +14,7 @@ import { BirthDatePicker } from "./BirthDatePicker";
 import { TimeZonePicker } from "./TimeZonePicker";
 import { deviceZone, describeZone } from "./timeZones";
 
-export type ProfileDefaults = { birthDate: string; sex: "male" | "female" | null; maxHr: number | null; heightCm: number | null; timeZone: string | null };
+export type ProfileDefaults = { birthDate: string; sex: "male" | "female" | null; maxHr: number | null; heightCm: number | null; timeZone: string | null; name?: string | null };
 
 export function ProfileForm({
   defaults,
@@ -28,6 +28,7 @@ export function ProfileForm({
   onSaved?: () => void;
   footer: (state: { pending: boolean; submit: () => void }) => ReactNode;
 }) {
+  const [name, setName] = useState(defaults.name ?? "");
   const [birthDate, setBirthDate] = useState(defaults.birthDate);
   const [sex, setSex] = useState<"male" | "female" | null>(defaults.sex);
   const [edited, setTimeZone] = useState<string | null>(null);
@@ -43,7 +44,7 @@ export function ProfileForm({
 
   const submit = async () => {
     setPending(true);
-    const r = await saveProfileAction({ birthDate, sex, maxHr, heightCm, timeZone: timeZone || null }, appState().profile, saveProfile);
+    const r = await saveProfileAction({ birthDate, sex, maxHr, heightCm, timeZone: timeZone || null, name }, appState().profile, saveProfile);
     setPending(false);
     setState(r);
     if (r.ok) onSaved?.();
@@ -52,6 +53,9 @@ export function ProfileForm({
 
   return (
     <View className="gap-6">
+      <Field label="Name" hint="Shown on Home and in Settings. Stays on this phone." error={f?.name} optional>
+        <TextField accessibilityLabel="Name" autoCapitalize="words" autoComplete="name" placeholder="Your name" value={name} onChangeText={setName} invalid={!!f?.name} />
+      </Field>
       <Field label="Birth date" hint="For heart rate zones, sleep need and Pulse Age." error={f?.birthDate}>
         <BirthDatePicker value={birthDate} onChange={setBirthDate} invalid={!!f?.birthDate} />
       </Field>

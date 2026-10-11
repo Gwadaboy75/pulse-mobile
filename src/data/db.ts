@@ -71,6 +71,9 @@ const MIGRATIONS = [
   // HRV Status and Garmin-style training (Training Effect, Recovery Time, Training Readiness and Status), version 19.
   "alter table daily_scores add column hrv_status text",
   "alter table daily_scores add column training text",
+  // The owner's display name and profile photo path (mobile).
+  "alter table profile add column name text",
+  "alter table profile add column photo text",
 ];
 
 const DAY = 86_400;
@@ -251,14 +254,17 @@ class SqliteStore implements Store {
   // ── Profile and sync ──────────────────────────────────────────────────────
 
   async getProfile() {
-    const r = await this.db.getFirstAsync<{ birth_date: string; sex: Profile["sex"]; max_hr: number | null; height_cm: number | null; waist_cm: number | null; time_zone: string }>(
-      "select birth_date, sex, max_hr, height_cm, waist_cm, time_zone from profile where id = 1",
-    );
-    return r && { birthDate: r.birth_date, sex: r.sex, maxHr: r.max_hr, heightCm: r.height_cm, waistCm: r.waist_cm, timeZone: r.time_zone };
+    const r = await this.db.getFirstAsync<{
+      birth_date: string; sex: Profile["sex"]; max_hr: number | null; height_cm: number | null; waist_cm: number | null; time_zone: string;
+      name: string | null; photo: string | null;
+    }>("select birth_date, sex, max_hr, height_cm, waist_cm, time_zone, name, photo from profile where id = 1");
+    return r && {
+      birthDate: r.birth_date, sex: r.sex, maxHr: r.max_hr, heightCm: r.height_cm, waistCm: r.waist_cm, timeZone: r.time_zone, name: r.name, photo: r.photo,
+    };
   }
   async setProfile(p: Profile) {
-    await this.tx((db) => db.runAsync("insert or replace into profile (id, birth_date, sex, max_hr, height_cm, waist_cm, time_zone) values (1, ?, ?, ?, ?, ?, ?)", [
-      p.birthDate, p.sex, p.maxHr, p.heightCm, p.waistCm ?? null, p.timeZone,
+    await this.tx((db) => db.runAsync("insert or replace into profile (id, birth_date, sex, max_hr, height_cm, waist_cm, time_zone, name, photo) values (1, ?, ?, ?, ?, ?, ?, ?, ?)", [
+      p.birthDate, p.sex, p.maxHr, p.heightCm, p.waistCm ?? null, p.timeZone, p.name ?? null, p.photo ?? null,
     ]));
   }
   async getSyncState(): Promise<SyncState> {
