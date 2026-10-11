@@ -69,5 +69,10 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate"
   },
-  "private": true
+  "private": true,
+  "reanimated": {
+    "staticFeatureFlags": {
+      "ANDROID_SYNCHRONOUSLY_UPDATE_UI_PROPS": true
+    }
+  }
 }

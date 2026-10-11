@@ -438,3 +438,23 @@ flowchart LR
   Check -->|no| Wait[Nothing]
   Pull[Pull down on a page] --> Sync
 ```
+
+## Android refresh rate
+
+ColorOS and OxygenOS keep a third-party app at 60 Hz on a 120 Hz panel unless its window asks for more, so scrolls
+and transitions ran at half the panel's rate on the owner's OnePlus. `plugins/withHighRefreshRate.js` (from halo) adds
+a few lines to `MainActivity.onCreate`: the window prefers the display mode with the highest refresh rate at the
+current resolution and, on Android 15 and newer, opts out of the frame-rate power saving. The person's own refresh
+setting still caps it. `package.json` also sets Reanimated's static flag `ANDROID_SYNCHRONOUSLY_UPDATE_UI_PROPS`, so
+non-layout animated props reach the view on the UI thread in the same frame. Check with
+`adb shell dumpsys SurfaceFlinger | grep activeMode` while Pulse is in front.
+
+```mermaid
+flowchart LR
+  Launch[MainActivity.onCreate] --> Modes[Display modes at this resolution]
+  Modes --> Best[Highest refresh rate]
+  Best --> Window[window.preferredDisplayModeId]
+  Window --> Cap[System caps at the person's setting]
+```
+
+Docs: [Config plugins](https://docs.expo.dev/config-plugins/introduction/), [Reanimated feature flags](https://docs.swmansion.com/react-native-reanimated/docs/guides/feature-flags/).

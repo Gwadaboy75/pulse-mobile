@@ -56,7 +56,8 @@
             "webpEnabled": false
           }
         }
-      ]
+      ],
+      "./plugins/withHighRefreshRate.js"
     ],
     "experiments": {
       "typedRoutes": true,
