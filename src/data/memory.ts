@@ -266,6 +266,30 @@ export class MemoryStore implements Store {
     this.activityCost = copy(data);
   }
 
+  private chats = new Map<string, { title: string; messages: unknown[]; updatedAt: number }>();
+  async coachChats(limit: number, before?: { updatedAt: number; id: string }) {
+    const after = (c: { id: string; updatedAt: number }) => !before || c.updatedAt < before.updatedAt || (c.updatedAt === before.updatedAt && c.id < before.id);
+    return [...this.chats]
+      .map(([id, c]) => ({ id, title: c.title, updatedAt: c.updatedAt }))
+      .filter(after)
+      .sort((a, b) => b.updatedAt - a.updatedAt || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0))
+      .slice(0, limit);
+  }
+  async coachChatCount() {
+    return this.chats.size;
+  }
+  async coachChatMessages(id: string) {
+    const c = this.chats.get(id);
+    return c ? copy(c.messages) : null;
+  }
+  async putCoachChat(id: string, title: string, messages: unknown[], updatedAt: number) {
+    this.chats.set(id, { title, messages: copy(messages), updatedAt });
+  }
+  async deleteCoachChats(id?: string) {
+    if (id === undefined) this.chats.clear();
+    else this.chats.delete(id);
+  }
+
   async clearAll() {
     this.profile = null;
     this.sync = { lastSyncTs: null, firstDay: null, lastError: null };
