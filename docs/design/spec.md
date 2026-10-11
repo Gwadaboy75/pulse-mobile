@@ -2636,6 +2636,29 @@ For users with coach access (admin panel, docs/setup.md "AI coach"); anyone else
 - **Coaching and continuity**: readiness guidance uses Recovery bands, constrained by sleep, training load and today’s Strain Target. Replies explain evidence and next actions; requested analysis can be longer than a simple answer. Older turns are summarized after 30 unsummarized messages using the user’s provider, retaining 20 recent messages. Summaries preserve user preferences and earlier decisions, omit biometric readings, and are invalidated after edits to the summarized prefix. Full transcripts remain saved. A failed summary falls back to a bounded recent history. No goals are saved across separate chats.
 - **Settings › Coach** (after Appearance): Provider, Model, API key as `••••last4`; Change (provider sheet), Remove key, Delete chats, Turn off. With notifications on (VAPID keys set): **Morning brief**, a switch (off by default; on starts at 7:00 AM and shows a time input that saves when it loses focus) that sends "Your brief is ready" once per local day at or after that time, once today's Recovery exists; the tap opens `/coach?brief=1`, which asks for today's brief at once, so nothing is spent on a brief nobody opens. **About you**: up to 500 characters of the user's own notes, appended to the instructions as preferences inside `<user_notes>`; they never change the rules, safety limits or tool use.
 
+### 7.22 Chart explorer `/chart?metric=&r=&d=&compare=` (halo)
+
+No PWA design; halo's explorer (src/screens/chart) on our chrome. A full-screen page, not a scroll: `DetailHeaderRow` (metric name, the group or what the day view draws as the subtitle, a **Metric** pill on the right), the range as `Segmented` (Day when the metric has a day view, then W / M / 6M / 1Y / All), the `DateSwitcher` pill on a Day view, a card with the visible window's dates and Average / Low / High (Day Strain: Strain / Gained / the compare's average), the chart on a card filling the height left, then the legend with **Compare** (or the compare pill with its average and an X) and the gesture hint.
+
+- **Chart** (`ExplorerChart`): one Skia canvas; series built once in data space and mapped each frame by one matrix on the UI thread; axes, grid, spans, goal and stage lanes recorded as a picture from the viewport; the crosshair and readout on a second canvas. Pinch zooms around the fingers, a drag pans with momentum, a hold (220 ms) inspects, a tap pins or clears the crosshair, a double tap glides back to the range's window. JS hears only where a gesture settled (to refit the y axes and the numbers). Bars crossfade to a line past ~2 months.
+- **Day views**: heart rate (by zone, resting or average HR as a labelled dashed line, workouts lit on the Workout duration metric), Day Strain building up (the Strain Target shaded, heart rate beside it by default), stress, Energy Bank (heart rate beside both by default), and the night (heart rate over four stage lanes, bed and wake guides).
+- **Colours**: our tokens. Dashed `--chart-grid`, `--muted-foreground` axis text, `--chart-cursor` guides, recovery bands and stress levels by value, heart rate by zone (`zoneBands`), Strain `--strain`, sleep `--sleep`, other metrics `--chart-5`, a compare in its own hue or `--chart-4`.
+- **Pickers**: the route sheet `/chart-metric?for=metric|compare` (Trends' metric sheet: one section open, chips); Compare adds **None**.
+- **Entry**: **Explore** on `/metric/[key]`'s History, on `/trend/[key]` under the chart, on `/trends`' chart card, and on Strain's Heart rate (Day Strain's day view).
+
+### 7.23 Goals and Weekly plan (halo)
+
+No PWA design; halo's phone additions on our kit. Targets live on the phone (AsyncStorage `pulse.goals`, `pulse.weeklyPlan`).
+
+- **Goals card** (Strain, primary): `SectionShell` card "Today’s goals" with "3 of 7 done" as its aside; a two-column grid of `bg-inset` tiles (goal icon in its colour, a check or the percent, name, value / target, 8 px bar), then the week's Active Zone Minutes as seven columns. The whole card opens `/goals?d=` (tall sheet): each goal's row (caption with streak, value of target, bar and percent, the last 7 days), the week strip, the goals switched off, and **Edit goals** (to Settings › Goals). With none on: an empty state with **Set goals**.
+- **Weekly plan card** (Strain, first secondary): "Weekly plan · this week" with "2 of 4 on track"; the plan's streak, then each target's name, value of target, status word and a bar with a tick at an even pace. Opens `/weekly-plan?d=` (tall sheet): each target's row (linking to its screen), the week's days, the last 8 weeks as dots, the detail and its Pulse Age years, "Why these", **Edit weekly targets** and **Open Pulse Age**.
+- **Settings › Goals** (`/settings?s=goals`, a More row): Daily goals (switch and target field per goal), Weekly goal (AZM a week), **Reset to Fitbit defaults**; Weekly plan (switch, target and evidence hint per habit), **Reset weekly plan**. Typed values save at once; an out-of-range value shows a red error and is not saved.
+- Trend view's goal button (step goal, HR zones, strength) opens Settings › Goals.
+
+### 7.24 Report share (halo)
+
+The report header's right action is a ghost `Share2` button: the report as plain text (period, averages against the period before, sleep, activity, biggest changes, focus) through the system share sheet.
+
 ---
 
 ## 8. Journeys
@@ -2968,6 +2991,8 @@ Rows overridden by v2: **D2** (TopBar part only, V3), **B1** (V10), **CAL6** (of
 | UX2 | §4.2.1, §7.1, §7.11: the check-in action and Home's "+" link to `/journal?checkin=1`; the Journal strips `?checkin` and `?log` on arrival | **Task sheets open over the current screen.** One `CheckInSheet` in the app layout follows `?checkin=1` on any route, for that route's `?d=`, and loads its behaviours and answers through `loadCheckIn` (a spinner, then the form; an error offers Try again). The round action, the rail and sidebar action, Home's "+" (named "Add to {day}" off today), the Journal card and the impact and history empty states are buttons (`SheetTrigger`, `aria-haspopup="dialog"`) that push the param with `history.pushState`: Next syncs `useSearchParams` without refetching the page, so the screen and its scroll stay. Closing (X, swipe, Save, Discard) pops that entry; Back pops it too and closes the sheet on the same screen, and with unsaved answers it asks "Discard changes?" first ("Keep editing" pushes the entry again). The Journal's log sheets follow `?log=<kind>` the same way. A deep link (`/journal?log=water`, `/journal?checkin=1`) still opens its sheet and closes by removing the param in place | Owner report: on Strain, "+" or the round button opened the sheet on Journal, so swiping it away left the user on Journal. The action belongs to the screen it was started from, and Android's Back should close a sheet before it leaves a screen |
 | UX3 | §5.0: the chart focus ring shows on `:focus-visible` only (ChartFigure) | Also `svg [tabindex="-1"]:focus { outline: none }` in the base layer. Only the plot's `<svg>` is a tab stop and keeps the app's ring on `:focus-visible`; arrows still scrub the tooltip | Recharts 3 draws each layer (bars, reference lines, dial sectors) as `<g tabindex="-1">`, so a tap or click on a mark focuses that `<g>`, and Chromium's SVG UA sheet outlines any focused SVG element (`outline: auto 5px` on `:focus`, not `:focus-visible`), tinted grey by the base `outline-ring/50`. The earlier fix styled the `<svg>`, which a tap on a mark never focuses |
 | D11 | Switch: the web's shadcn Switch (32 × 18.4 track, 16 px thumb) | A native-sized switch: 51 × 31 track, 27 px white thumb with a soft shadow, the track `--optimal` when on, eased over 150 ms | Owner decision 2026-10-11: the web size read as odd on the phone; WHOOP and the platform draw theirs at this size |
+| D12 | Strain (§7.3): the ring, summary, heart rate, zones, activities | The day's Goals card leads (primary) and the Weekly plan card follows it, ahead of Heart rate (§7.23) | Halo's Activity tab puts the goals in full, with the weekly plan, first; Pulse's Strain screen is that tab |
+| D13 | No chart explorer | `/chart` (§7.22), reached by **Explore** links on metric, trend and Strain charts | Halo's explorer; a whole history needs zoom and pan a card chart can't give |
 
 Open items for U12/U13 (not design changes): the `button.tsx` sizes edit (§5.0), `src/hooks/use-reduced-motion.ts`, `src/lib/charts.ts` (`splitByBand`), the root `viewport` export, and "Pulse Age" as the label (the plan's name; swap the one constant in `src/lib/format.ts` for "Pulse Age" if preferred).
 
@@ -2998,6 +3023,9 @@ Open items for U17 (not design changes): `src/lib/header-state.ts` with its unit
 | I15 | Daily outlook gradient switches to Day in review at 17:00 | §7.1 | Both banners are captured at different times of day; the switch time is not |
 | I16 | Health hub tint is constant teal (not tied to the orb colour) | §2.1 | Green and mixed orbs both sit on a teal glow; the dependence, if any, is unclear |
 | CAL2-CAL6 | Calendar year label, week start, Sleep context, selected-day ring, ≥ 768 placement | §5.16 | as listed in §11 |
+| I17 | The chart explorer's look: cards, header row, our chart tokens in place of halo's Calm chrome | §7.22 | No PWA design; halo's layout restyled with our kit |
+| I18 | Goals and Weekly plan cards and sheets: tiles, bars, week columns in our tokens | §7.23 | No PWA design; halo's Calm cards restyled |
+| I19 | Report share as a header icon button | §7.24 | No PWA design; halo's placement |
 
 ### 12.2 Coverage gaps (screens or interactions with no current reference)
 
