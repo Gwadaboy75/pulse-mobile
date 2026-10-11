@@ -110,9 +110,13 @@ export function ScreenScroll({ header, top, onScroll, bottomPad, healthspan, onR
           automaticallyAdjustKeyboardInsets
           // Pulling at the top syncs (usePullToSync), as on the web, where the page does not stretch (`overscroll-behavior: none`).
           overScrollMode="never"
+          // Off-screen sections are detached from the native tree, so a push records only what shows. Measured on the
+          // owner's phone: navigation's worst frames went from 65-77 ms to 32-36 ms (halo: 36 ms). The wrappers in
+          // DetailShell pass it down; RN clips only children of views that set it.
+          removeClippedSubviews
         >
           <AnchorContext.Provider value={register}>
-            <View ref={content} collapsable={false}>
+            <View ref={content} collapsable={false} removeClippedSubviews>
               {children}
             </View>
           </AnchorContext.Provider>

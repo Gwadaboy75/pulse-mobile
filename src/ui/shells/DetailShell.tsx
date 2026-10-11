@@ -70,14 +70,14 @@ export function DetailShell({ title, subtitle, info, backHref, dateSwitcher, dis
 
   return (
     <ScreenScroll header={header} top={headerHeight} onScroll={onScroll} healthspan={ground === "healthspan"} onRefresh={onRefresh ?? shellSync?.syncNow}>
-      {body && <View className="w-full px-4 pt-2" accessibilityState={{ busy: !!loading }}>
+      {body && <View removeClippedSubviews className="w-full px-4 pt-2" accessibilityState={{ busy: !!loading }}>
         {loading && <Text accessibilityLiveRegion="polite" className="absolute h-px w-px opacity-0">{title.trim() ? `Loading ${title}…` : "Loading…"}</Text>}
         {dateSwitcher && !inHeader && (
           <View className="mb-6 items-center">
             <DateSwitcher {...dateSwitcher} placement="header" />
           </View>
         )}
-        <View className="gap-8">
+        <View removeClippedSubviews className="gap-8">
           {(hero || side) && (
             <View className="gap-6">
               {hero && (
@@ -105,9 +105,9 @@ export function DetailShell({ title, subtitle, info, backHref, dateSwitcher, dis
           )}
           {(summary || !hero) && insight}
           {below ? (
-            <Animated.View entering={fade ? FadeIn.duration(DURATION.base) : undefined} className="gap-8">
+            <Animated.View removeClippedSubviews entering={fade ? FadeIn.duration(DURATION.base) : undefined} className="gap-8">
               {primary}
-              {secondary && secondary.length > 0 && <View className="gap-3">{Children.toArray(secondary)}</View>}
+              {secondary && secondary.length > 0 && <View removeClippedSubviews className="gap-3">{Children.toArray(secondary)}</View>}
               {footer}
             </Animated.View>
           ) : (

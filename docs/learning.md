@@ -482,3 +482,21 @@ flowchart TD
 ```
 
 Docs: [react-native-ble-plx](https://github.com/dotintent/react-native-ble-plx), [Expo modules API](https://docs.expo.dev/modules/overview/), [Android Bluetooth permissions](https://developer.android.com/develop/connectivity/bluetooth/bt-permissions).
+
+## Long pages and the first draw
+
+A push draws the new page once, and Android records a display list for every view in the scroll content, including
+the cards far below the fold. On the owner's phone the long detail pages (10,000 to 16,000 px of content) spent 50 to
+55 ms of one frame in `Record View#draw`, mostly SVG and Skia views, so each push had a 65 to 94 ms frame (a perfetto
+trace with callstack sampling showed it). `removeClippedSubviews` on the scroll view and on DetailShell's wrappers
+detaches the views outside the viewport, so only what shows is drawn: the worst navigation frames fell to 32 to 36 ms,
+halo's figure. RN clips only the children of a view that sets it, so every wrapper between the scroll view and the
+sections sets it too. Mounting the sections one per frame instead did not help (the cost is the draw, not the mount).
+
+```mermaid
+flowchart LR
+  Push[Push a detail screen] --> Mount[Fabric mounts the page]
+  Mount --> Draw{First draw}
+  Draw -->|before| All[Record every section, 50 ms]
+  Draw -->|removeClippedSubviews| Visible[Record the visible ones]
+```
