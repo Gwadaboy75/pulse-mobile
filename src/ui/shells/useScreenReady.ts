@@ -2,6 +2,9 @@ import { useIsFocused, useNavigation, useRoute, type NativeStackNavigationProp }
 import { startTransition, useEffect, useLayoutEffect, useState } from "react";
 import { Platform } from "react-native";
 
+/** The push slides for 200 ms (`ios_from_right`, app/_layout.tsx); data is handed over just after. */
+const SETTLE_MS = 220;
+
 type StackNavigation = NativeStackNavigationProp<Record<string, object | undefined>>;
 
 export function useScreenReady() {
@@ -35,10 +38,15 @@ export function useScreenReady() {
     };
     // A screen a deep link opens gets no transition events at all: settle it when none has started by then.
     let transitioned = false;
-    const fallback = setTimeout(() => !transitioned && setSettled(true), 500);
+    const fallback = setTimeout(() => !transitioned && setSettled(true), SETTLE_MS);
+    // The native transitionEnd can come well after the slide has visibly landed: an opening screen counts as settled
+    // SETTLE_MS after its transition starts at the latest (halo's ScreenTransition does the same).
+    let cap: ReturnType<typeof setTimeout> | undefined;
     const start = navigation.addListener("transitionStart", ({ data }) => {
       transitioned = true;
       setSettled(false);
+      clearTimeout(cap);
+      if (!data.closing) cap = setTimeout(() => setSettled(true), SETTLE_MS);
       if (__DEV__) {
         stop();
         started = performance.now();
@@ -67,10 +75,12 @@ export function useScreenReady() {
     });
     const blur = navigation.addListener("blur", () => {
       stop();
+      clearTimeout(cap);
       setSettled(false);
     });
     return () => {
       clearTimeout(fallback);
+      clearTimeout(cap);
       stop();
       start();
       end();

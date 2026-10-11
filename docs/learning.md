@@ -363,9 +363,10 @@ flowchart LR
 
 ## Android screen transitions
 
-The native stack uses `slide_from_right` on Android. Each incoming screen paints an opaque token background.
-Screen queries wait for the native opening `transitionEnd` event, instead of a guessed timeout, and hidden screens
-wait until focused to reload. Sync progress has its own signal, so its 4-second poll updates status instead of
+The native stack uses `ios_from_right` on Android: the platform's short 200 ms slide, as halo does. Each incoming
+screen paints an opaque token background. A cold screen query hands its result over at the native opening
+`transitionEnd` or 220 ms after the transition started, whichever is first: `transitionEnd` can arrive well after the
+slide has visibly landed, and waiting for it kept the skeleton up. Hidden screens wait until focused to reload. Sync progress has its own signal, so its 4-second poll updates status instead of
 rerunning every screen query. Development logs measure transition duration, JS callback gaps and query load time;
 `dumpsys gfxinfo` measures native frame deadlines. JS callback gaps alone do not measure native animation frames.
 
