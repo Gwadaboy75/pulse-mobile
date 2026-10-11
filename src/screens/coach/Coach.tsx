@@ -250,7 +250,7 @@ export function Coach({ id, initial, prefill, auto, providerLabel, suggestions, 
   return (
     // iOS only: Android resizes the window for the keyboard itself (as SheetScreen relies on), and padding on top of that
     // lifted the composer a keyboard's height above it, into the middle of the screen.
-    <KeyboardAvoidingView behavior="padding" enabled={Platform.OS === "ios"} className="flex-1">
+    <KeyboardAvoidingView behavior="padding" enabled={Platform.OS === "ios"} style={{ flex: 1 }}>
       <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" className="flex-1" contentContainerClassName="grow px-4 pb-6 pt-2">
         {messages.length === 0 ? (
           <Empty providerLabel={providerLabel} suggestions={suggestions} today={today} onAsk={send} />

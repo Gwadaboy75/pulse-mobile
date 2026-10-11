@@ -6,13 +6,14 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AppState, Pressable, Share, View } from "react-native";
 import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
-import { Check, ChevronDown, HeartPulse, Minus, RefreshCw, TriangleAlert } from "lucide-react-native";
+import { Check, ChevronDown, Minus, RefreshCw, TriangleAlert } from "lucide-react-native";
 import { askPermissions, openHealthConnectSettings, permissionState, READ_TYPES, type PermissionState, type ReadType } from "@/health/connect";
 import { runDataCheck } from "@/health/dataCheck";
 import { getSourcePolicy, setSourcePolicy, SOURCE_POLICIES, SOURCE_POLICY_LABELS, type SourcePolicy } from "@/health/sourcePolicy";
 import { ago } from "@/lib/format";
 import { appState, appStore, exploreSample, refresh, reimport, stepLabel, useApp } from "@/state/app";
 import { BandIcon } from "@/ui/brand";
+import { HealthConnectMark } from "@/ui/HealthConnectMark";
 import { cn } from "@/ui/cn";
 import { haptic } from "@/ui/haptics";
 import { Button } from "@/ui/Button";
@@ -244,7 +245,7 @@ export function DataSource({ now }: { now: number }) {
     <SectionShell variant="card" title="Data source">
       <View className="min-h-11 flex-row items-center gap-3">
         <View accessibilityElementsHidden className="size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-fill-faint">
-          {sample ? <BandIcon size={24} color={c.foreground} /> : <Icon icon={HeartPulse} size={24} tone="foreground" strokeWidth={2} />}
+          {sample ? <BandIcon size={24} color={c.foreground} /> : <HealthConnectMark size={26} />}
         </View>
         <View className="min-w-0 flex-1">
           <Text className="text-[15px] font-semibold leading-[22px]">{label}</Text>

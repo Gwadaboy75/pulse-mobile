@@ -9,7 +9,7 @@ import { isDefaultPlan, parsePlanTarget, PLAN_DEFAULTS, PLAN_LIMITS, withPlanEna
 import { GOAL_KEYS, GOAL_META, type GoalKey } from "@/queries/goals";
 import { PLAN_KEYS, PLAN_META, type PlanKey } from "@/queries/weeklyPlan";
 import { STAT_ICON } from "@/screens/_lib/view";
-import { BODY, HINT, ROW, ROW_LABEL, ROW_RULE, Switch, TextField } from "@/screens/settings/controls";
+import { BODY, HINT, ROW_LABEL, ROW_RULE, Switch, TextField } from "@/screens/settings/controls";
 import { useGoals, isDefaultGoals, parseTarget, TARGET_LIMITS, withEnabled, withTarget, type TargetKey } from "@/state/goals";
 import { useWeeklyPlan } from "@/state/weeklyPlan";
 import { Button } from "@/ui/Button";
@@ -21,7 +21,6 @@ import { toast } from "@/ui/Toast";
 import { PLAN_ICON } from "./WeeklyPlan";
 
 const GOAL_HINT: Partial<Record<TargetKey, string>> = {
-  sleep: "Blank follows Pulse’s sleep need for the night.",
   azmWeek: "Fitbit counts moderate minutes once and vigorous or peak minutes twice.",
 };
 
@@ -34,27 +33,34 @@ const PLAN_HINT: Record<PlanKey, string> = {
   sleepNeed: "Nights you sleep the need Pulse sets for that night.",
 };
 
-/** One goal or habit as one settings row: icon and name (its hint or error under it), then the target with its unit as a caption, then the switch. Off, the target dims. */
+/**
+ * One goal or habit: one row (icon, name, the target with its unit, the switch), then its error or hint under the row
+ * at full width from the name's edge, so a long hint never squeezes the row. Off, the name and target dim.
+ */
 function TargetField({ icon, label, on, onToggle, unit, error, hint, field, rule }: { icon: LucideIcon; label: string; on: boolean; onToggle: (on: boolean) => void; unit: string; error?: string; hint?: string; field: ReactNode; rule: boolean }) {
   return (
-    <View className={cn(ROW, rule && ROW_RULE)}>
-      <Icon icon={icon} size={20} tone={on ? "foreground" : "muted-foreground"} />
-      <View className="min-w-0 flex-1">
-        <Text className={cn(ROW_LABEL, !on && "text-muted-foreground")}>{label}</Text>
-        {error ? (
-          <Text accessibilityRole="alert" className="text-[13px] font-medium leading-[18px] text-recovery-red-text">{error}</Text>
-        ) : hint ? (
-          <Text className={HINT}>{hint}</Text>
-        ) : null}
+    <View className={cn("py-3", rule && ROW_RULE)}>
+      <View className="flex-row items-center gap-3">
+        <Icon icon={icon} size={20} tone={on ? "foreground" : "muted-foreground"} />
+        <Text className={cn(ROW_LABEL, "min-w-0 flex-1", !on && "text-muted-foreground")}>{label}</Text>
+        {/* The unit sits beside the number (the card's title already says daily or weekly). */}
+        <View className={cn("flex-row items-center gap-1.5", !on && "opacity-40")}>
+          <View className="w-[70px]">{field}</View>
+          <Text numberOfLines={1} className="w-9 text-[13px] leading-[18px] text-muted-foreground">{shortUnit(unit)}</Text>
+        </View>
+        <Switch value={on} onValueChange={onToggle} label={`${label} target`} />
       </View>
-      <View className={cn("items-end gap-0.5", !on && "opacity-40")}>
-        <View className="w-24">{field}</View>
-        <Text className="text-right text-[11px] leading-[14px] text-muted-foreground">{unit}</Text>
-      </View>
-      <Switch value={on} onValueChange={onToggle} label={`${label} target`} />
+      {error ? (
+        <Text accessibilityRole="alert" className="pl-8 pt-1 text-[13px] font-medium leading-[18px] text-recovery-red-text">{error}</Text>
+      ) : hint ? (
+        <Text className={cn(HINT, "pl-8 pt-1")}>{hint}</Text>
+      ) : null}
     </View>
   );
 }
+
+/** "steps a day" → "steps": the card's title already says daily, weekly or nightly. */
+const shortUnit = (unit: string) => unit.replace(/ (a|per) (day|week|night)$/, "");
 
 /** Drafts and errors for typed targets: a field shows what is typed until it loses focus, then the stored value. */
 function useDrafts<K extends string>() {
@@ -93,7 +99,6 @@ function DailyGoals() {
         onToggle={(on) => void update((g) => withEnabled(g, k, on))}
         unit={l.unit}
         error={d.errors[targetKey]}
-        hint={GOAL_HINT[targetKey]}
         field={
           <NumberField
             value={text(targetKey)}
@@ -120,12 +125,14 @@ function DailyGoals() {
   return (
     <>
       <SectionShell variant="card" title="Daily goals">
-        <Text className={cn(BODY, "pb-2")}>Each goal is a tile on Strain that fills through the day. Fitbit’s defaults: 10,000 steps, 8 km, 10 floors, 22 Active Zone Minutes, 30 active minutes and 2,000 ml of water.</Text>
+        <Text className={cn(BODY, "pb-1")}>Each goal is a tile on Strain that fills through the day.</Text>
         <View>{GOAL_KEYS.map((k, i) => field(k, k, i > 0))}</View>
+        <Text className={cn(HINT, "pt-2")}>Sleep: blank follows Pulse’s sleep need for the night.</Text>
       </SectionShell>
       <SectionShell variant="card" title="Weekly goal">
-        <Text className={cn(BODY, "pb-2")}>Active Zone Minutes add up over the week, Monday to Sunday. The switch is the daily goal’s.</Text>
+        <Text className={cn(BODY, "pb-1")}>Active Zone Minutes add up Monday to Sunday. The switch is the daily goal’s.</Text>
         {field("azm", "azmWeek", false)}
+        <Text className={cn(HINT, "pt-2")}>{GOAL_HINT.azmWeek}</Text>
       </SectionShell>
       <Button variant="outline-pill" disabled={isDefaultGoals(goals)} onPress={() => void doReset()}>Reset to Fitbit defaults</Button>
     </>
@@ -143,7 +150,7 @@ function WeeklyTargets() {
   return (
     <>
       <SectionShell variant="card" title="Weekly plan">
-        <Text className={cn(BODY, "pb-2")}>Weekly targets for the habits Pulse Age scores, tracked on Strain as the Weekly plan, Monday to Sunday, with a streak for every week you meet them.</Text>
+        <Text className={cn(BODY, "pb-1")}>Weekly targets for the habits Pulse Age scores, Monday to Sunday, with a streak for every week you meet them.</Text>
         <View>
           {PLAN_KEYS.map((k, i) => (
             <TargetField
