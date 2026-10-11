@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react-native";
 import { Gesture } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { cancelAnimation, Easing, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming, type SharedValue } from "react-native-reanimated";
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from "react-native-reanimated";
 import { haptic } from "../haptics";
 import { DURATION, EASE } from "../motion";
 import { ring, useShadow } from "../shadow";
@@ -22,15 +21,9 @@ const ease = { duration: DURATION.fast, easing: EASE.standard };
 export function usePullToSync(offset: SharedValue<number>, onRefresh?: () => void | Promise<unknown>) {
   const pull = useSharedValue(0);
   const armed = useSharedValue(false);
-  const [syncing, setSyncing] = useState(false);
-  const run = async () => {
+  const run = () => {
     haptic.tap();
-    setSyncing(true);
-    try {
-      await onRefresh?.();
-    } finally {
-      setSyncing(false);
-    }
+    void onRefresh?.();
   };
   const gesture = Gesture.Pan()
     .enabled(!!onRefresh)
@@ -49,30 +42,22 @@ export function usePullToSync(offset: SharedValue<number>, onRefresh?: () => voi
       pull.value = withTiming(0, ease);
       if (fire) runOnJS(run)();
     });
-  return { gesture, indicator: onRefresh ? <PullIndicator pull={pull} syncing={syncing} /> : null };
+  return { gesture, indicator: onRefresh ? <PullIndicator pull={pull} /> : null };
 }
 
-/** The web's indicator: a round chip with the refresh arrows, turning with the pull, spinning while the sync runs. */
-function PullIndicator({ pull, syncing }: { pull: SharedValue<number>; syncing: boolean }) {
+/**
+ * The web's indicator: a round chip with the refresh arrows, turning with the pull. It leaves as the finger lifts: the
+ * band's ring in the header shows the sync from there (owner's call; the web keeps the chip spinning).
+ */
+function PullIndicator({ pull }: { pull: SharedValue<number> }) {
   const { c } = useTheme();
   const shadow = useShadow();
   const insets = useSafeAreaInsets();
-  const reduce = useReducedMotion();
-  const sync = useSharedValue(0);
-  const turn = useSharedValue(0);
-  useEffect(() => {
-    sync.value = withTiming(syncing ? 1 : 0, ease);
-    if (syncing && !reduce) turn.value = withRepeat(withTiming(360, { duration: 1000, easing: Easing.linear }), -1);
-    else {
-      cancelAnimation(turn);
-      turn.value = 0;
-    }
-  }, [syncing, reduce, sync, turn]);
   const chip = useAnimatedStyle(() => ({
-    opacity: Math.max(sync.value, Math.min(1, pull.value / TRIGGER)),
-    transform: [{ translateY: 12 * sync.value + (1 - sync.value) * (pull.value / 2) }],
+    opacity: Math.min(1, pull.value / TRIGGER),
+    transform: [{ translateY: pull.value / 2 }],
   }));
-  const icon = useAnimatedStyle(() => ({ transform: [{ rotate: `${sync.value > 0 ? turn.value : pull.value * 3}deg` }] }));
+  const icon = useAnimatedStyle(() => ({ transform: [{ rotate: `${pull.value * 3}deg` }] }));
   return (
     <Animated.View
       pointerEvents="none"
