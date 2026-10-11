@@ -16,7 +16,7 @@ import { canonicalZone, describeZone, matchZones, zones, type Zone } from "./tim
 const ROW = 48;
 const LIST = ROW * 3 + 8;
 
-export function TimeZonePicker({ value, onChange, invalid, inputRef }: { value: string; onChange: (zone: string) => void; invalid?: boolean; inputRef?: RefObject<TextInput | null> }) {
+export function TimeZonePicker({ value, onChange, invalid, inputRef, compact }: { value: string; onChange: (zone: string) => void; invalid?: boolean; inputRef?: RefObject<TextInput | null>; /** The Edit profile sheet's smaller field. */ compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -46,6 +46,7 @@ export function TimeZonePicker({ value, onChange, invalid, inputRef }: { value: 
   return (
     <View className="gap-2">
       <TextField
+        variant={compact ? "compact" : "field"}
         ref={input}
         accessibilityLabel="Time zone"
         accessibilityState={{ expanded: open }}
@@ -69,7 +70,7 @@ export function TimeZonePicker({ value, onChange, invalid, inputRef }: { value: 
           <Pressable accessibilityRole="button" accessibilityLabel={open ? "Close time zones" : "Show time zones"} onPress={() => {
               haptic.tap();
               show(!open);
-            }} className="h-13 w-12 items-center justify-center rounded-r-xl">
+            }} className={cn(compact ? "h-11" : "h-13", "w-12 items-center justify-center rounded-r-xl")}>
             <View style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}>
               <Icon icon={ChevronDown} size={20} tone="muted-foreground" strokeWidth={1.75} />
             </View>

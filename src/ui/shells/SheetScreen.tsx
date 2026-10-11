@@ -166,7 +166,9 @@ export function SheetScreen({ title, description, children, footer, size = "defa
         ) : (
           <>
             {header}
-            <ScrollView {...reveal} style={hug ? styles.shrink : styles.grow} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: bodyBottom }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
+            {/* `nestedScrollEnabled`: Android's bottom sheet (BottomSheetBehavior) lets only a nested-scrolling child
+                scroll; without it the sheet took every drag and a long body (Profile) never scrolled to its end. */}
+            <ScrollView {...reveal} nestedScrollEnabled style={hug ? styles.shrink : styles.grow} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: bodyBottom }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}>
               {children}
             </ScrollView>
             {footer && <View className="gap-3 px-4 pt-3" style={{ paddingBottom: pad }}>{footer}</View>}

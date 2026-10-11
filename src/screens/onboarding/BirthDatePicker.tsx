@@ -13,7 +13,7 @@ import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
-import { FIELD_BOX, ringStyle, SmallButton } from "../settings/controls";
+import { FIELD_BOX, FIELD_BOX_COMPACT, ringStyle, SmallButton } from "../settings/controls";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => formatDay(`2026-${String(i + 1).padStart(2, "0")}`, { month: "long" }));
 const OLDEST = 1920;
@@ -90,7 +90,7 @@ function Wheel({ label, items, index, onIndex }: { label: string; items: string[
 }
 
 /** `value` is yyyy-MM-dd, or "" before one is chosen. */
-export function BirthDatePicker({ value, onChange, invalid }: { value: string; onChange: (value: string) => void; invalid?: boolean }) {
+export function BirthDatePicker({ value, onChange, invalid, compact }: { value: string; onChange: (value: string) => void; invalid?: boolean; /** The Edit profile sheet's smaller field. */ compact?: boolean }) {
   const { c } = useTheme();
   const youngest = useMemo(() => new Date().getFullYear() - 13, []);
   const years = useMemo(() => Array.from({ length: youngest - OLDEST + 1 }, (_, i) => String(OLDEST + i)), [youngest]);
@@ -112,10 +112,10 @@ export function BirthDatePicker({ value, onChange, invalid }: { value: string; o
           haptic.tap();
           setOpen((o) => !o);
         }}
-        className={cn(FIELD_BOX, "w-full min-w-0 flex-row items-center justify-between gap-3 px-4")}
+        className={cn(compact ? FIELD_BOX_COMPACT : FIELD_BOX, "w-full min-w-0 flex-row items-center justify-between gap-3", compact ? "px-3.5" : "px-4")}
         style={ringStyle(invalid ? c["recovery-red-text"] : open ? c["focus-ring"] : null)}
       >
-        <Text className={cn("text-[17px] leading-6 tabular-nums", !value && "text-muted-foreground")}>{value ? formatDay(value, { ...DAY.full, month: "long" }) : "Choose your birth date"}</Text>
+        <Text className={cn(compact ? "text-[15px] leading-5" : "text-[17px] leading-6", "tabular-nums", !value && "text-muted-foreground")}>{value ? formatDay(value, { ...DAY.full, month: "long" }) : "Choose your birth date"}</Text>
         <Icon icon={CalendarDays} size={20} tone="foreground-secondary" strokeWidth={1.75} />
       </Pressable>
       {open && (

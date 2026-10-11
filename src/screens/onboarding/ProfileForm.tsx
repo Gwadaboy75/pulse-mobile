@@ -21,12 +21,15 @@ export function ProfileForm({
   onboarding = false,
   onSaved,
   footer,
+  sheet,
 }: {
   defaults: ProfileDefaults;
   /** First run: only what nothing else can supply (birth date, sex). Height and max HR wait for Settings. */
   onboarding?: boolean;
   onSaved?: () => void;
   footer: (state: { pending: boolean; submit: () => void }) => ReactNode;
+  /** The Edit profile sheet: smaller fields, and the host places the fields and the footer itself (the sheet pins the footer under its scrolling body). */
+  sheet?: (fields: ReactNode, footer: ReactNode) => ReactNode;
 }) {
   const [name, setName] = useState(defaults.name ?? "");
   const [birthDate, setBirthDate] = useState(defaults.birthDate);
@@ -50,18 +53,22 @@ export function ProfileForm({
     if (r.ok) onSaved?.();
     else haptic.error();
   };
+  const compact = !!sheet;
+  const variant = compact ? "compact" : "field";
+  const gap = compact ? "gap-4" : "gap-6";
 
-  return (
-    <View className="gap-6">
+  const fields = (
+    <View className={gap}>
+      {/* No autofill: Android paints an autofilled field olive over our fill. */}
       <Field label="Name" hint="Shown on Home and in Settings. Stays on this phone." error={f?.name} optional>
-        <TextField accessibilityLabel="Name" autoCapitalize="words" autoComplete="name" placeholder="Your name" value={name} onChangeText={setName} invalid={!!f?.name} />
+        <TextField variant={variant} accessibilityLabel="Name" autoCapitalize="words" autoComplete="off" importantForAutofill="no" placeholder="Your name" value={name} onChangeText={setName} invalid={!!f?.name} />
       </Field>
       <Field label="Birth date" hint="For heart rate zones, sleep need and Pulse Age." error={f?.birthDate}>
-        <BirthDatePicker value={birthDate} onChange={setBirthDate} invalid={!!f?.birthDate} />
+        <BirthDatePicker value={birthDate} onChange={setBirthDate} invalid={!!f?.birthDate} compact={compact} />
       </Field>
 
       <View accessibilityRole="radiogroup" className="gap-2">
-        <Text className="mb-2 text-xs font-bold uppercase leading-4 tracking-[0.1em] text-foreground-secondary">Sex</Text>
+        <Text className={`${compact ? "" : "mb-2 "}text-xs font-bold uppercase leading-4 tracking-[0.1em] text-foreground-secondary`}>Sex</Text>
         <RadioSegments
           label="Sex"
           value={sex}
@@ -82,7 +89,7 @@ export function ProfileForm({
 
       {zoneOpen || !timeZone || f?.timeZone ? (
         <Field label="Time zone" hint="Where you live. Your days start at midnight here." error={f?.timeZone}>
-          <TimeZonePicker value={timeZone} onChange={setTimeZone} invalid={!!f?.timeZone} />
+          <TimeZonePicker value={timeZone} onChange={setTimeZone} invalid={!!f?.timeZone} compact={compact} />
         </Field>
       ) : (
         <View className="min-h-14 flex-row items-center gap-3 rounded-xl bg-field py-2 pl-4 pr-2">
@@ -97,12 +104,12 @@ export function ProfileForm({
       )}
 
       {!onboarding && (
-        <View className="gap-6">
+        <View className={gap}>
           <Field label="Height" hint="In cm. Adds lean body mass to Pulse Age." error={f?.heightCm} optional>
-            <TextField accessibilityLabel="Height in cm" keyboardType="decimal-pad" placeholder="cm" value={heightCm} onChangeText={setHeightCm} invalid={!!f?.heightCm} />
+            <TextField variant={variant} accessibilityLabel="Height in cm" keyboardType="decimal-pad" placeholder="cm" value={heightCm} onChangeText={setHeightCm} invalid={!!f?.heightCm} />
           </Field>
           <Field label="Max heart rate" hint="Leave blank to estimate it from your age." error={f?.maxHr} optional>
-            <TextField accessibilityLabel="Max heart rate in bpm" keyboardType="number-pad" placeholder="bpm" value={maxHr} onChangeText={setMaxHr} invalid={!!f?.maxHr} />
+            <TextField variant={variant} accessibilityLabel="Max heart rate in bpm" keyboardType="number-pad" placeholder="bpm" value={maxHr} onChangeText={setMaxHr} invalid={!!f?.maxHr} />
           </Field>
         </View>
       )}
@@ -112,7 +119,15 @@ export function ProfileForm({
           {state.error}
         </Text>
       )}
-      {footer({ pending, submit })}
+    </View>
+  );
+  const foot = footer({ pending, submit });
+  return sheet ? (
+    sheet(fields, foot)
+  ) : (
+    <View className="gap-6">
+      {fields}
+      {foot}
     </View>
   );
 }

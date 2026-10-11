@@ -3,7 +3,7 @@
 // right, the coach's as Prose on the ground beside the Mark, tool results as kit cards, and the composer pinned over
 // the keyboard. Log tools are not ported: the phone's coach is read-only, as halo's.
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AccessibilityInfo, KeyboardAvoidingView, ScrollView, Share, TextInput, View } from "react-native";
+import { AccessibilityInfo, KeyboardAvoidingView, Platform, ScrollView, Share, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
@@ -48,7 +48,7 @@ export const ERRORS: Record<string, string> = {
 };
 const errorText = (e: Error) => ERRORS[e.message.trim()] ?? "Couldn’t get an answer. Try again.";
 
-/** The Mark in the insight-gradient ring (the empty state's 48 px, the avatar's 28 px). */
+/** The Mark in the insight-gradient ring (the empty state's 48 px, the avatar's 24 px: one line of Prose). */
 export function CoachMark({ size }: { size: number }) {
   const { c } = useTheme();
   return (
@@ -64,7 +64,7 @@ export function CoachMark({ size }: { size: number }) {
 /** A caption with a coach-blue dot: tool progress, "Thinking…", a tool that failed. */
 function Caption({ live, children }: { live?: boolean; children: string }) {
   return (
-    <View className="flex-row items-center gap-2" accessibilityLiveRegion={live ? "polite" : "none"}>
+    <View className="min-h-6 flex-row items-center gap-2" accessibilityLiveRegion={live ? "polite" : "none"}>
       <View className={cn("size-1.5 rounded-full bg-coach", live && "animate-pulse")} />
       <Text className="text-[13px] leading-[18px] text-muted-foreground">{children}</Text>
     </View>
@@ -144,8 +144,8 @@ function UserMessage({ m, busy, onEdit }: { m: UIMessage; busy: boolean; onEdit:
 function AssistantMessage({ m, done, onRegenerate }: { m: UIMessage; done: boolean; onRegenerate?: () => void }) {
   const text = plainText(m);
   return (
-    <View className="flex-row gap-3">
-      <CoachMark size={28} />
+    <View className="flex-row gap-2.5">
+      <CoachMark size={24} />
       <View className="min-w-0 flex-1 gap-3">
         {m.parts.map((p, i) => (
           <PartView key={i} part={p} />
@@ -248,8 +248,10 @@ export function Coach({ id, initial, prefill, auto, providerLabel, suggestions, 
   const lastAnswer = messages.at(-1)?.role === "assistant" ? messages.at(-1)!.id : null;
 
   return (
-    <KeyboardAvoidingView behavior="padding" className="flex-1">
-      <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerClassName="grow px-4 pb-6 pt-2">
+    // iOS only: Android resizes the window for the keyboard itself (as SheetScreen relies on), and padding on top of that
+    // lifted the composer a keyboard's height above it, into the middle of the screen.
+    <KeyboardAvoidingView behavior="padding" enabled={Platform.OS === "ios"} className="flex-1">
+      <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" className="flex-1" contentContainerClassName="grow px-4 pb-6 pt-2">
         {messages.length === 0 ? (
           <Empty providerLabel={providerLabel} suggestions={suggestions} today={today} onAsk={send} />
         ) : (
@@ -261,7 +263,12 @@ export function Coach({ id, initial, prefill, auto, providerLabel, suggestions, 
                 <AssistantMessage key={m.id} m={m} done={!busy || i < messages.length - 1} onRegenerate={!busy && m.id === lastAnswer ? () => again(m.id) : undefined} />
               ),
             )}
-            {status === "submitted" && <Caption live>Thinking…</Caption>}
+            {status === "submitted" && (
+              <View className="flex-row gap-2.5">
+                <CoachMark size={24} />
+                <Caption live>Thinking…</Caption>
+              </View>
+            )}
           </View>
         )}
         {error && (
@@ -272,8 +279,8 @@ export function Coach({ id, initial, prefill, auto, providerLabel, suggestions, 
         )}
       </ScrollView>
       {/* The composer: a rounded field with Send (or Stop while answering), over the safe area. */}
-      <View className="px-4 pt-2" style={{ paddingBottom: bottom }}>
-        <View className="flex-row items-end gap-1.5 rounded-[26px] border border-border bg-card p-1.5">
+      <View className="shrink-0 px-4 pt-2" style={{ paddingBottom: bottom }}>
+        <View className="flex-row items-end gap-1.5 rounded-[28px] border border-border bg-card p-1.5">
           <TextInput
             value={input}
             onChangeText={setInput}

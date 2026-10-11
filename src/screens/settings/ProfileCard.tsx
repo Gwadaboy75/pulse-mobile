@@ -1,9 +1,13 @@
 // Settings › Profile. Ported from pulse (app)/settings/SettingsView.tsx `Profile` and SettingsClient.tsx `EditProfileButton`:
 // the rows, and "Edit", which opens the onboarding fields in a sheet (the route app/(sheets)/profile.tsx, U19). Above
-// them, the web's Account head: the photo and the name, and the Photo button (src/actions/photo.ts), with Remove photo.
+// them, the web's Account head: the photo and the name, and the Photo button (src/actions/photo.ts), whose menu offers
+// Take photo, Choose photo and, once there is one, Remove photo.
 import { useState } from "react";
-import { Alert, View } from "react-native";
-import { Pencil } from "lucide-react-native";
+import { View } from "react-native";
+import { Camera, ImageIcon, Pencil, Trash2, type LucideIcon } from "lucide-react-native";
+import { Icon } from "@/ui/Icon";
+import { MenuPanel, useMenu } from "@/ui/Menu";
+import { Press } from "@/ui/Press";
 import { pickPhoto } from "@/actions/photo";
 import { setPhoto, useApp } from "@/state/app";
 import { Button } from "@/ui/Button";
@@ -55,10 +59,11 @@ export function ProfileCard({ profile }: { profile: SettingsVM["profile"] }) {
   );
 }
 
-/** Photo: take one or choose one (both crop a square), and Remove photo once there is one. */
+/** Photo: a menu under the button (the kit's MenuPanel) to take one or choose one (both crop a square), and Remove photo once there is one. */
 function PhotoButtons() {
   const has = useApp((s) => !!s.profile?.photo);
   const [pending, setPending] = useState(false);
+  const { ref, anchor, open, close } = useMenu();
   const run = async (from: "camera" | "library") => {
     setPending(true);
     try {
@@ -73,26 +78,35 @@ function PhotoButtons() {
       setPending(false);
     }
   };
-  const choose = () =>
-    Alert.alert("Profile photo", undefined, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Take photo", onPress: () => void run("camera") },
-      { text: "Choose photo", onPress: () => void run("library") },
-    ]);
   const remove = async () => {
     await setPhoto(null);
     toast.success("Photo removed");
   };
+  const item = (icon: LucideIcon, label: string, onPress: () => void, danger?: boolean) => (
+    <Press
+      activeBg="bg-fill-pressed"
+      accessibilityRole="menuitem"
+      onPress={() => {
+        close();
+        // After the menu's fade-out: iOS will not present the camera or the library over a modal still closing.
+        setTimeout(onPress, 300);
+      }}
+      className="h-12 flex-row items-center gap-3 rounded-xl px-3"
+    >
+      <Icon icon={icon} size={20} tone={danger ? "recovery-red-text" : "foreground-secondary"} strokeWidth={1.75} />
+      <Text className={cn("text-[15px] font-medium", danger && "text-recovery-red-text")}>{label}</Text>
+    </Press>
+  );
   return (
-    <View className="mt-4 flex-row gap-2">
-      <Button variant="secondary" className="flex-1" disabled={pending} onPress={choose}>
+    <View ref={ref} collapsable={false} className="mt-4">
+      <Button variant="secondary" disabled={pending} onPress={open}>
         {pending ? "Saving…" : "Photo"}
       </Button>
-      {has && (
-        <Button variant="outline" className="flex-1" disabled={pending} onPress={() => void remove()}>
-          Remove photo
-        </Button>
-      )}
+      <MenuPanel anchor={anchor} onClose={close} align="stretch">
+        {item(Camera, "Take photo", () => void run("camera"))}
+        {item(ImageIcon, "Choose photo", () => void run("library"))}
+        {has && item(Trash2, "Remove photo", () => void remove(), true)}
+      </MenuPanel>
     </View>
   );
 }
