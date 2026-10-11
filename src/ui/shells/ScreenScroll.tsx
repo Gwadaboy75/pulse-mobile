@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import { Platform, RefreshControl, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, usePathname } from "expo-router";
-import Animated, { useAnimatedScrollHandler, useDerivedValue, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { useAnimatedReaction, useAnimatedScrollHandler, useSharedValue, withTiming } from "react-native-reanimated";
 import { Ground, HealthspanGround } from "../Ground";
 import { haptic } from "../haptics";
 import { useTheme } from "../theme";
@@ -17,7 +17,16 @@ export function useCollapse(durationIn: number = DURATION.collapse, durationOut:
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
   });
-  const progress = useDerivedValue<number>(() => withTiming(scrollY.value >= threshold.value ? 1 : 0, { duration: scrollY.value >= threshold.value ? durationIn : durationOut }));
+  // The ease starts only when the side of the threshold changes. A derived value returning withTiming started a new
+  // animation on every scroll event (each frame at 120 Hz), and every style reading `progress` ran again with it.
+  const progress = useSharedValue(0);
+  useAnimatedReaction(
+    () => scrollY.value >= threshold.value,
+    (past, before) => {
+      if (before === null) progress.value = past ? 1 : 0;
+      else if (past !== before) progress.value = withTiming(past ? 1 : 0, { duration: past ? durationIn : durationOut });
+    },
+  );
   return { scrollY, threshold, onScroll, progress };
 }
 
