@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blobRadius, noise2, ORB, orbColors as colors, particleCount, rng, type RGB, type Token } from "./orb";
+import { blobRadius, lowestEdge, noise2, ORB, orbColors as colors, particleCount, particleLayer, rng, swirlVelocity, type RGB, type Token } from "./orb";
 
 // The orb resolves tokens from the palette; here a fixed table with the same hues stands in (pulse's test's table).
 const TOKENS: Record<string, RGB> = {
@@ -84,9 +84,73 @@ describe("shape noise", () => {
     expect([a(), a(), a()]).toEqual([b(), b(), b()]);
   });
   it("scales particle count with size within the cap", () => {
-    expect(particleCount(300)).toBeGreaterThanOrEqual(800);
-    expect(particleCount(300)).toBeLessThanOrEqual(1000);
+    expect(particleCount(300)).toBeGreaterThanOrEqual(2000);
+    expect(particleCount(300)).toBeLessThanOrEqual(3000);
     expect(particleCount(2000)).toBe(ORB.particles.max);
     expect(particleCount(40)).toBe(ORB.particles.min);
+  });
+});
+
+// Halo's checks on the static-layer orb's motion (src/screens/health/AgeOrb.tsx).
+const M = ORB.motion;
+const STEPS = 128;
+const TAU = Math.PI * 2;
+
+/** The settled outline AgeOrb draws, in px, for a seed and size. */
+function outline(seed: number, size: number) {
+  const R = (size / 2) * ORB.shape.radius;
+  return Array.from({ length: STEPS + 1 }, (_, i) => R * blobRadius((i / STEPS) * TAU, 10, seed, size < 160, 1));
+}
+
+/** The outline's radius at any angle, interpolated between table samples (finer than the drawing's own lookup). */
+function radiusAt(rTab: number[], a: number) {
+  const x = ((((a % TAU) + TAU) % TAU) / TAU) * STEPS;
+  const i = Math.floor(x);
+  const f = x - i;
+  return rTab[i] * (1 - f) + rTab[Math.min(STEPS, i + 1)] * f;
+}
+
+describe("orb motion clock", () => {
+  it("restarts seamlessly: every wave period divides the loop and every drift is whole turns", () => {
+    for (const period of [M.breath, M.twinkle, M.twinkleInner, M.sway, M.shimmer]) expect(Number.isInteger(M.loop / period)).toBe(true);
+    for (const turns of [M.turnsA, M.turnsB, M.turnsShimmer]) expect(Number.isInteger(turns)).toBe(true);
+  });
+});
+
+describe("swirlVelocity", () => {
+  it("ramps up with the hold and then matches the loop's steady speed", () => {
+    expect(swirlVelocity(0)).toBe(0);
+    expect(swirlVelocity(-5)).toBe(0);
+    expect(swirlVelocity(M.swirl.ramp / 2)).toBeCloseTo(swirlVelocity(M.swirl.ramp) / 2, 12);
+    expect(swirlVelocity(M.swirl.ramp)).toBeCloseTo(1 / M.swirl.period, 12);
+    expect(swirlVelocity(10_000)).toBeCloseTo(1 / M.swirl.period, 12);
+  });
+});
+
+describe("particleLayer", () => {
+  it("only lets particles turn as far as the outline allows", () => {
+    const sway = (M.swayDeg * Math.PI) / 180;
+    for (const size of [300, 260, 108]) {
+      for (let seed = 3; seed < 92; seed++) {
+        const rTab = outline(seed, size);
+        const minEdge = Math.min(...rTab);
+        for (let j = 0; j < 48; j++) {
+          const a = (j / 48) * TAU;
+          for (const depth of [0.3, 0.6, 0.8, 0.9, 0.97]) {
+            const dist = radiusAt(rTab, a) * depth;
+            const layer = particleLayer(rTab, STEPS, minEdge, a, dist, 1.5, sway);
+            if (layer === "free") for (let k = 0; k < 72; k++) expect(dist + 1.5).toBeLessThanOrEqual(radiusAt(rTab, a + (k / 72) * TAU) + 1e-6);
+            else if (layer === "sway") for (const f of [-1, -0.5, 0, 0.5, 1]) expect(dist + 1.5).toBeLessThanOrEqual(radiusAt(rTab, a + f * sway) + 0.5);
+          }
+        }
+      }
+    }
+  });
+
+  it("reads the lowest edge around an angle", () => {
+    const rTab = Array.from({ length: STEPS + 1 }, (_, i) => (i === 10 ? 50 : 100));
+    const at = (i: number) => (i / STEPS) * TAU;
+    expect(lowestEdge(rTab, STEPS, at(11), TAU / STEPS)).toBe(50);
+    expect(lowestEdge(rTab, STEPS, at(20), TAU / STEPS)).toBe(100);
   });
 });

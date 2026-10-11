@@ -1,7 +1,7 @@
 // Pure parts of the Pulse Age orb (pulse docs/design/orb.md): colour mapping, shape noise, seeded RNG. Ported from pulse
-// src/lib/orb.ts. Differences: tokens are the palette's names (`orb-green`, no `--`), and the functions the orb's frame
-// loop calls carry the "worklet" directive because the loop runs on the UI thread (Reanimated). The CSS-only helpers
-// (`cssMix`, `hexRGB`: the server-render fallback blob) are left out: there is no server render.
+// src/lib/orb.ts. Differences: tokens are the palette's names (`orb-green`, no `--`), and the CSS-only helpers (`cssMix`,
+// `hexRGB`: the server-render fallback blob) are left out: there is no server render. The motion constants and the
+// motion geometry at the end are halo's (the phone's static-layer orb), not the web's.
 
 export type RGB = readonly [number, number, number];
 
@@ -49,32 +49,50 @@ export const ORB = {
     drift: 0.05,
   },
   particles: {
-    /**
-     * Particles at 320 px; scaled by area and clamped. The web draws 3,000; each one is UI-thread maths and Skia work
-     * every frame here, and at 3,000 a 300 px orb held Android at 30 Hz. A third keeps the look (most cut ones are dust).
-     */
-    at320: 1000,
+    /** Particles at 320 px, scaled by area and clamped (the web's). AgeOrb draws at most 640 of them (a third of the dust). */
+    at320: 3000,
     min: 280,
-    max: 1000,
+    max: 3000,
     /** Share of tiny dust, crisp dots, soft bokeh discs. */
     mix: [0.68, 0.27, 0.05] as const,
   },
-  entry: { duration: 1.2, maxDelay: 0.35 },
   /** Idle drift stops after this long without interaction (WCAG 2.2.2); touch or re-entering view resumes it. */
   idleSeconds: 30,
-  /** Touch: particles gather toward the centre and swirl (latest-age-orb-touch-frames.jpg). */
-  touch: { ease: 5, swirl: 1.1, wobble: 0.6, bulge: 0.06 },
+  /**
+   * The phone's motion (halo's), from one linear clock in seconds. Every period divides `loop` and every drift is
+   * whole turns per loop, so the clock's restart is seamless.
+   */
+  motion: {
+    loop: 240,
+    /** Seconds per cycle: the outline and glow breathe, the rim twinkles and sways, the core shimmers. */
+    breath: 6,
+    twinkle: 8,
+    /** The counter-turning inner layer twinkles on its own beat. */
+    twinkleInner: 10,
+    sway: 12,
+    shimmer: 5,
+    /** Turns per loop: the two inner particle layers drift opposite ways at 3°/s and 1.5°/s; the shimmer at 1.5°/s. */
+    turnsA: 2,
+    turnsB: -1,
+    turnsShimmer: -1,
+    /** The rim layer's sway, ± degrees: small enough that no rim particle crosses the lobed outline. */
+    swayDeg: 2,
+    /** Breathing: the body grows 3 %, the glow 4.5 % and brightens from 85 %. */
+    breathScale: 0.03,
+    glowScale: 0.045,
+    glowDim: 0.85,
+    /** Press and hold: the inner field spins up over `ramp` ms to a turn per `period` ms and gathers inward; release coasts it down. */
+    swirl: { period: 5000, ramp: 600, rampTurns: 0.06, deceleration: 0.998, gather: 0.86, rimGather: 0.95, bodyGrow: 0.02, glowGrow: 0.03 },
+    /** Entry: the inner field spirals in from 130 % and −40° while the body charges from 45 %. */
+    enter: { duration: 900, scale: 1.3, turnDeg: -40, body: 0.45 },
+  },
 } as const;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-const lerp = (a: number, b: number, t: number) => {
-  "worklet";
-  return a + (b - a) * t;
-};
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 export const mixRGB = (a: RGB, b: RGB, t: number): RGB => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
 export const shadeRGB = (c: RGB, k: number): RGB => [Math.min(255, c[0] * k), Math.min(255, c[1] * k), Math.min(255, c[2] * k)];
-/** Skia takes the comma form. */
 export const rgba = (c: RGB, a = 1) => `rgba(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])}, ${a})`;
 
 /** The two stops around a Pulse Age delta and how far between them; `null` (no result) is the empty orb. */
@@ -97,7 +115,6 @@ export function orbColors(delta: number | null, rgb: (token: Token) => RGB): { t
 
 /** Integer hash to [0, 1). */
 function hash2(x: number, y: number) {
-  "worklet";
   let h = Math.imul(x, 374761393) + Math.imul(y, 668265263);
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
@@ -105,7 +122,6 @@ function hash2(x: number, y: number) {
 
 /** 2D value noise in [-1, 1], smooth and deterministic. */
 export function noise2(x: number, y: number) {
-  "worklet";
   const xi = Math.floor(x);
   const yi = Math.floor(y);
   const xf = x - xi;
@@ -122,7 +138,6 @@ export function noise2(x: number, y: number) {
  * closed; drifting the sample centre over time morphs it. `wobble` scales the bumps (1 at rest, more on touch).
  */
 export function blobRadius(theta: number, t: number, seed: number, small = false, wobble = 1) {
-  "worklet";
   const s = ORB.shape;
   const c = Math.cos(theta);
   const n = Math.sin(theta);
@@ -146,8 +161,36 @@ export function rng(seed: number) {
   };
 }
 
-export const easeOutCubic = (t: number) => {
-  "worklet";
-  const x = t < 0 ? 0 : t > 1 ? 1 : t;
-  return 1 - (1 - x) ** 3;
-};
+// --- Motion geometry (halo's) ---
+
+const TAU = Math.PI * 2;
+const norm = (a: number) => ((a % TAU) + TAU) % TAU;
+
+/** The radius table's entry nearest angle `a` (the table holds STEPS + 1 samples over a full turn). */
+export const edgeIndex = (a: number, steps: number) => Math.round((norm(a) / TAU) * steps) % steps;
+
+/** The outline's smallest radius within ±`span` radians of angle `a`, from a radius table of `steps` samples per turn. */
+export function lowestEdge(rTab: ArrayLike<number>, steps: number, a: number, span: number): number {
+  const i0 = edgeIndex(a, steps);
+  const k = Math.ceil(span / (TAU / steps));
+  let m = Infinity;
+  for (let j = -k; j <= k; j++) m = Math.min(m, rTab[(((i0 + j) % steps) + steps) % steps]);
+  return m;
+}
+
+/**
+ * Which motion layer a particle can join without ever crossing the outline: `free` turns any amount (it sits inside
+ * the outline's smallest radius), `sway` turns ±`swaySpan` radians, `fixed` stays put with the body. `dist` is its
+ * distance from the centre and `r` its drawn radius, both in px.
+ */
+export function particleLayer(rTab: ArrayLike<number>, steps: number, minEdge: number, angle: number, dist: number, r: number, swaySpan: number): "free" | "sway" | "fixed" {
+  const reach = dist + r + 0.5;
+  if (reach <= minEdge) return "free";
+  return reach <= lowestEdge(rTab, steps, angle, swaySpan) ? "sway" : "fixed";
+}
+
+/** The press swirl's speed (turns per ms) after holding `heldMs`: the ease-in ramp's, then the loop's steady speed. */
+export function swirlVelocity(heldMs: number): number {
+  const s = ORB.motion.swirl;
+  return ((2 * s.rampTurns) / s.ramp) * Math.min(1, Math.max(0, heldMs) / s.ramp);
+}

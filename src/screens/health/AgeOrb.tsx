@@ -1,44 +1,25 @@
-// Pulse Age hero (pulse docs/design/orb.md), ported from pulse src/components/metrics/AgeOrb.tsx. The web draws it on a 2D
-// canvas from a requestAnimationFrame loop; here the loop is a Reanimated frame callback on the UI thread and the marks
-// are Skia nodes: the blob, glow, body and rim are declarative nodes fed by shared values, and the particles are one
-// <Atlas> whose transforms, sprite rects and colours Skia's buffers rewrite every frame (the same maths as the web's loop,
-// per particle). No React state changes per frame. See docs/learning.md ("The Pulse Age orb").
-import { useEffect, useMemo } from "react";
-import { View } from "react-native";
-import {
-  Atlas,
-  Canvas,
-  Circle,
-  Group,
-  LinearGradient,
-  Mask,
-  Path,
-  RadialGradient,
-  Rect,
-  Skia,
-  TileMode,
-  useRSXformBuffer,
-  vec,
-  type SkColor,
-  type SkHostRect,
-  type SkImage,
-  type SkRSXform,
-} from "@shopify/react-native-skia";
+// Pulse Age hero (pulse docs/design/orb.md), ported from pulse src/components/metrics/AgeOrb.tsx by way of halo's
+// src/screens/health/AgeOrb.tsx. The web redraws a 2D canvas every frame; here each part of the orb is a static SVG
+// drawn once per size, delta and theme, and only the views around them move (transform and opacity, Reanimated styles
+// on the UI thread), so a frame costs a few composited layers and no geometry. See docs/learning.md ("The Pulse Age orb").
+import { useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { AppState, StyleSheet, View, type GestureResponderEvent, type ViewStyle } from "react-native";
+import Svg, { Circle, ClipPath, Defs, G, LinearGradient, Mask, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { useIsFocused } from "expo-router";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { Keyframe, makeMutable, useDerivedValue, useFrameCallback, useReducedMotion, useSharedValue, type SharedValue } from "react-native-reanimated";
+import Animated, { cancelAnimation, Easing, Keyframe, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming, type SharedValue } from "react-native-reanimated";
+import { scheduleOnUI } from "react-native-worklets";
 import { AGE_LABEL, formatValue } from "@/lib/format";
 import { reasonCopy, type ReasonCode } from "@/lib/reasons";
-import { alpha, parseColor } from "@/ui/color";
+import { parseColor } from "@/ui/color";
 import { VALUES, type TokenName } from "@/ui/palette";
 import { MetricTags } from "@/ui/metrics/primitives";
 import { useNarrow } from "@/ui/shells/layout";
 import { ReasonPlaceholder } from "@/ui/metrics/ReasonPlaceholder";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
-import { ageDelta } from "./format";
-import { blobRadius, easeOutCubic, mixRGB, ORB, orbColors, particleCount, rgba, rng, shadeRGB, type RGB, type Token } from "./orb";
 import { EASE } from "@/ui/motion";
+import { ageDelta } from "./format";
+import { blobRadius, mixRGB, ORB, orbColors, particleCount, particleLayer, rgba, rng, shadeRGB, swirlVelocity, type RGB, type Token } from "./orb";
 
 export type AgeOrbProps = {
   /** Pulse Age, the number in the middle. */
@@ -53,361 +34,438 @@ export type AgeOrbProps = {
   compact?: boolean;
 };
 
-/** Canvas overhang on each side, as a share of `size`, so the glow can bleed past the box. */
-const PAD = 0.15;
-/** Vertical colour bands the particle sprites are pre-tinted in (mixed orbs fade top to bottom). */
 const BANDS = 8;
 const STEPS = 128;
 const TAU = Math.PI * 2;
-/** The sprite sheet: a row of crisp 16 px dots (one per band), under it a row of soft 64 px discs. */
-const DOT = 16;
-const SOFT = 64;
-/** A frame far enough into the entry that everything has landed: the settled frame (the web's `draw(10, 0)`). */
-const SETTLED = 10;
-
-/** One 128-step outline: radii (px) at t, seed and wobble, bulging toward (ax, ay) while pressed. Runs on either thread. */
-function outline(R: number, t: number, seed: number, small: boolean, wob: number, pull: number, toward: number) {
+/** The settled frame (the web's `draw(10, 0)`): the layers are drawn at this time. */
+const SETTLED_T = 10;
+/** The SVG particle budget, and the share of dust motes it keeps. */
+const MAX_PARTICLES = 640;
+const DUST_EVERY = 3;
+/** A finger that moves this far is scrolling, not holding the orb. */
+const TOUCH_SLOP = 10;
+const M = ORB.motion;
+const S = M.swirl;
+/** The release's coast: a decay at `deceleration` per ms as a timing of the same distance and start speed. */
+const COAST_MS = 2300;
+const COAST_K = (1 - S.deceleration) * COAST_MS;
+const COAST_NORM = 1 - Math.exp(-COAST_K);
+const coast = (t: number) => {
   "worklet";
-  const out: number[] = [];
-  for (let i = 0; i <= STEPS; i++) {
-    const a = (i / STEPS) * TAU;
-    out.push(R * blobRadius(a, t, seed, small, wob) * (1 + pull * Math.max(0, Math.cos(a - toward)) ** 4));
-  }
-  return out;
-}
-
-/** The frame loop's state, all shared values: nothing here re-renders the component. */
-type Live = {
-  t: SharedValue<number>;
-  gather: SharedValue<number>;
-  target: SharedValue<number>;
-  swirl: SharedValue<number>;
-  ax: SharedValue<number>;
-  ay: SharedValue<number>;
-  /** Last interaction or entry, in orb time. */
-  lastActive: SharedValue<number>;
-  table: SharedValue<number[]>;
+  return (1 - Math.exp(-COAST_K * t)) / COAST_NORM;
 };
-/** What a frame needs of the orb's geometry and its particles (the web's closure variables). */
-type Geo = { R: number; seed: number; small: boolean; cx: number; cy: number; dim: number; P: Particles };
-type Particles = Record<"th" | "rho" | "rhoIn" | "w" | "ph" | "tw" | "depth" | "rad" | "alpha" | "soft" | "sx" | "sy" | "delay" | "swirl", number[]>;
-const FLY = ORB.entry.duration - ORB.entry.maxDelay;
 
-// These run on the UI thread, every frame, and write shared values and Skia buffers in place. They are plain functions
-// (not inside a component) so the React Compiler leaves them alone.
+// --- The ambient waves, from one linear clock in seconds (UI-thread worklets) ---
 
-/** One frame of the web's `draw(t, dt)`: time, the touch ease, the swirl and the outline table. */
-function frameStep(live: Live, geo: Geo, timeSincePrevious: number | null | undefined) {
+/** One smooth cycle lo → hi → lo per period: (1 − cos 2πx) / 2. */
+const wave = (t: number, period: number, lo: number, hi: number) => {
   "worklet";
-  const dt = Math.min(0.05, (timeSincePrevious ?? 16) / 1000);
-  // WCAG 2.2.2: ambient motion settles after a while; a touch wakes it (and `lastActive` with it).
-  if (live.t.value - live.lastActive.value > ORB.idleSeconds && live.gather.value < 0.01 && live.target.value === 0) return;
-  live.t.value += dt;
-  live.gather.value += (live.target.value - live.gather.value) * (1 - Math.exp(-dt * ORB.touch.ease));
-  live.swirl.value += dt * live.gather.value * ORB.touch.swirl;
-  // While pressed the outline also leans out toward the finger (touch frames).
-  const pull = Math.hypot(live.ax.value, live.ay.value) > 4 ? live.gather.value * ORB.touch.bulge : 0;
-  live.table.value = outline(geo.R, live.t.value, geo.seed, geo.small, 1 + live.gather.value * ORB.touch.wobble, pull, Math.atan2(live.ay.value, live.ax.value));
-}
-
-/** Particle `i` this frame: where it is (transform), which sprite (rect) and how bright (colour). */
-function placeParticle(i: number, xf: SkRSXform, rect: SkHostRect, color: SkColor, live: Live, geo: Geo) {
+  const x = t / period;
+  return lo + (hi - lo) * (0.5 - 0.5 * Math.cos(TAU * (x - Math.floor(x))));
+};
+/** `k` whole turns per loop, as a rotation. */
+const turns = (t: number, k: number) => {
   "worklet";
-  const { P, cx, cy, R, dim } = geo;
-  const T = live.t.value;
-  const G = live.gather.value;
-  const e = easeOutCubic((T - P.delay[i]) / FLY);
-  if (e <= 0) {
-    xf.set(0, 0, -100, -100);
-    color[3] = 0;
-    return;
-  }
-  const tbl = live.table.value;
-  const th = P.th[i] + P.w[i] * T + live.swirl.value * P.swirl[i] - (1 - e) * 0.9;
-  const rho = P.rho[i] + 0.012 * Math.sin(P.ph[i] + T * 0.7);
-  const depth = rho + (P.rhoIn[i] - rho) * G;
-  const ang = ((th % TAU) + TAU) % TAU;
-  const edge = tbl[Math.round((ang / TAU) * STEPS)];
-  const lean = G * (1 - depth); // Inner particles lean toward the finger; rim ones stay inside the edge.
-  const hx = cx + edge * depth * Math.cos(th) + live.ax.value * lean;
-  const hy = cy + edge * depth * Math.sin(th) + live.ay.value * lean;
-  const x = P.sx[i] + (hx - P.sx[i]) * e;
-  const y = P.sy[i] + (hy - P.sy[i]) * e;
-  const tw = 1 - P.depth[i] + P.depth[i] * (0.5 + 0.5 * Math.sin(P.ph[i] * 3.1 + T * P.tw[i]));
-  color[3] = Math.min(1, P.alpha[i] * tw * (0.4 + 0.6 * P.rho[i] * P.rho[i]) * e * (1 + 0.3 * G) * dim);
-  const band = Math.min(BANDS - 1, Math.max(0, Math.floor(((y - cy + R) / (2 * R)) * BANDS)));
-  const s = P.rad[i] * (P.soft[i] ? 2 : 2.6);
-  const px = P.soft[i] ? SOFT : DOT;
-  rect.setXYWH(band * px, P.soft[i] ? DOT : 0, px, px);
-  xf.set(s / px, 0, x - s / 2, y - s / 2);
-}
+  return `${(360 * k * t) / M.loop}deg`;
+};
 
-/** A press (or a drag of it) at (x, y) in the box: particles pull toward the centre, leaning toward the finger. */
-function press(live: Live, size: number, x: number, y: number, down: boolean) {
-  "worklet";
-  live.ax.value = (x - size / 2) * 0.5;
-  live.ay.value = (y - size / 2) * 0.5;
-  if (down) {
-    live.target.value = 1;
-    live.lastActive.value = live.t.value;
-  }
-}
+const subscribeAppState = (fn: () => void) => {
+  const sub = AppState.addEventListener("change", fn);
+  return () => sub.remove();
+};
+const appActive = () => AppState.currentState !== "background" && AppState.currentState !== "inactive";
 
-function release(live: Live) {
-  "worklet";
-  live.target.value = 0;
-  live.lastActive.value = live.t.value;
-}
-
-/** The sheet the particles are cut from: radial sprites, pre-tinted per band (the web's `sprite()`). */
-function makeSheet(tints: RGB[]): SkImage {
-  const surface = Skia.Surface.MakeOffscreen(BANDS * SOFT, DOT + SOFT)!;
-  const canvas = surface.getCanvas();
-  const paint = Skia.Paint();
-  tints.forEach((tint, band) => {
-    for (const soft of [false, true]) {
-      const px = soft ? SOFT : DOT;
-      const ox = band * px;
-      const oy = soft ? DOT : 0;
-      const stops: [number, number][] = soft
-        ? [[0, 0.5], [0.55, 0.42], [0.82, 0.2], [1, 0]]
-        : [[0, 1], [0.4, 1], [0.62, 0.3], [1, 0]];
-      paint.setShader(
-        Skia.Shader.MakeRadialGradient(Skia.Point(ox + px / 2, oy + px / 2), px / 2, stops.map(([, a]) => Skia.Color(rgba(tint, a))), stops.map(([at]) => at), TileMode.Clamp),
-      );
-      canvas.drawRect(Skia.XYWHRect(ox, oy, px, px), paint);
-    }
-  });
-  surface.flush();
-  const image = surface.makeImageSnapshot();
-  return image.makeNonTextureImage() ?? image;
-}
-
-/** Everything the orb draws behind its numerals. `compact` and reduced motion draw one settled frame and never loop. */
-function OrbCanvas({ delta, size, compact }: { delta: number | null; size: number; compact: boolean }) {
+/**
+ * The orb's moving parts: the glow and body breathe, the core shimmers, the rim's particles twinkle and sway, the inner
+ * particles (those that can turn without crossing the lobed outline) drift in two layers turning opposite ways and
+ * spiral in on mount. Press and hold spins the inner field up and gathers it in; release coasts it down. The loop stops
+ * when the screen loses focus, the app leaves the foreground or after 30 s untouched; `compact` and reduced motion show
+ * the settled frame alone.
+ */
+function OrbLayers({ delta, size, compact }: { delta: number | null; size: number; compact: boolean }) {
   const { c, scheme } = useTheme();
   const reduced = useReducedMotion();
-  const focused = useIsFocused();
-  const settled = reduced || compact;
+  const settled = compact || reduced;
   const small = size < 160;
-  // The web's per-theme --orb-lift, --orb-sparkle and --orb-blend (global.css): "lighter" adds the particles' light.
-  const v = VALUES[scheme];
-  const th = { lift: v["orb-lift"], sparkle: v["orb-sparkle"], additive: v["orb-blend"] === "lighter" };
 
-  const g = useMemo(() => {
-    const rgb = (token: Token): RGB => {
-      const [r, gg, b] = parseColor(c[token as TokenName]);
-      return [r, gg, b];
-    };
-    const { top, bottom } = orbColors(delta, rgb);
-    const HIGHLIGHT = rgb("orb-highlight");
-    const CORE = rgb("orb-core");
-    // Below 1 a tone fades toward the core (black on dark, so the same as darkening); above 1 it brightens.
-    const tone = (col: RGB, k: number) => (k <= 1 ? mixRGB(CORE, col, k) : shadeRGB(col, k));
-    const bright = (col: RGB) => mixRGB(shadeRGB(col, th.lift), HIGHLIGHT, th.sparkle);
-    const dim = delta === null ? 0.55 : 1;
-    const W = size * (1 + 2 * PAD);
-    const cx = W / 2;
-    const cy = W / 2;
-    const R = (size / 2) * ORB.shape.radius;
-    const seed = 3 + (Math.abs(Math.round((delta ?? 0) * 10)) % 89);
+  const enter = useSharedValue(settled ? 1 : 0);
+  const clock = useSharedValue(0);
+  const spin = useSharedValue(0);
+  const gather = useSharedValue(0);
+  const a = useOrbStyles(enter, clock, spin, gather);
 
-    const body = [tone(top, ORB.fillShade), tone(bottom, ORB.fillShade)].map((x) => rgba(x));
-    const glowFill = [tone(top, 0.8), tone(bottom, 0.8)].map((x) => rgba(x));
-    const coreStops = [[0, 1], [0.42, 1], [0.6, 0.72], [0.76, 0.38], [0.9, 0.12], [1, 0]] as const;
-    // The halo ring runs from 0.8 R to 1.36 R; the gradient here starts at the centre, so its stops are re-based.
-    const haloOuter = R * 1.36;
-    const haloStops = [[0, 0.36], [0.35, 0.22], [0.6, 0.07], [1, 0]].map(([at, a]) => [(0.8 * R + at * (haloOuter - 0.8 * R)) / haloOuter, a * dim] as const);
-    const rim = [0.24, 0.16, 0.1, 0.06, 0.03].map((w, i) => ({ w: R * w, colors: [rgba(tone(top, 1 + i * 0.04), (0.07 + i * 0.03) * dim), rgba(tone(bottom, 1 + i * 0.04), (0.07 + i * 0.03) * dim)] }));
-    const edge = [rgba(mixRGB(top, HIGHLIGHT, 0.22), 0.85 * dim), rgba(mixRGB(bottom, HIGHLIGHT, 0.22), 0.85 * dim)];
+  useEffect(() => {
+    if (settled) return;
+    enter.set(withTiming(1, { duration: M.enter.duration, easing: Easing.out(Easing.cubic) }));
+    return () => cancelAnimation(enter);
+  }, [enter, settled]);
 
-    const tint = Array.from({ length: BANDS }, (_, b) => bright(mixRGB(top, bottom, b / (BANDS - 1))));
-    const sheet = makeSheet(tint);
+  const focused = useIsFocused();
+  const active = useSyncExternalStore(subscribeAppState, appActive);
+  const live = focused && active && !settled;
 
-    // Particles: home angle and depth (denser toward the rim), a scattered start, drift and twinkle.
-    const n = Math.round(particleCount(size) * (delta === null ? 0.5 : 1));
-    const rand = rng(seed * 7919);
-    const k = Math.min(1.2, Math.max(0.75, size / 300));
-    const P: Particles = { th: [], rho: [], rhoIn: [], w: [], ph: [], tw: [], depth: [], rad: [], alpha: [], soft: [], sx: [], sy: [], delay: [], swirl: [] };
-    const [dust, dots] = ORB.particles.mix;
-    for (let i = 0; i < n; i++) {
-      const kind = rand();
-      const u = rand();
-      const bokeh = kind >= dust + dots;
-      const rho = bokeh ? 0.92 - 0.45 * u ** 1.4 : 0.965 - 0.62 * u ** 1.7;
-      P.th.push(rand() * TAU);
-      P.rho.push(rho);
-      P.rhoIn.push(rand() < 0.3 ? rho : 0.18 + 0.55 * rand()); // A third stay on the rim, as in the touch frames.
-      P.w.push((0.012 + 0.03 * rand()) * (rand() < 0.75 ? 1 : -1));
-      P.ph.push(rand() * TAU);
-      P.tw.push(0.6 + 1.8 * rand());
-      P.soft.push(bokeh ? 1 : 0);
-      if (kind < dust) {
-        P.rad.push((0.35 + 0.4 * rand()) * k);
-        P.alpha.push(0.12 + 0.28 * rand());
-        P.depth.push(0.6);
-      } else if (!bokeh) {
-        P.rad.push((0.9 + 1 * rand()) * k);
-        P.alpha.push(0.55 + 0.45 * rand());
-        P.depth.push(0.35);
-      } else {
-        P.rad.push((2.2 + 2.6 * rand()) * k);
-        P.alpha.push(0.2 + 0.25 * rand());
-        P.depth.push(0.25);
-      }
-      const a = rand() * TAU;
-      const dist = R * 1.4 * Math.sqrt(rand());
-      P.sx.push(cx + dist * Math.cos(a));
-      P.sy.push(cy + dist * Math.sin(a));
-      P.delay.push(rand() * ORB.entry.maxDelay);
-      P.swirl.push(0.6 + 0.8 * rand());
-    }
-    return { W, cx, cy, R, seed, dim, body, glowFill, coreStops, haloOuter, haloStops, rim, edge, sheet, n, P };
+  // One linear clock drives every ambient loop. It keeps its reading across pauses, and each run is a whole number of
+  // every wave's cycles and every drift's turns, so a restart is seamless. Driven imperatively: a touch never re-renders.
+  const ambient = useRef<{ running: boolean; idle: ReturnType<typeof setTimeout> | null }>({ running: false, idle: null });
+  const settle = () => {
+    const s = ambient.current;
+    if (s.idle) clearTimeout(s.idle);
+    if (s.running) cancelAnimation(clock);
+    s.running = false;
+    s.idle = null;
+  };
+  const wake = () => {
+    const s = ambient.current;
+    if (s.idle) clearTimeout(s.idle);
+    // WCAG 2.2.2: ambient motion settles after a while; a touch or coming back into view wakes it.
+    s.idle = setTimeout(settle, ORB.idleSeconds * 1000);
+    if (s.running) return;
+    s.running = true;
+    scheduleOnUI(() => {
+      "worklet";
+      const from = clock.get();
+      clock.set(withRepeat(withTiming(from + M.loop, { duration: M.loop * 1000, easing: Easing.linear }), -1, false));
+    });
+  };
+  useEffect(() => {
+    if (!live) return;
+    wake();
+    return settle;
+    // wake and settle only touch the ref and the clock.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live]);
+  useEffect(
+    () => () => {
+      cancelAnimation(spin);
+      cancelAnimation(gather);
+    },
+    [spin, gather],
+  );
+
+  // --- Press and hold: raw touches, not a responder, so the page still scrolls and a card around the orb still taps. ---
+  const press = useRef<{ t0: number; x: number; y: number } | null>(null);
+  const release = () => {
+    const p = press.current;
+    if (!p) return;
+    press.current = null;
+    gather.set(withTiming(0, { duration: 700, easing: EASE.standard }));
+    // Coast down from the speed it had reached: about a tenth of a turn after a long hold.
+    const distance = swirlVelocity(Date.now() - p.t0) / (1 - S.deceleration);
+    scheduleOnUI(() => {
+      "worklet";
+      cancelAnimation(spin);
+      spin.set(withTiming(spin.get() + distance, { duration: COAST_MS, easing: coast }));
+    });
+    if (live) wake();
+  };
+  const onTouchStart = (e: GestureResponderEvent) => {
+    if (press.current || e.nativeEvent.touches.length > 1) return;
+    press.current = { t0: Date.now(), x: e.nativeEvent.pageX, y: e.nativeEvent.pageY };
+    gather.set(withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) }));
+    // Relative turns from where the field stopped: a ramp up, then a turn per period, each repeat on a whole turn.
+    scheduleOnUI(() => {
+      "worklet";
+      cancelAnimation(spin);
+      const from = spin.get();
+      spin.set(
+        withSequence(
+          withTiming(from + S.rampTurns, { duration: S.ramp, easing: Easing.in(Easing.quad) }),
+          withRepeat(withTiming(from + S.rampTurns + 1, { duration: S.period, easing: Easing.linear }), -1, false),
+        ),
+      );
+    });
+    if (live) wake();
+  };
+  const onTouchMove = (e: GestureResponderEvent) => {
+    const p = press.current;
+    if (p && (Math.abs(e.nativeEvent.pageX - p.x) > TOUCH_SLOP || Math.abs(e.nativeEvent.pageY - p.y) > TOUCH_SLOP)) release();
+  };
+
+  // The web's per-theme --orb-lift and --orb-sparkle (global.css).
+  const art = useMemo(
+    () => {
+      const rgb = (token: Token): RGB => {
+        const [r, g, b] = parseColor(c[token as TokenName]);
+        return [r, g, b];
+      };
+      return drawOrb(size, delta, small, rgb, VALUES[scheme]["orb-lift"], VALUES[scheme]["orb-sparkle"]);
+    },
     // c is the palette of `scheme`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [delta, size, scheme]);
-  const { W, cx, cy, R, seed, dim, n, P } = g;
-
-  const t = useSharedValue(settled ? SETTLED : 0);
-  const gather = useSharedValue(0);
-  const target = useSharedValue(0);
-  const swirl = useSharedValue(0);
-  const ax = useSharedValue(0);
-  const ay = useSharedValue(0);
-  const lastActive = useSharedValue(0);
-  const table = useSharedValue<number[]>(outline(R, SETTLED, seed, small, 1, 0, 0));
-  const live: Live = { t, gather, target, swirl, ax, ay, lastActive, table };
-  const geo: Geo = { R, seed, small, cx, cy, dim, P };
-
-  const frame = useFrameCallback((info) => {
-    "worklet";
-    frameStep(live, geo, info.timeSincePreviousFrame);
-  }, false);
-  useEffect(() => {
-    frame.setActive(focused && !settled);
-    // `frame` is stable for the component's life.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focused, settled]);
-
-  // A new orb (another delta or size) starts its entry again.
-  useEffect(() => {
-    const start = settled ? SETTLED : 0;
-    t.set(start);
-    lastActive.set(0);
-    table.set(outline(R, start, seed, small, 1, 0, 0));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [g, settled]);
-
-  const path = useDerivedValue(() => {
-    // Skia's PathBuilder (SkPath's moveTo/lineTo/close are deprecated); detach() hands over the finished path.
-    const p = Skia.PathBuilder.Make();
-    const tbl = table.value;
-    for (let i = 0; i < STEPS; i++) {
-      const a = (i / STEPS) * TAU;
-      const x = cx + tbl[i] * Math.cos(a);
-      const y = cy + tbl[i] * Math.sin(a);
-      if (i) p.lineTo(x, y);
-      else p.moveTo(x, y);
-    }
-    p.close();
-    return p.detach();
-  });
-  // The rim and halo charge up as particles land: from 45 % to full (the body is there from frame 0).
-  const eb = useDerivedValue(() => 0.45 + 0.55 * easeOutCubic(t.value / ORB.entry.duration));
-  const glowOpacity = useDerivedValue(() => Math.min(1, eb.value * (1 + 0.25 * gather.value)));
-
-  // Per particle, every frame: where it is (transform), which sprite (rect) and how bright (colour). The buffers are
-  // Skia's: host objects rewritten in place on the UI thread, no allocation per frame.
-  const rects = useMemo(() => makeMutable(Array.from({ length: n }, () => Skia.XYWHRect(0, 0, 0, 0))), [n]);
-  const colors = useMemo(() => makeMutable(Array.from({ length: n }, () => Skia.Color("white"))), [n]);
-  const transforms = useRSXformBuffer(n, (xf, i) => {
-    "worklet";
-    placeParticle(i, xf, rects.value[i], colors.value[i], live, geo);
-  });
-
-  // A manual gesture never activates, so a vertical drag still scrolls the page (the web's `touch-action: pan-y`); the
-  // scroll cancels the press.
-  const gesture = Gesture.Manual()
-    .onTouchesDown((e) => {
-      "worklet";
-      const p = e.allTouches[0];
-      if (p) press(live, size, p.x, p.y, true);
-    })
-    .onTouchesMove((e) => {
-      "worklet";
-      const p = e.allTouches[0];
-      if (p && live.target.value) press(live, size, p.x, p.y, false);
-    })
-    .onTouchesUp(() => {
-      "worklet";
-      release(live);
-    })
-    .onTouchesCancelled(() => {
-      "worklet";
-      release(live);
-    });
-
-  const canvas = (
-    <Canvas style={{ width: W, height: W }}>
-      {/* The outer glow: the body's colours at 0.8, kept only where the halo ring is. */}
-      <Group opacity={glowOpacity}>
-        <Mask
-          mode="alpha"
-          mask={
-            <Circle cx={cx} cy={cy} r={g.haloOuter}>
-              <RadialGradient c={vec(cx, cy)} r={g.haloOuter} colors={g.haloStops.map(([, a]) => alpha(c["orb-core"], a))} positions={g.haloStops.map(([at]) => at)} />
-            </Circle>
-          }
-        >
-          <Rect x={0} y={0} width={W} height={W}>
-            <LinearGradient start={vec(0, cy - R)} end={vec(0, cy + R)} colors={g.glowFill} />
-          </Rect>
-        </Mask>
-      </Group>
-      <Group clip={path}>
-        {/* The body: the rim colour fading to the core. */}
-        <Group opacity={dim}>
-          <Rect x={0} y={0} width={W} height={W}>
-            <LinearGradient start={vec(0, cy - R)} end={vec(0, cy + R)} colors={g.body} />
-          </Rect>
-          <Rect x={0} y={0} width={W} height={W}>
-            <RadialGradient c={vec(cx, cy)} r={R * 1.04} colors={g.coreStops.map(([, a]) => alpha(c["orb-core"], a))} positions={g.coreStops.map(([at]) => at)} />
-          </Rect>
-        </Group>
-        {/* Inner rim light: stacked strokes, widest faintest, so the band brightens toward the edge with no step. */}
-        <Group opacity={eb}>
-          {g.rim.map((r) => (
-            <Path key={r.w} path={path} style="stroke" strokeWidth={r.w}>
-              <LinearGradient start={vec(0, cy - R)} end={vec(0, cy + R)} colors={r.colors} />
-            </Path>
-          ))}
-        </Group>
-      </Group>
-      <Group opacity={eb}>
-        <Path path={path} style="stroke" strokeWidth={1.25}>
-          <LinearGradient start={vec(0, cy - R)} end={vec(0, cy + R)} colors={g.edge} />
-        </Path>
-      </Group>
-      {/* Dark: particles add light ("lighter"); light: they paint over. */}
-      <Group blendMode={th.additive ? "plus" : "srcOver"}>
-        <Atlas image={g.sheet} sprites={rects} transforms={transforms} colors={colors} colorBlendMode="modulate" />
-      </Group>
-    </Canvas>
+    [size, delta, small, scheme],
   );
+  const place = (half: number): ViewStyle => ({ position: "absolute", left: size / 2 - half, top: size / 2 - half, width: 2 * half, height: 2 * half });
 
   return (
-    <>
-      <View pointerEvents="none" style={{ position: "absolute", left: -PAD * size, top: -PAD * size, width: W, height: W }}>
-        {canvas}
-      </View>
-      {/* The press target is the box, as on the web; the canvas overhang is only light. */}
-      {!settled && (
-        <GestureDetector gesture={gesture}>
-          <View collapsable={false} style={{ position: "absolute", left: 0, top: 0, width: size, height: size }} />
-        </GestureDetector>
-      )}
-    </>
+    <View
+      style={StyleSheet.absoluteFill}
+      onTouchStart={settled ? undefined : onTouchStart}
+      onTouchMove={settled ? undefined : onTouchMove}
+      onTouchEnd={settled ? undefined : release}
+      onTouchCancel={settled ? undefined : release}
+    >
+      <Animated.View pointerEvents="none" style={[place(art.glow.half), a.glow]}>
+        {art.glow.node}
+      </Animated.View>
+      {/* Everything inside the outline breathes with it. */}
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, a.breath]}>
+        <Animated.View style={[place(art.body.half), a.body]}>{art.body.node}</Animated.View>
+        <Animated.View style={[place(art.shimmer.half), a.shimmer]}>{art.shimmer.node}</Animated.View>
+        {art.twinkle && <Animated.View style={[place(art.twinkle.half), a.twinkle]}>{art.twinkle.node}</Animated.View>}
+        {art.inner && (
+          <Animated.View style={[place(art.inner.half), a.inner]}>
+            <Animated.View style={[StyleSheet.absoluteFill, a.driftA]}>{art.inner.a}</Animated.View>
+            <Animated.View style={[StyleSheet.absoluteFill, a.driftB]}>{art.inner.b}</Animated.View>
+          </Animated.View>
+        )}
+      </Animated.View>
+    </View>
   );
+}
+
+/** Every layer's style from the four drivers: worklets evaluated on the UI thread, one per animated view. */
+function useOrbStyles(enter: SharedValue<number>, clock: SharedValue<number>, spin: SharedValue<number>, gather: SharedValue<number>) {
+  const glow = useAnimatedStyle(() => ({
+    opacity: (M.enter.body + (1 - M.enter.body) * enter.value) * wave(clock.value, M.breath, M.glowDim, 1),
+    transform: [{ scale: wave(clock.value, M.breath, 1, 1 + M.glowScale) + gather.value * S.glowGrow }],
+  }));
+  const breath = useAnimatedStyle(() => ({ transform: [{ scale: wave(clock.value, M.breath, 1, 1 + M.breathScale) + gather.value * S.bodyGrow }] }));
+  const body = useAnimatedStyle(() => ({ opacity: M.enter.body + (1 - M.enter.body) * enter.value }));
+  const shimmer = useAnimatedStyle(() => ({ opacity: enter.value * wave(clock.value, M.shimmer, 0.3, 1), transform: [{ rotate: turns(clock.value, M.turnsShimmer) }] }));
+  // Starts full and dims mid-cycle, so the settled frame shows the rim at full strength.
+  const twinkle = useAnimatedStyle(() => ({
+    opacity: enter.value * wave(clock.value, M.twinkle, 1, 0.35),
+    transform: [{ rotate: `${wave(clock.value, M.sway, -M.swayDeg, M.swayDeg)}deg` }, { scale: 1 + (S.rimGather - 1) * gather.value }],
+  }));
+  const inner = useAnimatedStyle(() => ({
+    opacity: enter.value,
+    transform: [
+      { rotate: `${360 * spin.value}deg` },
+      { rotate: `${M.enter.turnDeg * (1 - enter.value)}deg` },
+      { scale: (M.enter.scale + (1 - M.enter.scale) * enter.value) * (1 + (S.gather - 1) * gather.value) },
+    ],
+  }));
+  const driftA = useAnimatedStyle(() => ({ transform: [{ rotate: turns(clock.value, M.turnsA) }] }));
+  const driftB = useAnimatedStyle(() => ({ opacity: wave(clock.value, M.twinkleInner, 1, 0.45), transform: [{ rotate: turns(clock.value, M.turnsB) }] }));
+  return { glow, breath, body, shimmer, twinkle, inner, driftA, driftB };
+}
+
+type Layer = { half: number; node: ReactNode };
+
+/**
+ * A square SVG `2 × half` wide with its origin at the centre, so every layer shares the orb's coordinates. A soft layer
+ * (glow, shimmer) is drawn at `res` of its size and scaled up: a quarter of the bitmap at 0.5, no visible difference in
+ * a gradient.
+ */
+function square(half: number, children: ReactNode, res = 1) {
+  const svg = (
+    <Svg width={2 * half * res} height={2 * half * res} viewBox={`${-half} ${-half} ${2 * half} ${2 * half}`}>
+      {children}
+    </Svg>
+  );
+  if (res === 1) return svg;
+  return (
+    <View style={{ width: 2 * half, height: 2 * half, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ width: 2 * half * res, height: 2 * half * res, transform: [{ scale: 1 / res }] }}>{svg}</View>
+    </View>
+  );
+}
+
+/**
+ * The orb's layers at the settled frame, centred on (0, 0): glow, body (fill, core, rim light, edge and the rim
+ * particles that stay put), core shimmer, the rim particles that twinkle and sway, and the inner particles that drift
+ * (two layers, one per direction). The particles are the web's random sequence draw for draw, so the same orb places
+ * the same particles; each joins the motion layer its position allows (`particleLayer`).
+ */
+function drawOrb(size: number, delta: number | null, small: boolean, rgb: (t: Token) => RGB, lift: number, sparkle: number) {
+  const { top, bottom } = orbColors(delta, rgb);
+  const CORE = rgb("orb-core");
+  const HIGHLIGHT = rgb("orb-highlight");
+  // Below 1 a tone fades toward the core (black on dark, so the same as darkening); above 1 it brightens.
+  const tone = (col: RGB, k: number) => (k <= 1 ? mixRGB(CORE, col, k) : shadeRGB(col, k));
+  const bright = (col: RGB) => mixRGB(shadeRGB(col, lift), HIGHLIGHT, sparkle);
+  const dim = delta === null ? 0.55 : 1;
+  const R = (size / 2) * ORB.shape.radius;
+  const seed = 3 + (Math.abs(Math.round((delta ?? 0) * 10)) % 89);
+  const t = SETTLED_T;
+
+  const rTab = Array.from({ length: STEPS + 1 }, (_, i) => R * blobRadius((i / STEPS) * TAU, t, seed, small, 1));
+  let blob = "";
+  for (let i = 0; i < STEPS; i++) {
+    const ang = (i / STEPS) * TAU;
+    blob += `${i ? "L" : "M"}${(rTab[i] * Math.cos(ang)).toFixed(2)} ${(rTab[i] * Math.sin(ang)).toFixed(2)}`;
+  }
+  blob += "Z";
+  const maxEdge = Math.max(...rTab);
+  const minEdge = Math.min(...rTab);
+  const swaySpan = (M.swayDeg * Math.PI) / 180;
+
+  const total = Math.round(particleCount(size) * (delta === null ? 0.5 : 1));
+  const rand = rng(seed * 7919);
+  const k = Math.min(1.2, Math.max(0.75, size / 300));
+  const tint = Array.from({ length: BANDS }, (_, b) => rgba(bright(mixRGB(top, bottom, b / (BANDS - 1)))));
+  const [dust, dots] = ORB.particles.mix;
+  const fixed: ReactNode[] = [];
+  const twinkle: ReactNode[] = [];
+  const innerA: ReactNode[] = [];
+  const innerB: ReactNode[] = [];
+  let twinkleHalf = 0;
+  let innerHalf = 0;
+  let dustSeen = 0;
+  let kept = 0;
+  for (let i = 0; i < total && kept < MAX_PARTICLES; i++) {
+    const kind = rand();
+    const u = rand();
+    const bokeh = kind >= dust + dots;
+    const isDust = kind < dust;
+    const th0 = rand() * TAU;
+    const rho0 = bokeh ? 0.92 - 0.45 * u ** 1.4 : 0.965 - 0.62 * u ** 1.7;
+    if (rand() >= 0.3) rand(); // rhoIn: where a particle gathers while pressed (web only)
+    const w = (0.012 + 0.03 * rand()) * (rand() < 0.75 ? 1 : -1);
+    const ph = rand() * TAU;
+    const twRate = 0.6 + 1.8 * rand();
+    let rad: number, alphaP: number, depth: number;
+    if (isDust) [rad, alphaP, depth] = [(0.35 + 0.4 * rand()) * k, 0.12 + 0.28 * rand(), 0.6];
+    else if (!bokeh) [rad, alphaP, depth] = [(0.9 + 1 * rand()) * k, 0.55 + 0.45 * rand(), 0.35];
+    else [rad, alphaP, depth] = [(2.2 + 2.6 * rand()) * k, 0.2 + 0.25 * rand(), 0.25];
+    rand(); // scattered start angle
+    rand(); // scattered start distance
+    rand(); // entry delay
+    rand(); // swirl
+    if (isDust && dustSeen++ % DUST_EVERY !== 0) continue;
+    kept++;
+    const th = th0 + w * t;
+    const rho = rho0 + 0.012 * Math.sin(ph + t * 0.7);
+    const edge = rTab[Math.round(((((th % TAU) + TAU) % TAU) / TAU) * STEPS)];
+    const x = edge * rho * Math.cos(th);
+    const y = edge * rho * Math.sin(th);
+    const s = rad * (bokeh ? 2 : 2.6);
+    // A solid dot the size of the web sprite's bright centre.
+    const pr = bokeh ? s * 0.38 : isDust ? Math.max(0.5, s * 0.3) : Math.max(0.6, s * 0.25);
+    const band = Math.min(BANDS - 1, Math.max(0, Math.floor(((y + R) / (2 * R)) * BANDS)));
+    const layer = particleLayer(rTab, STEPS, minEdge, th, edge * rho, pr, swaySpan);
+    // The rim particles that sway and the counter-turning inner ones are drawn at full strength: their layer's
+    // opacity does the twinkling. The rest keep the settled frame's twinkle.
+    const twinkles = layer === "sway" || (layer === "free" && w < 0);
+    const tw = twinkles ? 1 : 1 - depth + depth * (0.5 + 0.5 * Math.sin(ph * 3.1 + t * twRate));
+    const op = Math.min(1, alphaP * tw * (0.4 + 0.6 * rho0 * rho0) * dim * (isDust ? 1.6 : 1));
+    const dot = <Circle key={i} cx={x} cy={y} r={pr} fill={tint[band]} opacity={bokeh ? op * 0.45 : op} />;
+    const reach = Math.hypot(x, y) + pr + 1;
+    if (layer === "free") {
+      (w > 0 ? innerA : innerB).push(dot);
+      innerHalf = Math.max(innerHalf, reach);
+    } else if (layer === "sway") {
+      twinkle.push(dot);
+      twinkleHalf = Math.max(twinkleHalf, reach);
+    } else fixed.push(dot);
+  }
+
+  const rims = [0.24, 0.16, 0.1, 0.06, 0.03].map((wr, i) => ({ w: R * wr, k: 1 + i * 0.04, a: (0.07 + i * 0.03) * dim }));
+  // The outer glow: the body's colours at 0.8, kept only where the halo ring is (0.8 R to 1.36 R).
+  const g0 = 0.8 / 1.36;
+  const gSpan = 1 - g0;
+  const glowHalf = Math.ceil(R * 1.36) + 1;
+  const bodyHalf = Math.ceil(maxEdge + 4);
+
+  const glow = square(
+    glowHalf,
+    <>
+      <Defs>
+        <LinearGradient id="fill" x1={0} y1={-R} x2={0} y2={R} gradientUnits="userSpaceOnUse">
+          <Stop offset={0} stopColor={rgba(tone(top, 0.8))} />
+          <Stop offset={1} stopColor={rgba(tone(bottom, 0.8))} />
+        </LinearGradient>
+        <RadialGradient id="ring" cx={0} cy={0} r={R * 1.36} gradientUnits="userSpaceOnUse">
+          {[[0, 0.36], [g0, 0.36], [g0 + 0.35 * gSpan, 0.22], [g0 + 0.6 * gSpan, 0.07], [1, 0]].map(([at, al]) => (
+            <Stop key={at} offset={at} stopColor="#ffffff" stopOpacity={al * dim} />
+          ))}
+        </RadialGradient>
+        <Mask id="halo">
+          <Circle cx={0} cy={0} r={R * 1.36} fill="url(#ring)" />
+        </Mask>
+      </Defs>
+      <Rect x={-glowHalf} y={-glowHalf} width={2 * glowHalf} height={2 * glowHalf} fill="url(#fill)" mask="url(#halo)" />
+    </>,
+    0.5,
+  );
+
+  const body = square(
+    bodyHalf,
+    <>
+      <Defs>
+        <LinearGradient id="fill" x1={0} y1={-R} x2={0} y2={R} gradientUnits="userSpaceOnUse">
+          <Stop offset={0} stopColor={rgba(tone(top, ORB.fillShade))} />
+          <Stop offset={1} stopColor={rgba(tone(bottom, ORB.fillShade))} />
+        </LinearGradient>
+        <RadialGradient id="core" cx={0} cy={0} r={R * 1.04} gradientUnits="userSpaceOnUse">
+          {[[0, 1], [0.42, 1], [0.6, 0.72], [0.76, 0.38], [0.9, 0.12], [1, 0]].map(([at, al]) => (
+            <Stop key={at} offset={at} stopColor={rgba(CORE)} stopOpacity={al} />
+          ))}
+        </RadialGradient>
+        {rims.map((rm, i) => (
+          <LinearGradient key={i} id={`rim${i}`} x1={0} y1={-R} x2={0} y2={R} gradientUnits="userSpaceOnUse">
+            <Stop offset={0} stopColor={rgba(tone(top, rm.k))} stopOpacity={rm.a} />
+            <Stop offset={1} stopColor={rgba(tone(bottom, rm.k))} stopOpacity={rm.a} />
+          </LinearGradient>
+        ))}
+        <LinearGradient id="edge" x1={0} y1={-R} x2={0} y2={R} gradientUnits="userSpaceOnUse">
+          <Stop offset={0} stopColor={rgba(mixRGB(top, HIGHLIGHT, 0.22))} stopOpacity={0.85 * dim} />
+          <Stop offset={1} stopColor={rgba(mixRGB(bottom, HIGHLIGHT, 0.22))} stopOpacity={0.85 * dim} />
+        </LinearGradient>
+        <ClipPath id="clip">
+          <Path d={blob} />
+        </ClipPath>
+      </Defs>
+      <G clipPath="url(#clip)">
+        <G opacity={dim}>
+          <Rect x={-bodyHalf} y={-bodyHalf} width={2 * bodyHalf} height={2 * bodyHalf} fill="url(#fill)" />
+          <Rect x={-bodyHalf} y={-bodyHalf} width={2 * bodyHalf} height={2 * bodyHalf} fill="url(#core)" />
+        </G>
+        {/* Inner rim light: stacked strokes, widest faintest, so the band brightens toward the edge with no step. */}
+        {rims.map((rm, i) => (
+          <Path key={i} d={blob} fill="none" stroke={`url(#rim${i})`} strokeWidth={rm.w} />
+        ))}
+      </G>
+      <Path d={blob} fill="none" stroke="url(#edge)" strokeWidth={1.25} />
+      <G>{fixed}</G>
+    </>,
+  );
+
+  // Core shimmer: two faint soft lights well inside the outline's smallest radius, so they can turn freely. At most
+  // 10 % strong, so the numerals keep their contrast.
+  const lights = [
+    { x: 0.22 * R, y: -0.16 * R, r: 0.46 * R, col: bright(mixRGB(top, bottom, 0.35)), a: 0.1 },
+    { x: -0.2 * R, y: 0.2 * R, r: 0.4 * R, col: bright(mixRGB(top, bottom, 0.65)), a: 0.07 },
+  ];
+  const shimmerHalf = Math.ceil(Math.max(...lights.map((l) => Math.hypot(l.x, l.y) + l.r))) + 1;
+  const shimmer = square(
+    shimmerHalf,
+    <>
+      <Defs>
+        {lights.map((l, i) => (
+          <RadialGradient key={i} id={`sh${i}`} cx={l.x} cy={l.y} r={l.r} gradientUnits="userSpaceOnUse">
+            <Stop offset={0} stopColor={rgba(l.col)} stopOpacity={l.a * dim} />
+            <Stop offset={0.5} stopColor={rgba(l.col)} stopOpacity={l.a * 0.45 * dim} />
+            <Stop offset={1} stopColor={rgba(l.col)} stopOpacity={0} />
+          </RadialGradient>
+        ))}
+      </Defs>
+      {lights.map((l, i) => (
+        <Circle key={i} cx={l.x} cy={l.y} r={l.r} fill={`url(#sh${i})`} />
+      ))}
+    </>,
+    0.5,
+  );
+
+  const innerSize = Math.ceil(innerHalf);
+  const twinkleSize = Math.ceil(twinkleHalf);
+  return {
+    glow: { half: glowHalf, node: glow } as Layer,
+    body: { half: bodyHalf, node: body } as Layer,
+    shimmer: { half: shimmerHalf, node: shimmer } as Layer,
+    twinkle: twinkle.length ? ({ half: twinkleSize, node: square(twinkleSize, twinkle) } as Layer) : null,
+    inner: innerA.length + innerB.length ? { half: innerSize, a: square(innerSize, innerA), b: square(innerSize, innerB) } : null,
+  };
 }
 
 /** The text's entry: opacity and a 4 px rise over 700 ms on the web's ease-out-expo, staggered (the web's `starting:` utilities; its 4 px blur has no React Native counterpart). */
@@ -415,7 +473,7 @@ const enter = (delay: number) => new Keyframe({ 0: { opacity: 0, transform: [{ t
 
 /**
  * Pulse Age hero (docs/design/orb.md): a noise-edged blob of glowing particles, coloured by how much older or younger
- * Pulse Age is. Particles gather in on mount, drift at idle, and pull inward and swirl while pressed.
+ * Pulse Age is. The inner particles spiral in on mount and drift at idle, and spin and gather while pressed.
  */
 export function AgeOrb({ age, deltaYears, provisional = false, size: sizeProp, reason, compact = false }: AgeOrbProps) {
   // Never wider than the page column: the 300 px orb would cross the 16 px gutters on a 320 px phone.
@@ -444,7 +502,7 @@ export function AgeOrb({ age, deltaYears, provisional = false, size: sizeProp, r
 
   return (
     <View accessible={!compact} accessibilityRole={compact ? undefined : "image"} accessibilityLabel={compact ? undefined : label} accessibilityElementsHidden={compact} importantForAccessibility={compact ? "no-hide-descendants" : "yes"} style={{ width: size, height: size }}>
-      <OrbCanvas delta={delta} size={size} compact={compact} />
+      <OrbLayers delta={delta} size={size} compact={compact} />
       <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className="size-full items-center justify-center" style={{ paddingHorizontal: size * 0.14 }}>
         <Animated.View entering={entering(200)}>
           <Text className="text-center font-numeric font-bold tabular-nums" style={{ fontSize: numeral, lineHeight: numeral * 1.5, letterSpacing: -0.01 * numeral, color: has ? c["orb-text"] : c["orb-text-muted"] }}>
