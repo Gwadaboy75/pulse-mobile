@@ -79,7 +79,15 @@
         }
       ],
       "./plugins/withHighRefreshRate.js",
-      "react-native-health-connect"
+      "react-native-health-connect",
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": [],
+          "neverForLocation": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -445,3 +445,40 @@ flowchart LR
   Check -->|yes| Yield[setTimeout 0: taps and frames run]
   Yield --> Loop
 ```
+
+## Live heart rate over Bluetooth
+
+A Fitbit Air with Google Health › Fitbit Air › Connections › Share heart rate on advertises the standard Heart Rate
+Service (0x180D) and notifies Heart Rate Measurement (0x2A37) about once a second. Pulse reads it with
+`react-native-ble-plx` (from halo, copied as is): `src/health/ble.ts` is one controller for the app (Nearby devices
+permission, radio state, scan, connect, subscribe, a 20 s first-beat and 15 s stall timeout, retries with backoff of
+2 s doubling to 30 s), `src/health/bleHr.ts` the pure parser, RR cleaning, RMSSD and the 2-minute trace (vitest), and
+`src/state/liveBle.tsx` the provider in `AppProviders` that hands screens the bpm at most every 250 ms. The plugin
+config is `isBackgroundEnabled: false, neverForLocation: true`, so Android 12+ asks only for Nearby devices and never
+location. The band takes one connection at a time and sharing costs its battery: Pulse lets go 30 s after it leaves
+the foreground and picks the band up again on return. The chosen band, auto-connect (off by default) and the person's
+Stop are kept in AsyncStorage (`pulse.ble.device`, `pulse.ble.autoConnect`, `pulse.ble.stopped`). The local module
+`modules/pulse-bt` lists the bonded Fitbit (a band paired to Google Health may not advertise) and opens Google Health
+(`<queries>` for `com.fitbit.FitbitMobile`). Live readings are display-only and never written to SQLite. It needs a
+development build: Expo Go has no BLE module, and the controller then reports Bluetooth as unavailable.
+
+```mermaid
+flowchart TD
+  GoLive[Go live: Heart rate or Settings › Live heart rate] --> Perm{Nearby devices granted?}
+  Perm -->|no| Ask[Android permission dialog]
+  Ask --> Perm
+  Perm -->|yes| Radio{Bluetooth on?}
+  Radio -->|no| TurnOn[Ask Android to turn it on]
+  Radio -->|yes| Scan[Scan 15 s for 0x180D, plus bonded Fitbits]
+  Scan --> Pick[Tap the band]
+  Pick --> Connect[Connect, discover, refresh GATT if 0x180D is missing]
+  Connect --> Sub[Subscribe to 0x2A37]
+  Sub -->|first beat within 20 s| Live[Live: parse bpm and RR]
+  Sub -->|silent| Retry[Back off and retry, up to 6 attempts]
+  Live -->|silent 15 s or dropped| Retry
+  Retry --> Connect
+  Live --> Flush[Provider flushes to screens every 250 ms]
+  Live -->|30 s in background| Release[Let go; reconnect on return]
+```
+
+Docs: [react-native-ble-plx](https://github.com/dotintent/react-native-ble-plx), [Expo modules API](https://docs.expo.dev/modules/overview/), [Android Bluetooth permissions](https://developer.android.com/develop/connectivity/bluetooth/bt-permissions).
