@@ -57,6 +57,9 @@ async function recentFromStore(store: Store, recentMinutes: number): Promise<Pic
   return { latest: last ? { ts: last.ts, bpm: last.bpm } : null, samples };
 }
 
+/** The newest reading already in the Store and its recent window, with no Health Connect read (Pulse, not halo). */
+export const storedRecentHeartRate = (store: Store) => recentFromStore(store, RECENT_MINUTES);
+
 /**
  * Reads the last `minutes` of HeartRate from Health Connect, writes what is new, marks its days dirty and returns the
  * newest reading with its recent window. Errors never throw: they come back as `error` with the Store's own answer.

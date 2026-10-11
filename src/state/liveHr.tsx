@@ -6,7 +6,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { AppState } from "react-native";
 import type { HrSample } from "@/data/types";
-import { refreshRecentHeartRate } from "@/health/live";
+import { refreshRecentHeartRate, storedRecentHeartRate } from "@/health/live";
 import { appState, isSyncing, useApp } from "./app";
 
 export type LiveHr = {
@@ -58,6 +58,16 @@ export async function refreshLiveHr(): Promise<void> {
   for (const l of listeners) l();
 }
 
+/** The newest stored reading, before any live read has landed. Reads SQLite only; never throws. */
+async function primeFromStore(): Promise<void> {
+  const { store } = appState();
+  if (!store || value.liveHr.updatedAt !== null) return;
+  const r = await storedRecentHeartRate(store).catch(() => null);
+  if (!r?.latest || value.liveHr.updatedAt !== null) return;
+  value = { ...value, liveHr: { latest: r.latest, recent: r.samples, updatedAt: Date.now(), error: null } };
+  for (const l of listeners) l();
+}
+
 /**
  * The foreground ticker, mounted once (src/ui/providers.tsx): a read at once, then every minute, while the app is active
  * and ready. A run sets status "syncing", which stops it; its "ready" starts it again, so every run is followed by a live
@@ -65,6 +75,11 @@ export async function refreshLiveHr(): Promise<void> {
  */
 export function LiveHrTicker() {
   const ready = useApp((s) => s.status === "ready" && s.store !== null && s.source !== null);
+  // A launch sync holds the ticker back for its whole run: until then, show the newest reading already on the phone.
+  const opened = useApp((s) => s.store !== null);
+  useEffect(() => {
+    if (opened) void primeFromStore();
+  }, [opened]);
   useEffect(() => {
     if (!ready) return;
     let id: ReturnType<typeof setInterval> | null = null;
