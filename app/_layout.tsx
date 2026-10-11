@@ -82,7 +82,7 @@ function Screens({ hasProfile }: { hasProfile: boolean }) {
   return (
     <ThemeProvider value={theme}>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
-      <Stack screenOptions={{ headerShown: false, animation: Platform.OS === "android" ? "ios_from_right" : "default", contentStyle: { backgroundColor: c.background } }}>
+      <Stack screenOptions={{ headerShown: false, animation: Platform.OS === "android" ? "slide_from_right" : "default", contentStyle: { backgroundColor: c.background } }}>
         {/* First run: without a profile the person lands on onboarding and the tabs are out of reach; saving the profile
             flips the guards, and the navigator moves to the tabs (Stack.Protected). Declared first so each is the first screen. */}
         <Stack.Protected guard={!hasProfile}>
