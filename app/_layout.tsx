@@ -96,6 +96,7 @@ function Screens({ onboarded }: { onboarded: boolean }) {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="activities" />
           <Stack.Screen name="activity/[id]" />
+          <Stack.Screen name="breathe" />
           <Stack.Screen name="connect" options={{ gestureEnabled: false }} />
           <Stack.Screen name="health/fitness" />
           <Stack.Screen name="health/healthspan" />
@@ -117,6 +118,7 @@ function Screens({ onboarded }: { onboarded: boolean }) {
           <Stack.Screen name="strain" />
           <Stack.Screen name="trend/[key]" />
           <Stack.Screen name="trends" />
+          <Stack.Screen name="workout-live" />
           <Stack.Screen name="dev/kit" />
           <Stack.Screen name="dev/kit/charts" />
           <Stack.Screen name="dev/kit/detail" />
