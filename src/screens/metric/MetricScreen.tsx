@@ -23,6 +23,8 @@ import { SectionShell } from "@/ui/shells/SectionShell";
 import { useOptionalShellCalendar } from "@/ui/shells/ShellStatus";
 import { SkeletonText } from "@/ui/Skeleton";
 import { Text } from "@/ui/Text";
+import { chartDef } from "@/queries/chart";
+import { chartHref, type ChartRange } from "@/screens/chart/href";
 import { RangeStatsCard } from "./RangeStats";
 import { MetricSection } from "./sections";
 
@@ -89,7 +91,7 @@ export default function MetricScreen() {
           </SectionShell>
         ) : (
           <View className="gap-3">
-            <SectionShell variant="card" title="History">
+            <SectionShell variant="card" title="History" action={chartDef(vm.key) ? { label: "Explore", href: chartHref({ metric: vm.key, r: range as ChartRange, d }) } : undefined}>
               <RangedTrendChart
                 key={vm.key}
                 range={range}

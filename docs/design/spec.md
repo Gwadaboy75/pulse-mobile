@@ -2650,6 +2650,28 @@ From the Stress screen (a "Breathe" card that is one link, after Total day) and 
 ### 7.24 Live workout `/workout-live`
 
 From Strain's Activities card (a "Live workout" card button, today only) and More › Live. Logic is halo's (`src/live/liveStrain.ts`, `coach.ts`, `workoutSetup.ts`). `DetailShell title="Live workout"`. Hero: the Strain `ScoreDial` "Day strain" with today's Strain Target, tagged "So far" while running. Summary: before the start a "Today" card (target, Recovery, sync note); while running the coach's line on its tone's tint (push `strain`, steady `optimal`, ease off `warning`, waiting muted, announced politely); after, "Workout summary" (workout Strain, time, heart rate, Day strain start → end, a zone bar, the verdict against the target). Primary: before, a band card (live bpm in its zone colour, or "Connect your band" with Go live to Settings › Live heart rate, `go=1`), a Haptic cues switch card, **Start workout** (disabled until the band is live and today's scores are read); while running a "Now" card (Elapsed, Heart rate, Workout strain, Z1–Z5 with the current zone lit, today's band and the Live pill) and **End workout**; after, **Start another** and **Done**. Secondary: "Recent live workouts". Nothing is written to scores; the summary stays on the phone.
+### 7.25 Chart explorer `/chart?metric=&r=&d=&compare=` (halo)
+
+No PWA design; halo's explorer (src/screens/chart) on our chrome. A full-screen page, not a scroll: `DetailHeaderRow` (metric name, the group or what the day view draws as the subtitle, a **Metric** pill on the right), the range as `Segmented` (Day when the metric has a day view, then W / M / 6M / 1Y / All), the `DateSwitcher` pill on a Day view, a card with the visible window's dates and Average / Low / High (Day Strain: Strain / Gained / the compare's average), the chart on a card filling the height left, then the legend with **Compare** (or the compare pill with its average and an X) and the gesture hint.
+
+- **Chart** (`ExplorerChart`): one Skia canvas; series built once in data space and mapped each frame by one matrix on the UI thread; axes, grid, spans, goal and stage lanes recorded as a picture from the viewport; the crosshair and readout on a second canvas. Pinch zooms around the fingers, a drag pans with momentum, a hold (220 ms) inspects, a tap pins or clears the crosshair, a double tap glides back to the range's window. JS hears only where a gesture settled (to refit the y axes and the numbers). Bars crossfade to a line past ~2 months.
+- **Day views**: heart rate (by zone, resting or average HR as a labelled dashed line, workouts lit on the Workout duration metric), Day Strain building up (the Strain Target shaded, heart rate beside it by default), stress, Energy Bank (heart rate beside both by default), and the night (heart rate over four stage lanes, bed and wake guides).
+- **Colours**: our tokens. Dashed `--chart-grid`, `--muted-foreground` axis text, `--chart-cursor` guides, recovery bands and stress levels by value, heart rate by zone (`zoneBands`), Strain `--strain`, sleep `--sleep`, other metrics `--chart-5`, a compare in its own hue or `--chart-4`.
+- **Pickers**: the route sheet `/chart-metric?for=metric|compare` (Trends' metric sheet: one section open, chips); Compare adds **None**.
+- **Entry**: **Explore** on `/metric/[key]`'s History, on `/trend/[key]` under the chart, on `/trends`' chart card, and on Strain's Heart rate (Day Strain's day view).
+
+### 7.26 Goals and Weekly plan (halo)
+
+No PWA design; halo's phone additions on our kit. Targets live on the phone (AsyncStorage `pulse.goals`, `pulse.weeklyPlan`).
+
+- **Goals card** (Strain, primary): `SectionShell` card "Today’s goals" with "3 of 7 done" as its aside; a two-column grid of `bg-inset` tiles (goal icon in its colour, a check or the percent, name, value / target, 8 px bar), then the week's Active Zone Minutes as seven columns. The whole card opens `/goals?d=` (tall sheet): each goal's row (caption with streak, value of target, bar and percent, the last 7 days), the week strip, the goals switched off, and **Edit goals** (to Settings › Goals). With none on: an empty state with **Set goals**.
+- **Weekly plan card** (Strain, first secondary): "Weekly plan · this week" with "2 of 4 on track"; the plan's streak, then each target's name, value of target, status word and a bar with a tick at an even pace. Opens `/weekly-plan?d=` (tall sheet): each target's row (linking to its screen), the week's days, the last 8 weeks as dots, the detail and its Pulse Age years, "Why these", **Edit weekly targets** and **Open Pulse Age**.
+- **Settings › Goals** (`/settings?s=goals`, a More row): Daily goals (switch and target field per goal), Weekly goal (AZM a week), **Reset to Fitbit defaults**; Weekly plan (switch, target and evidence hint per habit), **Reset weekly plan**. Typed values save at once; an out-of-range value shows a red error and is not saved.
+- Trend view's goal button (step goal, HR zones, strength) opens Settings › Goals.
+
+### 7.27 Report share (halo)
+
+The report header's right action is a ghost `Share2` button: the report as plain text (period, averages against the period before, sleep, activity, biggest changes, focus) through the system share sheet.
 
 ---
 
@@ -2986,6 +3008,8 @@ Rows overridden by v2: **D2** (TopBar part only, V3), **B1** (V10), **CAL6** (of
 | D12 | Home: the Health Monitor and Stress cards sit directly under the dials (§7.1, D9) | Today, a Heart rate card sits between the dials and the monitor cards: the band's live bpm and 2-minute trace over Bluetooth, else the newest Health Connect reading, "n minutes ago" and a 30-minute sparkline; the card opens Heart rate. Not shown on past days, nor on a no-band day with no reading | halo puts its heart-rate tile in the hero beside the dials, above its monitor alert; three dials leave no room beside them on a phone, so the card takes the next slot down |
 | D13 | §7.2 to §7.6 list each screen's cards; no version 19 scores | halo's version 19 cards, drawn with the kit (SectionShell, StatusChip, thin meters, one Skia canvas for HRV nights): HRV Status on Health (after Health Monitor) and Recovery (after Behaviour insights); Training Readiness with Recovery Time and Training Status first among Strain's cards; Training effect and Recovery cost on Activity; a Recovery cost list on Activities; detected workouts as dashed, unpressable timeline rows on Activities and Home | The scoring engine (v19) computes them; halo shows them on the same screens |
 | D14 | Avatar (Home header 40 px × --u, Settings 56 px): the uploaded photo, else the Google photo, else the outline person icon; Settings › Account crops in a sheet to 512 px WebP | The photo (system picker crops a 1:1 square, saved as a 256 px JPEG in the app's document directory), else the profile name's initials on a `bg-foreground/8` disc, else the outline icon. The photo and name live in Settings › Profile (Photo, Remove photo) | No accounts and no Google photo on mobile; initials keep a named owner from looking anonymous. Owner request 2026-10-11 |
+| D15 | Strain (§7.3): the ring, summary, heart rate, zones, activities | The day's Goals card leads (primary) and the Weekly plan card follows it, ahead of Heart rate (§7.26) | Halo's Activity tab puts the goals in full, with the weekly plan, first; Pulse's Strain screen is that tab |
+| D16 | No chart explorer | `/chart` (§7.25), reached by **Explore** links on metric, trend and Strain charts | Halo's explorer; a whole history needs zoom and pan a card chart can't give |
 
 Open items for U12/U13 (not design changes): the `button.tsx` sizes edit (§5.0), `src/hooks/use-reduced-motion.ts`, `src/lib/charts.ts` (`splitByBand`), the root `viewport` export, and "Pulse Age" as the label (the plan's name; swap the one constant in `src/lib/format.ts` for "Pulse Age" if preferred).
 
@@ -3019,6 +3043,9 @@ Open items for U17 (not design changes): `src/lib/header-state.ts` with its unit
 | I18 | Breathe and Live workout layouts, built from DetailShell, SectionShell cards and sheet buttons | §7.23, §7.24 | No PWA design; halo's screens give the content and order, Pulse's kit the look |
 | I19 | Breathe's circle in `stress-low`; the coach's tones mapped to `strain` / `optimal` / `warning` / muted | §7.23, §7.24 | halo uses its own pastel tints (lavender, peach, mint, sand), which Pulse has no tokens for |
 | CAL2-CAL6 | Calendar year label, week start, Sleep context, selected-day ring, ≥ 768 placement | §5.16 | as listed in §11 |
+| I20 | The chart explorer's look: cards, header row, our chart tokens in place of halo's Calm chrome | §7.25 | No PWA design; halo's layout restyled with our kit |
+| I21 | Goals and Weekly plan cards and sheets: tiles, bars, week columns in our tokens | §7.26 | No PWA design; halo's Calm cards restyled |
+| I22 | Report share as a header icon button | §7.27 | No PWA design; halo's placement |
 
 ### 12.2 Coverage gaps (screens or interactions with no current reference)
 

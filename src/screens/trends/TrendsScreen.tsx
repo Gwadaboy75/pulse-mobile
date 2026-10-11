@@ -10,7 +10,8 @@ import { mapMetric } from "@/screens/_lib/view";
 import { TrendChartSkeleton } from "@/ui/charts/TrendChart";
 import { KeyStatRow, KeyStatRowSkeleton } from "@/ui/metrics/KeyStatRow";
 import { DetailShell } from "@/ui/shells/DetailShell";
-import { SectionShell } from "@/ui/shells/SectionShell";
+import { ActionLink, SectionShell } from "@/ui/shells/SectionShell";
+import { chartHref, type ChartRange } from "@/screens/chart/href";
 import { SkeletonText } from "@/ui/Skeleton";
 import { MetricPicker } from "./MetricSheet";
 import { Divided, LoadError, PERIOD, RangedTrendChart } from "./parts";
@@ -42,7 +43,7 @@ export default function TrendsScreen() {
         <View className="gap-4">
           <MetricPicker current={m.key} r={r} />
           <View className="gap-3">
-            <SectionShell variant="card" title={m.label} action={{ label: "Details", href: m.href }}>
+            <SectionShell variant="card" title={m.label} aside={<ActionLink label="Explore" href={chartHref({ metric: m.key, r: range as ChartRange })} />} action={{ label: "Details", href: m.href }}>
               <RangedTrendChart key={m.key} range={range} label={m.label} unit={m.unit} format={m.format} colorBy={m.colorBy} direction={m.direction} data={shaped.data} deltas={shaped.deltas} />
             </SectionShell>
             <SectionShell variant="card" title="Averages">

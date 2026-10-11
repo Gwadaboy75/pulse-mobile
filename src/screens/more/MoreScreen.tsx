@@ -2,7 +2,7 @@
 // loading.tsx: "Account & settings" (Profile, Data source, App, each a row to `/settings?s=`), Reports, Trends, Journal,
 // Help, Your data, then About. The account row is Profile (no accounts); Coach opens the coach's settings.
 import { View } from "react-native";
-import { Activity, Archive, Bell, Bluetooth, BotMessageSquare, BookOpen, CalendarDays, CalendarRange, ChartLine, Database, ListChecks, Palette, Plug, UserRound, Wind } from "lucide-react-native";
+import { Activity, Archive, Bell, Bluetooth, BotMessageSquare, BookOpen, CalendarDays, CalendarRange, ChartLine, Database, ListChecks, Palette, Plug, Target, UserRound, Wind } from "lucide-react-native";
 import { formatDay, rangeLabel } from "@/lib/format";
 import { SCORING_VERSION } from "@/pipeline";
 import { APP_VERSION, getMore } from "@/queries/settings";
@@ -20,6 +20,7 @@ const settings: LinkListRow[] = [
   { icon: Bell, label: "Notifications & background", href: "/settings?s=notifications" },
   { icon: Bluetooth, label: "Live heart rate", href: "/settings?s=live" },
   { icon: BotMessageSquare, label: "Coach", href: "/coach/settings" },
+  { icon: Target, label: "Goals", href: "/settings?s=goals" },
 ];
 
 /** Both sessions that run on the band's live heart rate (halo's "Live" group). */

@@ -107,6 +107,7 @@ function Screens({ onboarded }: { onboarded: boolean }) {
           <Stack.Screen name="coach" />
           <Stack.Screen name="coach/chats" />
           <Stack.Screen name="coach/settings" />
+          <Stack.Screen name="chart" />
           <Stack.Screen name="connect" options={{ gestureEnabled: false }} />
           <Stack.Screen name="health/fitness" />
           <Stack.Screen name="health/healthspan" />
@@ -143,6 +144,9 @@ function Screens({ onboarded }: { onboarded: boolean }) {
           <Stack.Screen name="(sheets)/checkin" options={sheetOptions("screen", c)} />
           <Stack.Screen name="(sheets)/log" options={sheetOptions("default", c)} />
           <Stack.Screen name="(sheets)/food" options={sheetOptions("default", c)} />
+          <Stack.Screen name="(sheets)/goals" options={sheetOptions("tall", c)} />
+          <Stack.Screen name="(sheets)/weekly-plan" options={sheetOptions("tall", c)} />
+          <Stack.Screen name="(sheets)/chart-metric" options={sheetOptions("default", c)} />
           <Stack.Screen name="journal/impact" options={sheetOptions("default", c)} />
           <Stack.Screen name="dev/sheet" options={({ route }) => sheetOptions((route.params as { size?: SheetSize } | undefined)?.size ?? "default", c)} />
         </Stack.Protected>

@@ -1,15 +1,18 @@
 // Reports `/reports/[period]` (web: (app)/reports/[period]/page.tsx, loading.tsx; spec §7.13, journey 8): `YYYY-Www` or
 // `YYYY-MM`.
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, Share, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Share2 } from "lucide-react-native";
+import type { PlanTargets } from "@/core/algorithms/weeklyPlan";
 import type { DataColor } from "@/lib/bands";
-import { DAY, formatDay, formatValue, rangeLabel, type FormatKey } from "@/lib/format";
+import { DAY, formatDay, formatValue, rangeLabel } from "@/lib/format";
 import { dayHref } from "@/lib/url";
 import { todayOf } from "@/queries/common";
 import { latestReport } from "@/queries/home";
-import { getReport } from "@/queries/reports";
+import { getReport, type ReportPageVM } from "@/queries/reports";
+import { useWeeklyPlan } from "@/state/weeklyPlan";
+import { Button } from "@/ui/Button";
 import type { KeyStat, ReportVM } from "@/queries/types";
 import { Divided, LoadError } from "@/screens/trends/parts";
 import { useScreen } from "@/screens/useScreen";
@@ -31,19 +34,11 @@ import { Skeleton, SkeletonText } from "@/ui/Skeleton";
 import { Text } from "@/ui/Text";
 import { push } from "@/ui/navigate";
 import { Press } from "@/ui/Press";
+import { reportShareText, STAT_FORMAT } from "./share";
 
 const WEEK = /^\d{4}-W\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
 
-const FORMAT: Record<string, { format: FormatKey; unit?: string; scale?: number }> = {
-  recovery: { format: "int", unit: "%" },
-  strain: { format: "decimal1" },
-  sleepPerf: { format: "int", unit: "%" },
-  sleepHours: { format: "duration", scale: 60 },
-  consistency: { format: "int", unit: "%" },
-  hrv: { format: "int", unit: "ms" },
-  rhr: { format: "int", unit: "bpm" },
-};
 const DIAL_FORMAT = { sleep: "int", recovery: "int", strain: "decimal1" } as const;
 const BALANCE_TONE = { balanced: "text-optimal-text", overreaching: "text-warning-text", undertrained: "text-muted-foreground" };
 
@@ -52,8 +47,8 @@ function periodLabel(kind: "week" | "month", start: string, end: string) {
 }
 
 /** The period in view and its neighbours' view model, or why there is none. */
-async function load(period: string, ctx: Parameters<typeof getReport>[1]) {
-  const vm = await getReport(period, ctx);
+async function load(period: string, ctx: Parameters<typeof getReport>[1], targets: PlanTargets) {
+  const vm = await getReport(period, ctx, targets);
   const latest = vm ? null : await latestReport(ctx, WEEK.test(period) ? "week" : "month");
   return { period, vm, latest, today: todayOf(ctx) };
 }
@@ -135,7 +130,7 @@ function Averages({ stats, word }: { stats: KeyStat[]; word: string }) {
   return (
     <Divided>
       {stats.map((s) => {
-        const f = FORMAT[s.key] ?? { format: "decimal1" as const };
+        const f = STAT_FORMAT[s.key] ?? { format: "decimal1" as const };
         const k = f.scale ?? 1;
         return (
           <KeyStatRow
@@ -155,11 +150,26 @@ function Averages({ stats, word }: { stats: KeyStat[]; word: string }) {
   );
 }
 
+/** The header's share action: the report as text through the system share sheet (halo's Report.tsx ShareButton). */
+function ShareButton({ vm }: { vm: ReportPageVM }) {
+  const share = () => {
+    // The sheet's own cancel resolves; a failure to open it leaves nothing to undo.
+    Share.share({ message: reportShareText(vm) }, { dialogTitle: `Share ${vm.kind === "week" ? "weekly" : "monthly"} report` }).catch(() => {});
+  };
+  return (
+    <Button variant="ghost" size="icon-touch" onPress={share} accessibilityLabel={`Share this ${vm.kind}'s report`}>
+      <Icon icon={Share2} size={22} tone="foreground" strokeWidth={1.75} />
+    </Button>
+  );
+}
+
 export default function ReportScreen() {
   const { period } = useLocalSearchParams<{ period: string }>();
   const isWeek = WEEK.test(period);
   const valid = isWeek || MONTH.test(period);
-  const { data, error, reload } = useScreen((ctx) => load(period, ctx), ["report", period]);
+  // The assessment scores the period against the Weekly plan's targets (src/state/weeklyPlan.ts), as halo's report does.
+  const { plan } = useWeeklyPlan();
+  const { data, error, reload } = useScreen((ctx) => load(period, ctx, plan.targets), ["report", period, plan.targets]);
   const title = isWeek ? "Weekly report" : "Monthly report";
 
   if (!valid) return <DetailShell title="Report" primary={<EmptyState body="Page not found." />} />;
@@ -179,6 +189,7 @@ export default function ReportScreen() {
   return (
     <DetailShell
       title={title}
+      action={<ShareButton vm={vm} />}
       hero={
         <View className="w-full items-center gap-5">
           <View className="items-center gap-3">

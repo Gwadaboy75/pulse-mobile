@@ -647,3 +647,28 @@ flowchart LR
   Cold -->|yes| New["onNewIntent → push /recovery"]
   Initial --> Back[Back goes Home]
 ```
+
+## A chart that pans on the UI thread
+
+The chart explorer (`/chart`, halo's) zooms and pans a whole history at 60 fps without JS. Each series is built once as
+a Skia path in data space (x a day index or a minute, y scaled to 0-1000); every frame a Reanimated derived value maps
+it to the screen with one matrix (`PathBuilder.MakeFromPath(path).transform(m)`), so strokes keep their width at any
+zoom. Axes, grid, spans and stage lanes are a `createPicture` recorded from the viewport's shared values, so their text
+is drawn with Skia fonts (Barlow and Figtree loaded with `loadData`; RN `<Text>` over the canvas can't follow a pan). The
+gestures (react-native-gesture-handler: pinch, pan with `withDecay`, a long-press scrub, taps) write shared values only;
+`scheduleOnRN` tells React where a gesture settled, once, to refit the y axes and the window's numbers. The crosshair is
+a second canvas, so inspecting a point never redraws the series.
+
+```mermaid
+flowchart LR
+  Data[Query: days or minutes] --> Paths[Skia paths in data space, built once]
+  Gesture[Pinch / pan / scrub on the UI thread] --> SV[Shared values: start, span, cursor]
+  SV --> Matrix[Derived matrix per frame]
+  Matrix --> Paths
+  SV --> Picture[Axes and grid picture per frame]
+  SV --> Cross[Crosshair canvas]
+  Gesture -->|settled, scheduleOnRN| JS[React: refit y axis and stats]
+  JS -->|new domain| SV
+```
+
+Docs: [Skia animations](https://shopify.github.io/react-native-skia/docs/animations/animations), [Gesture handler](https://docs.swmansion.com/react-native-gesture-handler/docs/), [Reanimated `withDecay`](https://docs.swmansion.com/react-native-reanimated/docs/animations/withDecay).
