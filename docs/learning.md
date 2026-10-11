@@ -363,7 +363,10 @@ flowchart LR
 
 ## Android screen transitions
 
-The native stack uses `slide_from_right` on Android. Each incoming screen paints an opaque token background.
+The native stack uses `ios_from_right` on Android, as halo does. react-native-screens times it with
+`config_shortAnimTime` (200 ms); `slide_from_right` uses `config_mediumAnimTime` (400 ms). A cold screen shows its
+skeleton until the slide ends, so the longer slide kept the skeleton up twice as long while the query (70 to 220 ms on
+the owner's phone) had long finished. Each incoming screen paints an opaque token background.
 Screen queries wait for the native opening `transitionEnd` event, instead of a guessed timeout, and hidden screens
 wait until focused to reload. Sync progress has its own signal, so its 4-second poll updates status instead of
 rerunning every screen query. Development logs measure transition duration, JS callback gaps and query load time;
