@@ -7,7 +7,8 @@ import { seedDemo } from "@/data/seed";
 import type { Profile } from "@/data/types";
 import { addDays } from "@/lib/time";
 import { runPipeline } from "@/pipeline";
-import { CHART_GROUPS, CHART_METRICS, chartDef, getChartDay, getChartSeries } from "./chart";
+import { compareDomain, dailySeries, daySeries, runningStats, windowFor, yDomain } from "@/screens/chart/model";
+import { CHART_GROUPS, CHART_METRICS, chartDef, DAY_VIEW, getChartDay, getChartSeries } from "./chart";
 import { loadDays, toStrain } from "./common";
 import type { QueryCtx } from "./ctx";
 import { getStrain } from "./strain";
@@ -70,10 +71,16 @@ describe("getChartSeries", () => {
     });
   });
 
-  it("returns finite numbers or gaps for every metric", async () => {
+  it("returns finite numbers or gaps for every metric, and the explorer's axes stay finite", async () => {
     for (const def of CHART_METRICS) {
       const vm = await getChartSeries(def.key, ctx);
       for (const v of vm.values) if (v !== null) expect(Number.isFinite(v), def.key).toBe(true);
+      const s = dailySeries(def, vm);
+      const w = windowFor("m", s, s.xs.length - 1);
+      const d = yDomain(s, w.start, w.start + w.span, { bars: def.mark === "bar" });
+      expect([d.lo, d.hi, ...d.ticks].every(Number.isFinite), def.key).toBe(true);
+      const c = compareDomain(s, w.start, w.start + w.span, d.ticks.length);
+      expect(c.ticks).toHaveLength(d.ticks.length);
     }
   });
 });
@@ -88,6 +95,8 @@ describe("getChartDay", () => {
     expect(vm.xs[0]).toBeGreaterThanOrEqual(0);
     expect(vm.xs.at(-1)!).toBeLessThan(1441);
     for (let i = 1; i < vm.zones.length; i++) expect(vm.zones[i].min).toBeGreaterThan(vm.zones[i - 1].min);
+    const s = daySeries(vm, DAY_VIEW.hr.label, DAY_VIEW.hr.unit, DAY_VIEW.hr.format);
+    expect(windowFor("day", s, 0).span).toBeGreaterThan(0);
   });
 
   it("gives the night's heart rate and stages around bed and wake", async () => {
@@ -120,6 +129,14 @@ describe("getChartDay", () => {
       expect(vm.xs[0]).toBeGreaterThanOrEqual(0);
       expect(vm.xs.at(-1)!).toBeLessThanOrEqual(1440);
       for (const y of vm.ys) expect(y!).toBeLessThanOrEqual(21);
+      // The window's numbers over the whole day: from nothing to the day's Strain.
+      const s = daySeries(vm, DAY_VIEW.strain.label, DAY_VIEW.strain.unit, DAY_VIEW.strain.format);
+      expect(s.cumulative).toBe(true);
+      const run = runningStats(s, vm.from, vm.to);
+      expect(run.end).toBe(shown);
+      expect(run.start).toBe(0);
+      // Its axis starts at zero.
+      expect(yDomain(s, vm.from, vm.to, { bars: false }).lo).toBe(0);
     }
     // A past day runs to midnight; today stops at the last reading, marked "now".
     expect((await getChartDay("strain", day, ctx)).xs.at(-1)).toBe(1440);

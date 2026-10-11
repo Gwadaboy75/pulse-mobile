@@ -32,6 +32,7 @@ import { DialDetailSkeleton, Divided, ScreenError } from "@/screens/recovery/sha
 import { WeeklyTrends, WeeklyTrendsSkeleton } from "@/screens/trends/WeeklyTrends"
 import { useScreen } from "@/screens/useScreen"
 import { GoalsCard } from "@/screens/goals/Goals"
+import { chartHref } from "@/screens/chart/href"
 import { WeeklyPlanCard } from "@/screens/goals/WeeklyPlan"
 
 /** Weekly Trends in the reference app's order (strain-25..38). */
@@ -81,7 +82,7 @@ export function StrainScreen() {
       primary={<GoalsCard day={d} isToday={vm.isToday} />}
       secondary={[
         <WeeklyPlanCard key="plan" day={d} />,
-        <SectionShell key="hr" variant="card" title="Heart rate">
+        <SectionShell key="hr" variant="card" title="Heart rate" action={{ label: "Explore", href: chartHref({ metric: "strain", r: "day", d }) }}>
           <IntradayHrChart data={hrSeries(vm.hr, vm.maxHr)} />
         </SectionShell>,
         <SectionShell key="zones" variant="card" title="Time in zones">

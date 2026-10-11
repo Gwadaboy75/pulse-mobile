@@ -4,6 +4,8 @@ import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft, ChevronRight, Info, Plus, Target } from "lucide-react-native";
 import { push } from "@/ui/navigate";
+import { chartDef } from "@/queries/chart";
+import { chartHref } from "@/screens/chart/href";
 import { formatValue } from "@/lib/format";
 import { CARD_BUTTON } from "@/ui/Card";
 import { cn } from "@/ui/cn";
@@ -20,7 +22,7 @@ import { TrendLegend } from "@/ui/metrics/TrendLegend";
 import { DetailShell } from "@/ui/shells/DetailShell";
 import { EmptyState } from "@/ui/shells/EmptyState";
 import { InfoCardTrigger } from "@/ui/shells/InfoButton";
-import { SectionShell } from "@/ui/shells/SectionShell";
+import { ActionLink, SectionShell } from "@/ui/shells/SectionShell";
 import { useSelectedDay } from "@/ui/shells/DateSwitcher";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
@@ -81,6 +83,12 @@ export default function TrendViewScreen() {
               average={vm.value}
               segments={vm.segments}
             />
+            {/* The whole history, zoomable, in the chart explorer. */}
+            {chartDef(key) && (
+              <View className="mt-3 items-end">
+                <ActionLink label="Explore" href={chartHref({ metric: key, r: vm.range, d })} />
+              </View>
+            )}
             {vm.footnote && (
               <View className="mt-3 flex-row items-start gap-2">
                 <View className="mt-0.5"><Icon icon={Info} size={16} tone="muted-foreground" strokeWidth={2} /></View>
