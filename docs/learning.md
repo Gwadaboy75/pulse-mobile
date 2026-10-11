@@ -500,3 +500,22 @@ flowchart LR
   Draw -->|before| All[Record every section, 50 ms]
   Draw -->|removeClippedSubviews| Visible[Record the visible ones]
 ```
+
+## The AI coach on the phone
+
+The web's coach route (`/api/coach`) runs in-process here, copied from halo's `src/coach`. `useChat` from `@ai-sdk/react` takes a `ChatTransport` (`CoachTransport`) whose `sendMessages` calls `coachTurn`: the per-minute guard (10), the model built from the saved provider and the key in `expo-secure-store` (`WHEN_UNLOCKED_THIS_DEVICE_ONLY`; only the last four characters are kept beside the setup), the read-only tools bound to `queryCtx()`, history summarisation, then `streamText` with `stopWhen: isStepCount(6)`. The providers get `fetch` from `expo/fetch`, whose `response.body` is a `ReadableStream`; React Native's own fetch buffers the body, which turns a streamed answer into one late block. Chats are rows in the app's Store (`coach_chats`), not a second database. A key is saved only after one 16-token test request works. Nothing logs the key, messages or provider bodies, only error names.
+
+```mermaid
+flowchart LR
+  UI[useChat on /coach] --> T[CoachTransport]
+  T --> G{10 a minute?}
+  G -->|no| E[limit error]
+  G -->|yes| M[Model: provider + key from secure store]
+  M --> H[History: summarise past 30 messages]
+  H --> S[streamText, up to 6 steps]
+  S <--> Tools[Read-only tools over the queries]
+  S -->|expo/fetch stream| P[Provider API]
+  S --> U[UI message stream]
+  U --> UI
+  U -->|on end| DB[(Store: coach_chats)]
+```

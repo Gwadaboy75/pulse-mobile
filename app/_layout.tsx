@@ -96,6 +96,9 @@ function Screens({ onboarded }: { onboarded: boolean }) {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="activities" />
           <Stack.Screen name="activity/[id]" />
+          <Stack.Screen name="coach" />
+          <Stack.Screen name="coach/chats" />
+          <Stack.Screen name="coach/settings" />
           <Stack.Screen name="connect" options={{ gestureEnabled: false }} />
           <Stack.Screen name="health/fitness" />
           <Stack.Screen name="health/healthspan" />
