@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { View } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useNavigation, type Href } from "expo-router";
 import { CalendarRange, Check, ChevronRight, CircleAlert, Info, Lightbulb, Maximize2, Moon, Plus, Sun, TriangleAlert } from "lucide-react-native";
 import { isDashboardKey } from "@/lib/dashboard";
 import { dashboardChoice } from "@/actions/dashboard";
@@ -100,23 +100,29 @@ export function HomeScreen() {
   const day = vm?.day;
   const today = vm?.today;
   const ready = useScreenReady();
+  const navigation = useNavigation();
   useFocusEffect(
     useCallback(() => {
       if (!day || !today || !ready) return;
+      // A page still preloaded in the root stack is not preloaded again: a second PRELOAD replaces it with a fresh
+      // render, which held the JS thread for about 900 ms after every switch back to Home (a tap on Health waited).
+      const state = navigation.getParent()?.getState() as { preloadedRoutes?: { name: string }[] } | undefined;
+      const preloaded = new Set(state?.preloadedRoutes?.map((r) => `/${r.name}`));
+      const page = (href: Href) => (preloaded.has(href as string) ? undefined : href);
       const steps = [addDays(day, -1), addDays(day, 1)].filter((d) => d <= today).map((d) => ({ query: homeQuery(d), key: homeKey(d) }));
       if (day !== today) return preloadWhenIdle(steps);
       // Tabs get their data only, as in halo: router.prefetch of a tab root sends a PRELOAD through the root stack, and
       // on a first launch, while the stack moves from onboarding to the tabs, that could open a tab (Journal) uninvited.
       return preloadWhenIdle([
-        { href: "/sleep", query: sleepQuery(day), key: sleepKey(day) },
-        { href: "/recovery", query: recoveryQuery(), key: recoveryKey() },
-        { href: "/strain", query: strainQuery(), key: strainKey() },
+        { href: page("/sleep"), query: sleepQuery(day), key: sleepKey(day) },
+        { href: page("/recovery"), query: recoveryQuery(), key: recoveryKey() },
+        { href: page("/strain"), query: strainQuery(), key: strainKey() },
         { query: healthQuery, key: HEALTH_KEY },
         { query: journalQuery(), key: journalKey() },
         { query: getMore, key: MORE_KEY },
         ...steps,
       ]);
-    }, [day, today, ready]),
+    }, [day, today, ready, navigation]),
   );
   return vm && timeZone ? <Home vm={vm} timeZone={timeZone} /> : <HomeSkeleton stats={keys} />;
 }
