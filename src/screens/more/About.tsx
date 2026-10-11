@@ -26,13 +26,14 @@ export function About({ version, scoringVersion }: { version: string; scoringVer
           </View>
         ))}
       </View>
+      {/* On a narrow phone each label shrinks to stay on one line beside its arrow. */}
       <View className="mt-4 flex-row gap-2">
         <Button variant="secondary" className="flex-1" accessibilityLabel="Source code, opens outside the app" onPress={() => Linking.openURL(REPO_URL)}>
-          <Text className="text-[13px] font-bold uppercase tracking-[0.1em] text-secondary-foreground">Source code</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} className="shrink text-[13px] font-bold uppercase tracking-[0.1em] text-secondary-foreground">Source code</Text>
           <Icon icon={ArrowUpRight} size={16} tone="secondary-foreground" />
         </Button>
         <Button variant="outline" className="flex-1" accessibilityLabel="Report a bug, opens outside the app" onPress={() => Linking.openURL(`${REPO_URL}/issues`)}>
-          <Text className="text-[13px] font-bold uppercase tracking-[0.1em]">Report a bug</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} className="shrink text-[13px] font-bold uppercase tracking-[0.1em]">Report a bug</Text>
           <Icon icon={ArrowUpRight} size={16} tone="foreground" />
         </Button>
       </View>
