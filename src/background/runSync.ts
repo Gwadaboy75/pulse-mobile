@@ -1,9 +1,9 @@
 // The sync + scoring run as one function with no React in it, so the app (src/state/app.ts) and the background task
-// that comes later do the same thing: take the run lock (lock.ts), import from Health Connect, then score. Within one
-// JavaScript runtime a second call joins the first; across runtimes the lock keeps the two apart. Copied from halo's
-// src/background/runSync.ts without the Google source and the alerts (the notifications stream adds them after the
-// pipeline, in `run`'s finally).
+// (task.ts) do the same thing: take the run lock (lock.ts), import from Health Connect, score, then send the alerts
+// that are due (alerts.ts). Within one JavaScript runtime a second call joins the first; across runtimes the lock keeps
+// the two apart. Copied from halo's src/background/runSync.ts without the Google source.
 import { AppState } from "react-native";
+import { openStore } from "@/data/db";
 import type { Store } from "@/data/store";
 import type { Profile } from "@/data/types";
 import { syncHealthConnect } from "@/health/sync";
@@ -11,6 +11,7 @@ import { timed } from "@/lib/perf";
 import { localDay } from "@/lib/time";
 import { setForeground } from "@/lib/yield";
 import { runPipeline } from "@/pipeline";
+import { notifyAfterRun } from "./alerts";
 import { releaseLock, takeLock, waitForLock, type RunOwner } from "./lock";
 
 export type Source = "health_connect" | "demo";
@@ -87,5 +88,22 @@ async function run(store: Store, profile: Profile, source: Source, opts: RunSync
     return { ran: true, warnings };
   } finally {
     await releaseLock(opts.owner);
+    await notifyAfterRun(store, opts.timeZone);
   }
+}
+
+// ── The Store for a run outside the app ───────────────────────────────────
+
+let appStore: Store | null = null;
+/** The app registers its open Store so a task that fires in the same runtime reuses the connection. */
+export function registerAppStore(store: Store | null): void {
+  appStore = store;
+}
+
+let ownStore: Promise<Store> | null = null;
+/** The app's Store when it is up in this runtime, else one opened once for the task (a headless launch has no app). */
+export function backgroundStore(): Promise<Store> {
+  if (appStore) return Promise.resolve(appStore);
+  ownStore ??= openStore();
+  return ownStore;
 }

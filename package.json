@@ -1,6 +1,6 @@
 {
   "name": "pulse-mobile",
-  "main": "expo-router/entry",
+  "main": "index.ts",
   "version": "1.0.0",
   "dependencies": {
     "@expo-google-fonts/barlow": "^0.4.1",
@@ -10,6 +10,7 @@
     "@shopify/react-native-skia": "2.6.2",
     "date-fns": "4.4.0",
     "expo": "~57.0.27",
+    "expo-background-task": "~57.0.21",
     "expo-blur": "~57.0.3",
     "expo-build-properties": "~57.0.22",
     "expo-constants": "~57.0.21",
@@ -20,6 +21,7 @@
     "expo-haptics": "~57.0.3",
     "expo-linear-gradient": "~57.0.2",
     "expo-linking": "~57.0.12",
+    "expo-notifications": "~57.0.22",
     "expo-router": "~57.0.25",
     "expo-secure-store": "~57.0.4",
     "expo-sharing": "~57.0.22",
@@ -28,6 +30,7 @@
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.3",
     "expo-system-ui": "~57.0.4",
+    "expo-task-manager": "~57.0.21",
     "lucide-react": "1.49.0",
     "lucide-react-native": "^1.53.0",
     "nativewind": "^4.2.7",

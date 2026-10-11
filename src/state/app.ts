@@ -1,13 +1,14 @@
 // App-wide state: the Store, the profile, where data comes from (Health Connect, or the demo generator for "Explore
 // with sample data"), the sync + scoring run, and the query context the screens read with. Follows halo's
 // src/state/app.tsx (boot, status, run serialisation, the data version, the foreground re-sync, the demo source) in
-// Pulse's wiring style: one module-level state read with useSyncExternalStore, no provider. The live heart-rate ticker,
-// BLE, the background task and notifications are not here yet: those streams hook into `run` (src/background/runSync.ts)
-// and `dataChanged`.
+// Pulse's wiring style: one module-level state read with useSyncExternalStore, no provider. The live heart-rate ticker
+// and BLE hook into `run` (src/background/runSync.ts) and `dataChanged`. The background task and the alerts share `run`'s
+// body (runSync); boot registers the Store for the task and starts the background (src/background/startup.ts).
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSyncExternalStore } from "react";
 import { AppState } from "react-native";
-import { markUiRuntime, runSync, type Source } from "@/background/runSync";
+import { markUiRuntime, registerAppStore, runSync, type Source } from "@/background/runSync";
+import { startBackground } from "@/background/startup";
 import { openStore } from "@/data/db";
 import { memoStore } from "@/data/memo";
 import { seedDemo } from "@/data/seed";
@@ -170,6 +171,10 @@ export async function boot(applyTheme: (theme: string) => void): Promise<void> {
   booted = true;
   try {
     const st = await openStore();
+    // The background task reuses this connection when it fires while the app is up; the task registration and the
+    // check-in reminder are made to match the saved settings.
+    registerAppStore(st);
+    void startBackground();
     // This runtime has a screen: its syncs slice their work so taps and frames get through (src/lib/yield.ts).
     markUiRuntime();
     const [profile, source, sync, avail, theme] = await Promise.all([

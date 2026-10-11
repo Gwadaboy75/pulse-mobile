@@ -44,7 +44,8 @@
         "android.permission.health.READ_MENSTRUATION",
         "android.permission.health.READ_INTERMENSTRUAL_BLEEDING",
         "android.permission.health.READ_OVULATION_TEST",
-        "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"
+        "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "plugins": [
@@ -86,6 +87,14 @@
           "isBackgroundEnabled": false,
           "modes": [],
           "neverForLocation": true
+        }
+      ],
+      "expo-background-task",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#00b377"
         }
       ]
     ],
