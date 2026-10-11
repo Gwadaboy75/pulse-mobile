@@ -22,14 +22,15 @@ import {
   type Symptom,
   type Valence,
 } from "@/queries/log";
+import type { FoodData, FoodVia } from "@/queries/food";
 import type { ActionCtx, ActionResult } from "./journal";
 
-/** One food: its name (blank: the meal's) and calories, and grams; a nutrient not given is null (unknown). */
-export type FoodItemInput = { name: string; kcal: number; protein: number | null; carbs: number | null; fat: number | null };
+/** One food: its name (blank: the meal's), portion, calories and grams; a nutrient not given is null (unknown). */
+export type FoodItemInput = { name: string; portion?: string; kcal: number; protein: number | null; carbs: number | null; fat: number | null; fiber?: number | null };
 
 export type LogInput =
   | { kind: "water"; ml: number; at?: string }
-  | ({ kind: "food"; meal: Meal; at?: string } & FoodItemInput)
+  | ({ kind: "food"; meal: Meal; via?: FoodVia; at?: string } & FoodItemInput)
   | { kind: "weight"; kg: number; fatPct: number | null; at?: string }
   | { kind: "spo2"; pct: number; at?: string }
   | { kind: "mood"; moods: Mood[]; valence: Valence | null; at?: string }
@@ -58,6 +59,9 @@ const RESULT_KEYS = keys(OVULATION_RESULTS);
 const num = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 const grams = (v: unknown) => v === null || (num(v) && v >= 0 && v <= 1000);
 const ENUM = "Invalid option";
+const VIA_KEYS = new Set<string>(["photo", "text", "manual"]);
+/** Most foods one save takes (a photo estimate lists each food it sees). */
+export const MAX_FOODS = 20;
 
 /** The first problem with `v`, as the web's zod schema reports it; null when it's valid. */
 function invalid(v: LogInput): string | null {
@@ -69,12 +73,8 @@ function invalid(v: LogInput): string | null {
       if (v.ml > 5000) return "At most 5,000 ml";
       return null;
     case "food":
-      if (!MEAL_KEYS.has(v.meal)) return ENUM;
-      if (typeof v.name !== "string" || v.name.trim().length > 80) return "Use 80 characters or fewer.";
-      if (!num(v.kcal) || !Number.isInteger(v.kcal) || v.kcal < 0) return "Enter calories as a whole number.";
-      if (v.kcal > 10_000) return "At most 10,000 kcal";
-      if (![v.protein, v.carbs, v.fat].every(grams)) return "Macros are grams, between 0 and 1,000.";
-      return null;
+      if (!MEAL_KEYS.has(v.meal) || (v.via !== undefined && !VIA_KEYS.has(v.via))) return ENUM;
+      return invalidFood(v);
     case "weight":
       if (!num(v.kg) || v.kg < 20 || v.kg > 300) return "Between 20 and 300 kg";
       if (v.fatPct !== null && (!num(v.fatPct) || v.fatPct < 2 || v.fatPct > 75)) return "Between 2 and 75%";
@@ -100,6 +100,95 @@ function invalid(v: LogInput): string | null {
   }
 }
 
+/** The first problem with one food, as the web's rules phrase them (portion and fiber are the phone's additions). */
+export function invalidFood(v: FoodItemInput): string | null {
+  if (typeof v.name !== "string" || v.name.trim().length > 80) return "Use 80 characters or fewer.";
+  if (v.portion !== undefined && (typeof v.portion !== "string" || v.portion.trim().length > 60)) return "Keep the portion to 60 characters or fewer.";
+  if (!num(v.kcal) || !Number.isInteger(v.kcal) || v.kcal < 0) return "Enter calories as a whole number.";
+  if (v.kcal > 10_000) return "At most 10,000 kcal";
+  if (![v.protein, v.carbs, v.fat, v.fiber ?? null].every(grams)) return "Macros are grams, between 0 and 1,000.";
+  return null;
+}
+
+/** A food's stored data: a blank name is null, and the portion, fiber and how it was made only when given. */
+function foodData(v: FoodItemInput, meal: Meal, via: FoodVia | undefined): FoodData {
+  const portion = v.portion?.trim();
+  return {
+    name: v.name.trim() || null,
+    meal,
+    kcal: v.kcal,
+    protein: v.protein,
+    carbs: v.carbs,
+    fat: v.fat,
+    ...(portion ? { portion } : null),
+    ...(v.fiber != null ? { fiber: v.fiber } : null),
+    ...(via ? { via } : null),
+  };
+}
+
+/** `at` as a moment for a log entry, or why it can't be one (not a time, in the future, over a year back). */
+function momentOf(c: ActionCtx, at: string | undefined): { ok: true; ts: number } | { ok: false; error: string } {
+  if (at !== undefined && !validAt(at)) return fail("Choose a time");
+  const now = nowOf(c);
+  const ts = at ? fromWall(at, c.timeZone) : now;
+  if (ts > now + 60) return fail("Can’t log the future");
+  if (ts < now - 366 * 86_400) return fail("Can’t log more than a year back");
+  return { ok: true, ts };
+}
+
+/**
+ * Logs one meal's foods at once (a photo or description estimate lists each food it sees; one typed food is a list of
+ * one): every food is checked before any is saved, and all share the meal and the time.
+ */
+export async function logFoods(c: ActionCtx, input: { meal: Meal; via: FoodVia; at?: string; items: FoodItemInput[] }): Promise<ActionResult<{ count: number }>> {
+  if (!MEAL_KEYS.has(input.meal) || !VIA_KEYS.has(input.via)) return fail(ENUM);
+  if (!Array.isArray(input.items) || input.items.length < 1) return fail("Add a food to save.");
+  if (input.items.length > MAX_FOODS) return fail(`Save up to ${MAX_FOODS} foods at a time.`);
+  for (const item of input.items) {
+    const problem = invalidFood(item);
+    if (problem) return fail(input.items.length > 1 && item.name.trim() ? `${item.name.trim()}: ${problem}` : problem);
+  }
+  const when = momentOf(c, input.at);
+  if (!when.ok) return when;
+  const entries: NewEntry[] = input.items.map((item) => ({ type: "nutrition-log", ts: when.ts, data: foodData(item, input.meal, input.via) }));
+  await saveEntries(c.store, entries, { tz: c.timeZone, now: nowOf(c) });
+  return { ok: true, data: { count: entries.length } };
+}
+
+/**
+ * Changes a food logged in Pulse, in place (same id): its name, portion, numbers, meal and time. `ts` is the entry's
+ * time as listed (it is found from there). Food read from Health Connect (logged in Fitbit) is changed in Fitbit only.
+ */
+export async function updateFoodEntry(c: ActionCtx, input: { id: string; ts: number; meal: Meal; at?: string; item: FoodItemInput }): Promise<ActionResult> {
+  if (!MEAL_KEYS.has(input.meal)) return fail(ENUM);
+  const problem = invalidFood(input.item);
+  if (problem) return fail(problem);
+  const when = momentOf(c, input.at);
+  if (!when.ok) return when;
+  const row = (await c.store.loggedEntries(Math.min(input.ts, when.ts) - 1, 5000)).find((r) => r.id === input.id);
+  if (!row || row.type !== "nutrition-log") return fail("This food is no longer in your log.");
+  if (row.source !== "pulse") return fail("Food logged in Fitbit is changed in Fitbit.");
+  const before = row.data as Partial<FoodData> | null;
+  const via = before && typeof before.via === "string" && VIA_KEYS.has(before.via) ? before.via : undefined;
+  const data = foodData(input.item, input.meal, via);
+  if (before?.separate === true) data.separate = true;
+  await c.store.addLoggedEntries([{ ...row, ts: when.ts, day: localDay(when.ts, c.timeZone), data }]);
+  return { ok: true, data: undefined };
+}
+
+/**
+ * "Count it too": a Pulse food that Pulse took for a repeat of a Fitbit entry is a food of its own after all, so it
+ * counts beside Fitbit's (`separate`). `separate: false` lets Pulse match it again.
+ */
+export async function setFoodSeparate(c: ActionCtx, input: { id: string; ts: number; separate: boolean }): Promise<ActionResult> {
+  const row = (await c.store.loggedEntries(input.ts - 1, 5000)).find((r) => r.id === input.id);
+  if (!row || row.type !== "nutrition-log") return fail("This food is no longer in your log.");
+  if (row.source !== "pulse") return fail("Food logged in Fitbit is changed in Fitbit.");
+  const { separate: _old, ...data } = (row.data ?? {}) as FoodData;
+  await c.store.addLoggedEntries([{ ...row, data: input.separate ? { ...data, separate: true } : data }]);
+  return { ok: true, data: undefined };
+}
+
 /** Logs one entry (weight with body fat is two). */
 export async function logEntry(c: ActionCtx, input: LogInput): Promise<ActionResult> {
   const problem = invalid(input);
@@ -123,7 +212,7 @@ export async function logEntry(c: ActionCtx, input: LogInput): Promise<ActionRes
       entries = [{ type: "hydration-log", ts, data: { ml: v.ml } }];
       break;
     case "food":
-      entries = [{ type: "nutrition-log", ts, data: { name: v.name.trim() || null, meal: v.meal, kcal: v.kcal, protein: v.protein, carbs: v.carbs, fat: v.fat } }];
+      entries = [{ type: "nutrition-log", ts, data: foodData(v, v.meal, v.via) }];
       break;
     case "weight":
       entries = [

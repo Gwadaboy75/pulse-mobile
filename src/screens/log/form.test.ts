@@ -1,7 +1,16 @@
 // The log sheets' pure logic, from pulse's (app)/journal/Log.test.tsx (the form half): what a sheet sends, and the
 // default time. The component cases (tiles, quick add, the reconnect screen) are checked by hand on the phone.
 import { describe, expect, it } from "vitest";
-import { dateToDay, dateToWall, defaultAt, EMPTY, num, toInput, wallNow, wallToDate } from "./form";
+import { dateToDay, dateToWall, defaultAt, EMPTY, EMPTY_FOOD, foodFormOf, foodItemOf, mealAt, num, toInput, wallNow, wallToDate } from "./form";
+
+describe("food sheet form", () => {
+  it("suggests the meal by the hour and round-trips a food", () => {
+    expect(["07:00", "12:00", "17:00", "20:00", "23:30"].map(mealAt)).toEqual(["BREAKFAST", "LUNCH", "SNACK", "DINNER", "SNACK"]);
+    expect(foodItemOf({ ...EMPTY_FOOD, kcal: "1.5" })).toBe("Enter calories as a whole number.");
+    const item = { name: "Dal", portion: "1 bowl", kcal: 300, protein: 12.5, carbs: null, fat: 8, fiber: 4 };
+    expect(foodItemOf(foodFormOf(item))).toEqual(item);
+  });
+});
 
 const AT = "2026-10-02T11:30";
 

@@ -87,6 +87,14 @@
           "modes": [],
           "neverForLocation": true
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Pulse uses the camera to photograph a meal, so your own AI provider can estimate its nutrition. The photo isn't saved.",
+          "photosPermission": "Pulse lets you choose a meal photo, so your own AI provider can estimate its nutrition. The photo isn't saved.",
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {
