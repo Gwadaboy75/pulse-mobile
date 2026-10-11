@@ -1,16 +1,15 @@
 // Settings › App (appearance, notifications). Ported from pulse (app)/settings/SettingsView.tsx (Appearance), SettingsClient
 // `ThemePicker` and AppSettings.tsx. The theme is system, light or dark, kept on the device (AsyncStorage `pulse.theme`, applied
-// at launch by src/state/app.ts boot). Notifications are two stored toggles (the web had one push subscription:
-// "Recovery ready, and when Pulse can’t sync"); scheduling them is the background stream's.
+// at launch by src/state/app.ts boot). The notification toggles live in Settings › Notifications & background
+// (NotificationsSection.tsx); this section links there.
 import { useState } from "react";
-import { View } from "react-native";
 import { colorScheme } from "nativewind";
-import { Monitor, Moon, Sun } from "lucide-react-native";
-import { saveNotify, saveTheme, type AppPrefs, type NotifyKey, type Theme } from "@/actions/preferences";
+import { Bell, Monitor, Moon, Sun } from "lucide-react-native";
+import { saveTheme, type AppPrefs, type Theme } from "@/actions/preferences";
+import { LinkList } from "@/ui/shells/LinkList";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { Text } from "@/ui/Text";
-import { cn } from "@/ui/cn";
-import { HINT, RadioSegments, ROW, ROW_LABEL, ROW_RULE, Switch } from "./controls";
+import { HINT, RadioSegments } from "./controls";
 
 const THEMES = [
   { value: "system", label: "System", icon: Monitor },
@@ -36,26 +35,6 @@ function ThemePicker({ initial }: { initial: Theme }) {
   );
 }
 
-function NotifyRow({ label, hint, settingKey, initial, rule }: { label: string; hint: string; settingKey: NotifyKey; initial: boolean; rule?: boolean }) {
-  const [on, setOn] = useState(initial);
-  return (
-    <View className={cn(ROW, rule && ROW_RULE)}>
-      <View className="min-w-0 flex-1">
-        <Text className={ROW_LABEL}>{label}</Text>
-        <Text className={HINT}>{hint}</Text>
-      </View>
-      <Switch
-        label={label}
-        value={on}
-        onValueChange={(v) => {
-          setOn(v);
-          void saveNotify(settingKey, v);
-        }}
-      />
-    </View>
-  );
-}
-
 export function AppSettings({ prefs }: { prefs: AppPrefs }) {
   return (
     <>
@@ -63,12 +42,7 @@ export function AppSettings({ prefs }: { prefs: AppPrefs }) {
         <ThemePicker initial={prefs.theme} />
         <Text className={`${HINT} mt-2`}>System follows this device’s light or dark setting.</Text>
       </SectionShell>
-      <SectionShell variant="card" title="App">
-        <View>
-          <NotifyRow label="Recovery ready" hint="Once a day, when your Recovery is scored." settingKey="notify.recovery" initial={prefs.notifyRecovery} />
-          <NotifyRow rule label="Pulse can’t sync" hint="Once a day, if Pulse can’t sync." settingKey="notify.syncProblem" initial={prefs.notifySyncProblem} />
-        </View>
-      </SectionShell>
+      <LinkList title="App" rows={[{ icon: Bell, label: "Notifications & background", href: "/settings?s=notifications" }]} />
     </>
   );
 }
