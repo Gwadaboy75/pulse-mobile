@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { banisterRate, effortOfTrimp, strain as strainOf, toStrainScale } from "@/core/scoring/strain";
 import { effortToTrimp, LiveStrain, strainOfTrimp, targetCrossing, trimpForStrain } from "./liveStrain";
+import { workoutSetup } from "./workoutSetup";
+import type { DayRow } from "@/queries/common";
 
 const REST = 60;
 const MAX = 190; // reserve 130: zone edges 112 / 138 / 151 / 164 / 177
@@ -111,3 +113,32 @@ describe("targetCrossing", () => {
   });
 });
 
+describe("workoutSetup", () => {
+  type Row = Pick<DayRow, "s1" | "strainTarget" | "recovery">;
+  const s1 = (restingHr: number, effort: number | null, hrCount = 500) => ({ restingHr, maxHr: 185, effort, hrCount }) as unknown as DayRow["s1"];
+
+  it("reads today's resting and max HR, Effort, target and Recovery", () => {
+    const rows = new Map<string, Row>([
+      [
+        "2026-10-07",
+        {
+          s1: s1(52, 40),
+          strainTarget: { reason: null, low: 10, high: 14, base: 12, band: "green", coldStart: false, acwrRule: null },
+          recovery: { value: 71 } as DayRow["recovery"],
+        },
+      ],
+    ]);
+    expect(workoutSetup(rows, "2026-10-07", 190)).toEqual({ restingHr: 52, maxHr: 185, baseEffort: 40, target: [10, 14], recovery: 71, synced: true, sex: "male" });
+  });
+
+  it("falls back to the week's resting HR and the profile's max before today has a row", () => {
+    const rows = new Map<string, Row>([["2026-10-05", { s1: s1(55, 30), strainTarget: null, recovery: null }]]);
+    expect(workoutSetup(rows, "2026-10-07", 190)).toEqual({ restingHr: 55, maxHr: 190, baseEffort: null, target: null, recovery: null, synced: false, sex: "male" });
+    expect(workoutSetup(new Map(), "2026-10-07", 190).restingHr).toBe(60);
+  });
+
+  it("has no target while the target is missing a reason's worth of data", () => {
+    const rows = new Map<string, Row>([["2026-10-07", { s1: s1(52, null, 0), strainTarget: { reason: "calibrating" }, recovery: null }]]);
+    expect(workoutSetup(rows, "2026-10-07", 190)).toMatchObject({ target: null, baseEffort: null, synced: false });
+  });
+});
