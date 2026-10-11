@@ -86,17 +86,19 @@ flowchart TB
 Each phase lands on its own branch and goes through a PR. Each one ends with the app running on the owner's phone. Never switch the installed build type: that wipes the data.
 
 1. **Refresh rate** (done, branch `perf/android-high-refresh`): `plugins/withHighRefreshRate.js` and Reanimated's `ANDROID_SYNCHRONOUSLY_UPDATE_UI_PROPS`.
-2. **Engine swap**:
+2. **Engine swap** (done, 2026-10-11):
    - Bring halo's `src/data`, `src/health`, `src/core`, `src/pipeline` and `src/queries` across.
    - Add `react-native-health-connect` and the read permissions in `app.json`.
    - Rebuild onboarding as profile, then the Health Connect permission sheet, then import.
    - Point the existing screens at the new queries. Most changes are `QueryCtx` fields and type names.
    - Delete `src/google`, drizzle and the parity fixtures.
-   - Exit: a 180-day import on the phone, and every current screen renders real numbers.
-3. **Perf**:
-   - Cap `useScreenReady` at 220 ms after the transition starts.
-   - Time-slice the import, as `src/lib/yield.ts` does in halo.
-   - Profile one heavy screen to price NativeWind. Only if css-interop shows up, move the kit to plain styles. Screens keep their look either way.
+   - Exit: a 180-day import on the phone, and every current screen renders real numbers. Still to check on the phone.
+   - What the screens show that halo's view models dropped comes from Pulse-only query files (`src/queries/*Extras.ts`, `trendView.ts`, `shell.ts`). The heart-rhythm card hides without ECG data; the check-in's follow-up sliders and notes are hidden (halo stores neither).
+3. **Perf** (done, 2026-10-11):
+   - Cap `useScreenReady` at 220 ms after the transition starts: tried on `perf/android-high-refresh` and reverted; screens keep handing over on `transitionEnd`.
+   - Time-slice the import and the pipeline, as `src/lib/yield.ts` does in halo: came with the engine.
+   - The screens' whole-table reads are memoised per data version (`src/data/memo.ts`), since halo's `loadDays` has no cache.
+   - Profile one heavy screen to price NativeWind: left for a device session. Only if css-interop shows up, move the kit to plain styles. Screens keep their look either way.
 4. **Background and notifications**: halo's `src/background`, WorkManager sync and local alerts. The alerts are Recovery ready, can't sync, strain target, Health Monitor, weekly report, wind down and check-in. Deep links to the screens.
 5. **Live heart rate**:
    - The Health Connect ticker (newest sample, every 60 s).
