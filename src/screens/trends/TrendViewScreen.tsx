@@ -2,7 +2,8 @@
 // stepped back `p` periods, against the window before it, with a verdict, a breakdown and an explainer.
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft, ChevronRight, Info, Plus } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Info, Plus, Target } from "lucide-react-native";
+import { push } from "@/ui/navigate";
 import { formatValue } from "@/lib/format";
 import { CARD_BUTTON } from "@/ui/Card";
 import { cn } from "@/ui/cn";
@@ -87,8 +88,14 @@ export default function TrendViewScreen() {
               </View>
             )}
           </View>
-          {/* Pulse imports workouts, so Add activity explains where they come from (§11 R2). The goal button waits for a
-              plan source (FEATURES.goals is off). */}
+          {/* Pulse imports workouts, so Add activity explains where they come from (§11 R2). The goal button opens
+              Settings › Goals, where the daily goals and the Weekly plan's targets are set. */}
+          {vm.actions.goal && (
+            <Press accessibilityRole="link" activeScale={0.96} onPress={() => (haptic.tap(), push("/settings?s=goals"))} className={CARD_BUTTON}>
+              <Icon icon={Target} size={20} tone="foreground" strokeWidth={2} />
+              <Text className="text-[13px] font-bold uppercase leading-4 tracking-[0.1em]">{vm.actions.goal}</Text>
+            </Press>
+          )}
           {vm.actions.addActivity && (
             <InfoCardTrigger info={ADD_ACTIVITY_INFO} activeScale={0.96} className={CARD_BUTTON}>
               <Icon icon={Plus} size={20} tone="foreground" strokeWidth={2} />

@@ -17,8 +17,6 @@ export const FEATURES = {
   sleepAlarm: false,
   /** Share of the night in high, medium and low stress. Pulse's stress model leaves sleep minutes out. */
   sleepStress: false,
-  /** Weekly zone, strength and step goals. Pulse has no goals or weekly plan. */
-  goals: false,
   /** Health's Blood Pressure Insights (Beta). Pulse reads no blood pressure. */
   bloodPressure: false,
   /** An activity's strain split into cardio and muscular load. Pulse measures heart rate only. */

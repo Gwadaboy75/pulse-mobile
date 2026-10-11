@@ -31,6 +31,8 @@ import { CAPTION, hrSeries, LABEL, statProps, TodayVsLegend } from "@/screens/_l
 import { DialDetailSkeleton, Divided, ScreenError } from "@/screens/recovery/shared"
 import { WeeklyTrends, WeeklyTrendsSkeleton } from "@/screens/trends/WeeklyTrends"
 import { useScreen } from "@/screens/useScreen"
+import { GoalsCard } from "@/screens/goals/Goals"
+import { WeeklyPlanCard } from "@/screens/goals/WeeklyPlan"
 
 /** Weekly Trends in the reference app's order (strain-25..38). */
 const WEEKLY: readonly TrendViewKey[] = ["strain", "zones13", "zones45", "steps", "calories", "strength"]
@@ -75,12 +77,13 @@ export function StrainScreen() {
         </Card>
       }
       insight={vm.coach ? <InsightCard body={vm.coach} action={{ label: "Explore your strain insights", href: trendHref("strain", { d, today }) }} /> : null}
-      primary={
-        <SectionShell variant="card" title="Heart rate">
-          <IntradayHrChart data={hrSeries(vm.hr, vm.maxHr)} />
-        </SectionShell>
-      }
+      // The day's goals and the weekly plan lead, as halo's Activity tab has them (spec §11).
+      primary={<GoalsCard day={d} isToday={vm.isToday} />}
       secondary={[
+        <WeeklyPlanCard key="plan" day={d} />,
+        <SectionShell key="hr" variant="card" title="Heart rate">
+          <IntradayHrChart data={hrSeries(vm.hr, vm.maxHr)} />
+        </SectionShell>,
         <SectionShell key="zones" variant="card" title="Time in zones">
           <ZoneBars variant="rows" data={dayZones(vm.zones)} note={vm.zoneNote} emptyCopy={vm.isToday ? "No heart-rate zones yet today." : "No heart-rate zones on this day."} />
         </SectionShell>,

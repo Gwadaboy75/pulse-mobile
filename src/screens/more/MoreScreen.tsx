@@ -2,7 +2,7 @@
 // loading.tsx: "Account & settings" (Profile, Data source, App, each a row to `/settings?s=`), Reports, Trends, Journal,
 // Help, Your data, then About. The account row is Profile (no accounts); no Coach row (the coach stream adds it).
 import { View } from "react-native";
-import { Archive, Bluetooth, BookOpen, CalendarDays, CalendarRange, ChartLine, Database, ListChecks, Palette, Plug, UserRound } from "lucide-react-native";
+import { Archive, Bluetooth, BookOpen, CalendarDays, CalendarRange, ChartLine, Database, ListChecks, Palette, Plug, Target, UserRound } from "lucide-react-native";
 import { formatDay, rangeLabel } from "@/lib/format";
 import { SCORING_VERSION } from "@/pipeline";
 import { APP_VERSION, getMore } from "@/queries/settings";
@@ -18,6 +18,7 @@ const settings: LinkListRow[] = [
   { icon: Plug, label: "Data source", href: "/settings?s=source" },
   { icon: Palette, label: "App", href: "/settings?s=app" },
   { icon: Bluetooth, label: "Live heart rate", href: "/settings?s=live" },
+  { icon: Target, label: "Goals", href: "/settings?s=goals" },
 ];
 
 /** The More tab's key; Home prefetches it with getMore. */

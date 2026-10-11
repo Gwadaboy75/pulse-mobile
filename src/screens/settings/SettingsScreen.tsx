@@ -12,10 +12,11 @@ import { ROW, ROW_RULE } from "./controls";
 import { DataSource } from "./DataSource";
 import { DeleteEverything } from "./DeleteEverything";
 import { LiveHeartRate } from "./LiveHeartRate";
+import { GoalsSettings } from "@/screens/goals/GoalsSettings";
 import { ProfileCard } from "./ProfileCard";
 
-type SectionId = "profile" | "source" | "app" | "live";
-const SECTIONS: SectionId[] = ["profile", "source", "app", "live"];
+type SectionId = "profile" | "source" | "app" | "live" | "goals";
+const SECTIONS: SectionId[] = ["profile", "source", "app", "live", "goals"];
 /** Older names: ?s=sync, ?s=appearance, ?s=profile, and the web's ?s=account. */
 const ALIAS: Record<string, SectionId> = { sync: "source", appearance: "app", account: "profile" };
 
@@ -86,6 +87,8 @@ export function SettingsScreen() {
           <View className="w-full gap-3">
             {section === "live" ? (
               <LiveHeartRate />
+            ) : section === "goals" ? (
+              <GoalsSettings />
             ) : !data ? (
               <SectionSkeleton section={section} />
             ) : section === "source" ? (
