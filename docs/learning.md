@@ -678,3 +678,26 @@ flowchart LR
 ```
 
 Docs: [Skia animations](https://shopify.github.io/react-native-skia/docs/animations/animations), [Gesture handler](https://docs.swmansion.com/react-native-gesture-handler/docs/), [Reanimated `withDecay`](https://docs.swmansion.com/react-native-reanimated/docs/animations/withDecay).
+
+## Tab switches and react-native-svg
+
+react-native-screens detaches a tab that goes out of view and attaches it again when it comes back. react-native-svg
+(Android) recycled each `SvgView`'s rendered bitmap in `onDetachedFromWindow`, so every return to the Health tab
+re-rendered the Pulse Age orb's four SVG layers on the main thread: one 88 to 118 ms frame in the middle of the tab
+animation. `patches/react-native-svg@15.15.4.patch` keeps the bitmap across a detach (a prop change still drops it
+through `invalidate()`); the frame fell to about 30 ms. Separately, Home called `router.prefetch` for Sleep, Recovery
+and Strain on every focus, and a second PRELOAD of a route that is already preloaded renders it again: about 900 ms of
+JS after each switch back to Home, so the next tap waited. Home now skips routes the root stack still holds.
+
+```mermaid
+flowchart LR
+  Tap[Tap Health] --> Attach[Tab attached again]
+  Attach --> Draw{SvgView bitmap}
+  Draw -->|recycled on detach| Render[Re-render SVGs, 64 ms]
+  Draw -->|kept| Blit[Draw cached bitmap]
+```
+
+To measure: a Perfetto trace of taps between two tabs, then the long `Choreographer#doFrame` slices and their
+`Record View#draw` children. A local Gradle build reads native modules from the path in
+`android/build/generated/autolinking/autolinking.json`; after moving `node_modules`, delete that folder, or a native
+patch is silently left out of the APK.

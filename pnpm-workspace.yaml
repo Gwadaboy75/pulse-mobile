@@ -5,3 +5,4 @@ allowBuilds:
 patchedDependencies:
   react-native-css-interop@0.2.7: patches/react-native-css-interop@0.2.7.patch
   react-native-reanimated@4.5.1: patches/react-native-reanimated@4.5.1.patch
+  react-native-svg@15.15.4: patches/react-native-svg@15.15.4.patch
