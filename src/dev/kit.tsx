@@ -86,9 +86,7 @@ const TYPE = [
 function SheetDemo() {
   return (
     <View className="flex-row flex-wrap gap-2">
-      <Button variant="secondary" onPress={() => go("/dev/sheet?size=default")}>Open sheet</Button>
-      <Button variant="secondary" onPress={() => go("/dev/sheet?size=tall")}>Open tall sheet</Button>
-      <Button variant="secondary" onPress={() => go("/dev/sheet?size=screen")}>Open screen sheet</Button>
+      <Button variant="secondary" onPress={() => go("/dev/sheet")}>Open task page</Button>
     </View>
   );
 }
@@ -271,7 +269,7 @@ export default function Kit() {
           </Frame>
           <Frame name="long label at 320 px" narrow><LinkList title="Data" rows={[{ label: "Export everything Pulse has stored", href: "/dev/kit", icon: BookOpen, aside: "CSV" }]} /></Frame>
         </Entry>
-        <Entry name="SheetScreen" file="src/ui/shells/SheetScreen.tsx" use="Every sheet: a route presented by the platform (iOS form sheet, Android bottom sheet) for a task: journal entries, vitals, contributors; or a modal for a full-screen task. Replaces the web's Vaul drawer. Routes: app/(sheets)/, see sheets.ts." props={["title, description", "footer", "size: default | tall | screen", "glow, action, done"]}>
+        <Entry name="SheetScreen" file="src/ui/shells/SheetScreen.tsx" use="Every task page: what the web shows in its Vaul drawer (journal entries, vitals, contributors), pushed as a full-screen page with Back. Routes: app/(sheets)/, see sheets.ts." props={["title, description", "footer", "action, onClose, done"]}>
           <Frame name="default, tall and screen (opens)"><SheetDemo /></Frame>
         </Entry>
         <Entry name="Page shells" file="src/ui/shells/" use="Shells that only render as a whole page. Each one is live somewhere.">

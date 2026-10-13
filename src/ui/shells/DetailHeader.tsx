@@ -22,6 +22,8 @@ export type DetailHeaderProps = {
   align?: "center" | "start";
   titleIcon?: ReactNode;
   action?: ReactNode;
+  /** Replaces what Back does (a sheet page that asks first, the Journal's "Dismiss journal?"). */
+  onBack?: () => void;
 };
 
 /** Back: pops to the previous screen; with nothing to pop (opened from a link) it replaces with `backHref`, else Home. */
@@ -36,10 +38,10 @@ function goBack(backHref?: string) {
  */
 export const detailRowHeight = ({ subtitle, dateTitle }: Pick<DetailHeaderProps, "subtitle" | "dateTitle">) => (subtitle && !dateTitle ? 52 : HEADER_ROW);
 
-export function DetailHeaderRow({ title, subtitle, info, backHref, dateTitle, dismiss = "back", align = "center", titleIcon, action, className, centerStyle }: DetailHeaderProps & { className?: string; centerStyle?: ComponentProps<typeof Animated.View>["style"] }) {
+export function DetailHeaderRow({ title, subtitle, info, backHref, dateTitle, dismiss = "back", align = "center", titleIcon, action, onBack, className, centerStyle }: DetailHeaderProps & { className?: string; centerStyle?: ComponentProps<typeof Animated.View>["style"] }) {
   const close = dismiss === "close";
   const back = (
-    <Press activeBg="bg-fill-hover" accessibilityRole="button" accessibilityLabel={close ? "Close" : "Back"} onPress={() => goBack(backHref)} className="size-11 items-center justify-center rounded-full">
+    <Press activeBg="bg-fill-hover" accessibilityRole="button" accessibilityLabel={close ? "Close" : "Back"} onPress={onBack ?? (() => goBack(backHref))} className="size-11 items-center justify-center rounded-full">
       <Icon icon={close ? X : ChevronLeft} size={close ? 24 : 26} tone="foreground" strokeWidth={1.75} />
     </Press>
   );

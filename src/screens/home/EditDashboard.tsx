@@ -105,7 +105,6 @@ export function EditDashboardSheet({ keys: rawKeys, empty: rawEmpty }: { keys?: 
   return (
     <SheetScreen
       title="Customize dashboard"
-      size="screen"
       done={done ? { title: "Success", body: "Your preferences have been saved.", onDone: closeSheet } : null}
       footer={
         <>

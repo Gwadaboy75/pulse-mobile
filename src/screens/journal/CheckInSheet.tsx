@@ -231,7 +231,6 @@ export function CheckInSheet() {
     <>
       <SheetScreen
         title="Journal"
-        size="screen"
         glow
         onClose={close}
         action={

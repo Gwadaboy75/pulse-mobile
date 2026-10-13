@@ -22,7 +22,6 @@ import { Opening } from "@/screens/Opening";
 import { ShellData } from "@/screens/ShellData";
 import { boot, useApp } from "@/state/app";
 import { AppProviders } from "@/ui/providers";
-import { sheetOptions, type SheetSize } from "@/ui/shells/sheets";
 import { useTheme } from "@/ui/theme";
 
 // Screens out of view (under a pushed screen, or an inactive tab) stop rendering until they are shown again.
@@ -136,20 +135,20 @@ function Screens({ onboarded }: { onboarded: boolean }) {
           <Stack.Screen name="dev/kit/detail" />
           <Stack.Screen name="dev/kit/home" />
           <Stack.Screen name="dev/kit/metrics" />
-          {/* Sheets are routes presented by the platform (src/ui/shells/sheets.ts says how to add one). */}
-          <Stack.Screen name="(sheets)/dashboard" options={sheetOptions("screen", c)} />
-          <Stack.Screen name="(sheets)/plus" options={sheetOptions("default", c)} />
-          <Stack.Screen name="(sheets)/trends-metric" options={sheetOptions("default", c)} />
-          <Stack.Screen name="(sheets)/ecg" options={sheetOptions("default", c)} />
-          <Stack.Screen name="(sheets)/profile" options={sheetOptions("default", c)} />
-          <Stack.Screen name="(sheets)/checkin" options={sheetOptions("screen", c)} />
-          <Stack.Screen name="(sheets)/log" options={sheetOptions("default", c)} />
-          <Stack.Screen name="(sheets)/food" options={sheetOptions("default", c)} />
-          <Stack.Screen name="(sheets)/goals" options={sheetOptions("tall", c)} />
-          <Stack.Screen name="(sheets)/weekly-plan" options={sheetOptions("tall", c)} />
-          <Stack.Screen name="(sheets)/chart-metric" options={sheetOptions("default", c)} />
-          <Stack.Screen name="journal/impact" options={sheetOptions("default", c)} />
-          <Stack.Screen name="dev/sheet" options={({ route }) => sheetOptions((route.params as { size?: SheetSize } | undefined)?.size ?? "default", c)} />
+          {/* Task pages: the web's drawers, pushed as pages (src/ui/shells/sheets.ts says how to add one). */}
+          <Stack.Screen name="(sheets)/dashboard" />
+          <Stack.Screen name="(sheets)/plus" />
+          <Stack.Screen name="(sheets)/trends-metric" />
+          <Stack.Screen name="(sheets)/ecg" />
+          <Stack.Screen name="(sheets)/profile" />
+          <Stack.Screen name="(sheets)/checkin" />
+          <Stack.Screen name="(sheets)/log" />
+          <Stack.Screen name="(sheets)/food" />
+          <Stack.Screen name="(sheets)/goals" />
+          <Stack.Screen name="(sheets)/weekly-plan" />
+          <Stack.Screen name="(sheets)/chart-metric" />
+          <Stack.Screen name="journal/impact" />
+          <Stack.Screen name="dev/sheet" />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>

@@ -44,7 +44,7 @@ export function MetricSheetBody({ current, r }: { current?: string; r?: string }
   const [expanded, setExpanded] = useState<string>(metric.group);
   const choose = (key: TrendMetricKey) => router.dismissTo({ pathname: "/trends", params: { metric: key, ...(r ? { r } : null) } });
   return (
-    <SheetScreen title="Metric" size="default">
+    <SheetScreen title="Metric">
       {/* The web's list has its own `px-4` inside the drawer's `px-4`: 32 px of side margin. Its `pb-[max(env(safe-area-inset-bottom),16px)]` is the sheet's own bottom padding here (SheetScreen). */}
       <View className="px-4">
         {GROUPS.map(({ group, metrics }, i) => {

@@ -54,7 +54,6 @@ const inkOf = (c: Palette) => ({
   pill: c.secondary,
   workout: c.strain,
   sleep: c.sleep,
-  dim: 0.4,
 });
 
 /** The draw-in without redrawing: the canvas is revealed left to right by two counter-moving native views. */
@@ -318,11 +317,6 @@ export function ExplorerChart(p: ExplorerChartProps) {
   const xs = p.primary.xs;
   const ys = p.primary.ys;
   const groups = p.barGroup;
-  // The latest day's bar is drawn at full ink, the rest dimmed (today's running total stays outlined instead).
-  const latestBar = React.useMemo(() => {
-    for (let i = ys.length - 1; i >= 0; i--) if (ys[i] !== null) return groups[i] === 3 ? -1 : i;
-    return -1;
-  }, [ys, groups]);
   /** A bar's rounded rect at the viewport (worklet): w wide, its top r round, running r past the floor. */
   // (Memoised: the derived values below key on their closure, so a re-render with the same data keeps them.)
   const barRect = React.useCallback(
@@ -331,8 +325,9 @@ export function ExplorerChart(p: ExplorerChartProps) {
       const v = ys[i];
       if (v === null || v === undefined) return null;
       const per = plotW / sp;
-      const w = Math.min(24, per * 0.6);
-      const r = Math.min(8, w / 2);
+      // TrendChart's bar: 80 % of the day's band (a 10 % gap each side), at most 28 wide, 4 round.
+      const w = Math.min(28, per * 0.8);
+      const r = Math.min(4, w / 2);
       const base = bottom - ((Math.max(l, 0) - l) / (h - l)) * plotH;
       const cx = LEFT + (xs[i] - s) * per;
       const y = bottom - ((v - l) / (h - l)) * plotH;
@@ -348,15 +343,14 @@ export function ExplorerChart(p: ExplorerChartProps) {
     const sp = span.value;
     const l = lo.value;
     const h = hi.value;
-    // 0-2: the colour groups, dimmed; 3: today's running total; 4-6: the latest bar at full ink, by group.
-    const b = Array.from({ length: 7 }, () => Skia.PathBuilder.Make());
+    // 0-2: the colour groups; 3: today's running total.
+    const b = Array.from({ length: 4 }, () => Skia.PathBuilder.Make());
     const i0 = Math.max(0, Math.floor(s));
     const i1 = Math.min(xs.length - 1, Math.ceil(s + sp));
     for (let i = i0; i <= i1; i++) {
       const rr = barRect(i, s, sp, l, h);
       if (!rr) continue;
-      const g = groups[i] ?? 0;
-      b[g === 3 ? 3 : i === latestBar ? 4 + g : g].addRRect(rr);
+      b[groups[i] ?? 0].addRRect(rr);
     }
     return b.map((x) => x.detach());
   });
@@ -364,9 +358,6 @@ export function ExplorerChart(p: ExplorerChartProps) {
   const bar1 = useDerivedValue(() => bars.value[1]);
   const bar2 = useDerivedValue(() => bars.value[2]);
   const bar3 = useDerivedValue(() => bars.value[3]);
-  const bar4 = useDerivedValue(() => bars.value[4]);
-  const bar5 = useDerivedValue(() => bars.value[5]);
-  const bar6 = useDerivedValue(() => bars.value[6]);
 
   // The lines' band gradients follow their y axes as they animate.
   const stops = React.useMemo(() => (p.bands ? bandStops(prim.hi, prim.lo, p.bands) : null), [p.bands, prim]);
@@ -638,18 +629,15 @@ export function ExplorerChart(p: ExplorerChartProps) {
   const compareColor = p.compareColor;
   const compareColors = p.readout.compareColors;
   const dot2Color = useDerivedValue(() => (cOn.value < 0 || !compareColors ? compareColor : (compareColors[cOn.value] ?? compareColor)));
-  // The inspected day's bar at full ink over the dimmed ones (the latest is already; today's running total stays outlined).
-  const barColors = p.barColors;
+  // The inspected day: TrendChart's faint column behind its bar, the day's whole band, the plot's full height.
   const selBar = useDerivedValue(() => {
     const i = idx.value;
-    if (barW8.value <= 0 || i < 0 || i === latestBar || (groups[i] ?? 0) === 3) return empties[0];
-    const rr = barRect(i, start.value, span.value, lo.value, hi.value);
-    if (!rr) return empties[0];
+    if (barW8.value <= 0 || i < 0) return empties[0];
+    const per = plotW / span.value;
     const b = Skia.PathBuilder.Make();
-    b.addRRect(rr);
+    b.addRect(Skia.XYWHRect(LEFT + (xs[i] - start.value) * per - per / 2, top, per, plotH));
     return b.detach();
   });
-  const selColor = useDerivedValue(() => (idx.value < 0 ? "transparent" : (barColors[groups[idx.value] ?? 0] ?? "transparent")));
 
   // --- Gestures ---
   const notify = p.onViewport;
@@ -827,12 +815,15 @@ export function ExplorerChart(p: ExplorerChartProps) {
                 </Group>
                 {isBar && (
                   <Group opacity={barW8}>
-                    {/* Past days dimmed, the latest (and an inspected day) at full ink, today's "so far" outlined lighter. */}
-                    <Group opacity={k.dim}>
-                      {[bar0, bar1, bar2].map((b, j) => (p.barColors[j] ? <Path key={j} path={b} color={p.barColors[j]} /> : null))}
-                    </Group>
-                    {[bar4, bar5, bar6].map((b, j) => (p.barColors[j] ? <Path key={j} path={b} color={p.barColors[j]} /> : null))}
-                    <Path path={selBar} color={selColor} />
+                    <Path path={selBar} color={alpha(fg, 0.05)} />
+                    {/* TrendChart's bars: every day at full ink, fading to half towards the floor (its CapBar), today's "so far" outlined lighter. */}
+                    {[bar0, bar1, bar2].map((b, j) =>
+                      p.barColors[j] ? (
+                        <Path key={j} path={b} color={p.barColors[j]}>
+                          <LinearGradient start={vec(0, top)} end={vec(0, bottom)} colors={[p.barColors[j], alpha(p.barColors[j], 0.5)]} />
+                        </Path>
+                      ) : null,
+                    )}
                     {p.partialColor && (
                       <Group>
                         <Path path={bar3} color={alpha(p.partialColor, 0.28)} />

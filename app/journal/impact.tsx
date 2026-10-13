@@ -1,10 +1,11 @@
 import { View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { formatValue } from "@/lib/format";
 import { getJournalInsights } from "@/queries/journal";
-import { FOOTER, parseMetric, WORD } from "@/screens/journal/insights";
+import { FOOTER, MetricToggle, parseMetric, WORD } from "@/screens/journal/insights";
 import { useScreen } from "@/screens/useScreen";
 import { cn } from "@/ui/cn";
+import { DriverList } from "@/ui/metrics/DriverList";
 import { SheetScreen } from "@/ui/shells/SheetScreen";
 import { Text } from "@/ui/Text";
 
@@ -14,10 +15,16 @@ export default function ImpactSheet() {
   const metric = parseMetric(m);
   const { data: vm } = useScreen((ctx) => getJournalInsights(metric, ctx), ["journalInsights", metric]);
   const item = vm?.items.find((i) => i.key === behaviour);
-  if (!vm || !item)
+  if (!vm) return <SheetScreen title="Behaviour">{null}</SheetScreen>;
+  // Opened without a behaviour it knows (a bare pulse://journal/impact): the impact list, a row opening its detail here.
+  // Before, the page stayed empty. With too few check-ins the list says so (DriverList's empty state).
+  if (!item)
     return (
-      <SheetScreen title={item ? "" : "Behaviour"} size="default">
-        <View className="h-40" />
+      <SheetScreen title="Behaviour">
+        <View className="gap-4 pt-2">
+          <MetricToggle metric={metric} />
+          <DriverList variant="impact" unit={vm.unit} data={{ value: vm.items, reason: null, provisional: false }} onSelect={(k) => router.setParams({ behaviour: k })} outcome={WORD[metric]} />
+        </View>
       </SheetScreen>
     );
 
@@ -33,7 +40,7 @@ export default function ImpactSheet() {
     ["Average without", avg(item.avgWithout)],
   ];
   return (
-    <SheetScreen title={item.label} size="default">
+    <SheetScreen title={item.label}>
       <View className="gap-4 pt-2">
         <View>
           <Text className={cn("font-numeric text-4xl font-bold leading-10 tracking-[-0.01em] tabular-nums", tone)}>{fx(item.delta)}</Text>

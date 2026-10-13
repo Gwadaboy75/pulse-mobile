@@ -3,27 +3,24 @@ import { TextInput, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Button } from "@/ui/Button";
 import { SheetScreen, SheetSection } from "@/ui/shells/SheetScreen";
-import { closeSheet, type SheetSize } from "@/ui/shells/sheets";
+import { closeSheet } from "@/ui/shells/sheets";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 
 const BODY = "text-[15px] leading-[22px] text-foreground-secondary";
 
 /**
- * The kit's sheet demo: /dev/sheet?size=default | tall | screen (and an optional title), one route for the three sizes (app/_layout.tsx reads
- * `size` for the detents). Has a text field to check that the keyboard does not cover it, and Save for the success
- * haptic and the confirmation.
+ * The kit's task page demo: /dev/sheet (and an optional title). Has a text field to check that the keyboard does not
+ * cover it, and Save for the success haptic and the confirmation.
  */
 export default function SheetDemo() {
-  const { size = "default", title = "How Recovery works" } = useLocalSearchParams<{ size?: SheetSize; title?: string }>();
+  const { title = "How Recovery works" } = useLocalSearchParams<{ title?: string }>();
   const { c } = useTheme();
   const [saved, setSaved] = useState(false);
   return (
     <SheetScreen
       title={title}
       description="Updated each morning"
-      size={size}
-      glow={size === "screen"}
       done={saved ? { title: "Saved", body: "Have a great day!", onDone: closeSheet } : null}
       footer={
         <>

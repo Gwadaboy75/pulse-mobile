@@ -97,7 +97,7 @@ On the web `body` sets `text-foreground` and everything inherits it. In React Na
 
 ## Root providers: gesture handler, safe area, bottom sheets
 
-`src/ui/providers.tsx` wraps the app once. `GestureHandlerRootView` is required for any gesture (chart scrubbing); `SafeAreaProvider` gives headers the notch and home-indicator insets; `ShellCalendarProvider` carries today's date. Sheets need no provider any more: they are routes (see "Sheets are routes", below), and `@gorhom/bottom-sheet` is no longer used.
+`src/ui/providers.tsx` wraps the app once. `GestureHandlerRootView` is required for any gesture (chart scrubbing); `SafeAreaProvider` gives headers the notch and home-indicator insets; `ShellCalendarProvider` carries today's date. Sheets need no provider any more: they are pages (see "Task sheets are pages", below), and `@gorhom/bottom-sheet` is no longer used.
 
 ## The tab bar: Pulse's own glass bar
 
@@ -139,13 +139,11 @@ React Native 0.86 on the new architecture takes a CSS-like `boxShadow` string, i
 
 Everything the kit uses (Skia, Reanimated, gesture handler, SVG, safe-area, expo-font) is bundled in Expo Go for SDK 57; NativeWind and the icons are plain JavaScript; form sheets, `expo-blur`, `expo-linear-gradient` and `expo-haptics` are in Expo Go too (haptics: the docs do not print the badge, so the checklist confirms it). So `npx expo start --go` is enough on Android. An iPhone needs a development build, since the App Store's Expo Go stops at SDK 54.
 
-## Sheets are routes (`presentation: "formSheet"`)
+## Task sheets are pages
 
-A task sheet (check-in, logs, info) is a file under `app/(sheets)/` registered in `app/_layout.tsx` with `sheetOptions(size, c)` from `src/ui/shells/sheets.ts`. Expo Router's native stack presents it as a `UISheetPresentationController` on iOS and a native bottom sheet on Android, so the drag, the detents, the dim and the back gesture are the OS's. `<SheetScreen>` only draws the inside. Open with `openSheet("/name")`, close with `closeSheet()`.
+A task (check-in, logs, info, Goals, the Behaviour detail) is a file under `app/(sheets)/` (or `app/journal/impact.tsx`) registered in `app/_layout.tsx` as a plain `<Stack.Screen>`: the stack pushes it like every detail page, with the same slide, the Android back gesture, and `<SheetScreen>` drawing the detail header (Back, the caps title), the scrolling body and the pinned actions. They were native form sheets (`presentation: "formSheet"`, a bottom sheet on Android with `fitToContents` or `[0.92]` detents); the owner did not want anything sliding up from the bottom, so the presentation options went and the routes stayed. Open with `openSheet("/name")`, close with `closeSheet()`.
 
-## Detents
-
-`sheetAllowedDetents` is a list of screen fractions the sheet snaps to, or `"fitToContents"` (as tall as its content: no `flex: 1` inside). Pulse uses the web drawer's heights: `"fitToContents"` for a default sheet and `[0.92]` for a tall one (the web's `h-[92svh]`). The system grabber is off and `<SheetScreen>` draws the web's 40 × 6 handle, and the corner radius is the web's 28 px, so a sheet looks the same on both platforms while the drag and dismissal stay the platform's. Full-screen tasks use `presentation: "modal"`.
+The pinned actions pad below themselves by `max(insets.bottom, 16)` from `useSafeAreaInsets()`, so they sit above the gesture bar. Inside the old Android form sheet that padding did not clear it: the Goals and Weekly plan buttons sat half under the gesture area.
 
 ## Why info is not a sheet route
 
@@ -181,10 +179,6 @@ Sheets wrap their body in React Native's `KeyboardAvoidingView` (`padding` on iO
 
 Android resizes the window for the keyboard itself, so a `KeyboardAvoidingView` there must be off (`enabled={Platform.OS === "ios"}`): with `padding` on top of the resize, the Coach composer rose a keyboard's height above the keyboard, into the middle of the screen.
 
-## Scrolling inside an Android form sheet
-
-Android's native bottom sheet (`BottomSheetBehavior`, behind `presentation: "formSheet"`) lets a child scroll only when it is a nested-scrolling view; any other drag moves the sheet. React Native's `ScrollView` is one only with `nestedScrollEnabled`, so `<SheetScreen>`'s body sets it. Without it the Profile sheet never scrolled down to Save.
-
 ## Predictive back on Android
 
 `android.predictiveBackGestureEnabled` in `app.json` lets Android 13+ show the system's back preview (the app peeking out, or returning to the launcher) while the gesture is held. It is a native manifest flag, so Expo Go ignores it: it only shows in a development build.
@@ -217,7 +211,7 @@ The web's `<input type="datetime-local">` and `type="date"` are the browser's ow
 
 ## Asking before a sheet closes: `beforeRemove`
 
-The check-in must not lose answers to a swipe down or the Android back gesture. `navigation.addListener("beforeRemove", ...)` (from `useNavigation`) can cancel the removal with `e.preventDefault()` while the sheet has unsaved changes and show "Dismiss journal?"; `gestureEnabled: false` on the same screen stops the iOS swipe from starting. Confirming sets a ref and closes again, so the listener lets it through.
+The check-in must not lose answers to Back or the Android back gesture. `navigation.addListener("beforeRemove", ...)` (from `useNavigation`) can cancel the removal with `e.preventDefault()` while the sheet has unsaved changes and show "Dismiss journal?"; `gestureEnabled: false` on the same screen stops the iOS swipe from starting. Confirming sets a ref and closes again, so the listener lets it through.
 
 ## Long work in chunks
 

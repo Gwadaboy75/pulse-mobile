@@ -17,7 +17,7 @@ import { formatValue, MISSING, type FormatKey } from "@/lib/format";
 import { CHART_METRICS, chartDef, DAY_VIEW, getChartDay, getChartSeries, type ChartDayVM, type ChartDef, type ChartSeriesVM, type DayView } from "@/queries/chart";
 import { useScreen } from "@/screens/useScreen";
 import { trendGoal, useGoals } from "@/state/goals";
-import { Card } from "@/ui/Card";
+import { LABEL } from "@/ui/metrics/primitives";
 import { wholeTick } from "@/ui/charts/ChartFrame";
 import { zoneBands } from "@/ui/charts/spans";
 import { cn } from "@/ui/cn";
@@ -76,6 +76,7 @@ import {
 } from "./model";
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** Said to screen readers on the chart; no longer printed under it. */
 const HINT = "Pinch to zoom · drag to pan · hold to inspect · double-tap to reset";
 /** A day view with nothing to draw. */
 const EMPTY_DAY: Record<DayView, string> = {
@@ -117,41 +118,42 @@ const compareColorOf = (primary: SeriesColor, compare: SeriesColor, c: Palette) 
 
 const tickText = (format: FormatKey) => (format === "duration" ? (v: number) => formatValue(format, v) : wholeTick((v) => formatValue(format, v)));
 
-/** One of the window's numbers: the value in the numeric face with its unit small beside it, the label under it. */
+/** One of the window's numbers, as Trend View's headline: the caps label, then the value in the numeric face, its unit small. */
 function Stat({ label, value, format, unit, text }: { label: string; value: number | null | undefined; format: FormatKey; unit?: string; text?: string }) {
   const s = value === undefined ? MISSING : (text ?? formatValue(format, value));
   const has = s !== MISSING && value !== null;
   return (
-    <View accessible accessibilityLabel={`${label}: ${has ? (text ?? valueText(value, format, unit)) : "no data"}`} className="min-w-0 flex-1 gap-0.5">
-      <Text className="font-numeric text-[22px] font-bold leading-7 tabular-nums" numberOfLines={1}>
+    <View accessible accessibilityLabel={`${label}: ${has ? (text ?? valueText(value, format, unit)) : "no data"}`} className="min-w-0 flex-1">
+      <Text className={cn(LABEL, "text-muted-foreground")}>{label}</Text>
+      <Text className="font-numeric text-[28px] font-bold leading-8 tabular-nums" numberOfLines={1}>
         {has ? s : MISSING}
         {has && unit ? <Text className="text-[13px] font-semibold text-muted-foreground">{unitText(unit)}</Text> : null}
       </Text>
-      <Text className="text-xs font-medium leading-4 text-muted-foreground">{label}</Text>
     </View>
   );
 }
 
-/** A legend entry: the series' mark (a line, a dashed line, a block or a dot) and its name. */
+/** A legend entry in TrendLegend's style: the series' swatch (a line, a dashed line, a block or a dot) and its caps name. */
 function LegendKey({ color, label, mark = "line" }: { color: string; label: string; mark?: "line" | "dash" | "block" | "dot" }) {
   return (
     <View className="min-h-6 flex-row items-center gap-1.5">
-      {mark === "line" && <View style={{ width: 14, height: 3, borderRadius: 1.5, backgroundColor: color }} />}
+      {mark === "line" && <View style={{ width: 12, height: 3, borderRadius: 1.5, backgroundColor: color }} />}
       {mark === "dash" && (
-        <View style={{ width: 14, flexDirection: "row", justifyContent: "space-between" }}>
+        <View style={{ width: 12, flexDirection: "row", justifyContent: "space-between" }}>
           {[0, 1, 2].map((i) => (
             <View key={i} style={{ width: 3, height: 2, borderRadius: 1, backgroundColor: color }} />
           ))}
         </View>
       )}
-      {mark === "block" && <View style={{ width: 12, height: 12, borderRadius: 4, backgroundColor: color }} />}
-      {mark === "dot" && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }} />}
-      <Text className="text-[13px] font-semibold leading-[18px]">{label}</Text>
+      {mark === "block" && <View className="size-2.5 rounded-xs" style={{ backgroundColor: color }} />}
+      {mark === "dot" && <View className="size-2.5 rounded-full" style={{ backgroundColor: color }} />}
+      <Text className={cn(LABEL, "text-[11px] text-foreground-secondary")}>{label}</Text>
     </View>
   );
 }
 
-const PILL = "min-h-9 flex-row items-center gap-1.5 rounded-full bg-secondary px-3.5";
+/** The compare control: a caps text action, as Trend View's links. */
+const COMPARE = "min-h-11 flex-row items-center gap-1.5";
 
 export default function ChartExplorer() {
   const params = useLocalSearchParams<{ metric?: string; r?: string; d?: string; compare?: string }>();
@@ -278,7 +280,7 @@ export default function ChartExplorer() {
     const from = v.start;
     const to = v.start + v.span;
     const bars = drawsBars(model.primary, v.span);
-    const domain = yDomain(model.primary, from, to, { bars, extra: [model.goal?.y, model.shade?.lo, model.shade?.hi], count: 5 });
+    const domain = yDomain(model.primary, from, to, { bars, extra: [model.goal?.y, model.shade?.lo, model.shade?.hi], count: 3 });
     const domain2 = model.compare ? compareDomain(model.compare, from, to, domain.ticks.length) : null;
     const stats = summaryOf(model.primary, from, to);
     const running = model.primary.cumulative ? runningStats(model.primary, from, to) : null;
@@ -342,23 +344,23 @@ export default function ChartExplorer() {
           </Press>
         }
       />
-      <View className="flex-1 gap-3 pt-2" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
-        <View className="gap-3 px-4">
+      <View className="flex-1 gap-4 pt-2" style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
+        <View className="gap-4 px-4">
           <Segmented label="Range" fill value={range} options={ranges.map((r) => ({ value: r, label: RANGE_LABEL[r], accessibilityLabel: RANGE_ARIA[r] }))} onChange={(r) => setParams({ r })} />
           {mode === "day" && (
             <View className="items-center">
               <DateSwitcher mode="day" />
             </View>
           )}
-          {/* The visible window's numbers (refreshed when a gesture settles). */}
-          <Card className="gap-2.5 px-4 py-3.5">
+          {/* The visible window's numbers (refreshed when a gesture settles), as Trend View's headline. */}
+          <View className="gap-3">
             <Text className="text-[13px] font-medium leading-[18px] tabular-nums text-foreground-secondary">{windowLabel || " "}</Text>
             <View className="flex-row gap-3">{stats}</View>
-          </Card>
+          </View>
         </View>
 
-        {/* The chart on its own card; it fills the card's width and the height left over. */}
-        <Card className="mx-4 min-h-[220px] flex-1 py-2">
+        {/* The chart on the ground, as Trend View's: its legend above it at the right, then the plot, at most 340 tall. */}
+        <View accessibilityHint={HINT} className="min-h-[220px] max-h-[340px] flex-1 px-4">
           <View className="flex-1" onLayout={(e) => setBox({ w: Math.round(e.nativeEvent.layout.width), h: Math.round(e.nativeEvent.layout.height) })}>
             {error && !model ? (
               <View className="flex-1 justify-center px-4">
@@ -413,38 +415,37 @@ export default function ChartExplorer() {
               />
             )}
           </View>
-        </Card>
+        </View>
 
         <View className="gap-2 px-4">
-          {/* The legend: every series and line on the chart by name, then the compare (or the button that adds one). */}
-          <View className="flex-row flex-wrap items-center gap-x-3.5 gap-y-1.5">
+          {/* The legend: every series and line on the chart by name, then the compare (or the action that adds one). */}
+          <View className="flex-row flex-wrap items-center gap-x-4 gap-y-1">
             <LegendKey color={primaryColor} label={title} />
             {model?.ref && model.goal && <LegendKey color={c["chart-cursor"]} label={model.goal.label} mark="dash" />}
             {workouts && <LegendKey color={c.strain} label="Workouts" mark="block" />}
             {view === "sleep" && (dayVm?.stages.length ?? 0) > 0 && (["awake", "rem", "light", "deep"] as const).map((s) => <LegendKey key={s} color={stageColor[s]} label={STAGE_NAME[s]} mark="dot" />)}
             {canCompare &&
               (cmp ? (
-                <Press activeScale={0.96} accessibilityRole="button" accessibilityLabel={`Stop comparing with ${compareName}`} onPress={() => (haptic.tap(), clearCompare())} className={cn(PILL, "shrink")}>
-                  <View style={{ width: 14, height: 3, borderRadius: 1.5, backgroundColor: model?.compareBands ? model.compareBands[model.compareBands.length - 1].color : (model?.comparePaint ?? c["chart-4"]) }} />
-                  <Text className="shrink text-[13px] font-semibold leading-[18px]">
+                <Press activeScale={0.96} accessibilityRole="button" accessibilityLabel={`Stop comparing with ${compareName}`} onPress={() => (haptic.tap(), clearCompare())} className={cn(COMPARE, "shrink")}>
+                  <View style={{ width: 12, height: 3, borderRadius: 1.5, backgroundColor: model?.compareBands ? model.compareBands[model.compareBands.length - 1].color : (model?.comparePaint ?? c["chart-4"]) }} />
+                  <Text className={cn(LABEL, "shrink text-[11px] text-foreground-secondary")}>
                     {compareName}
                     {axes?.cStats?.avg != null && model?.compare ? (
-                      <Text className="font-medium text-muted-foreground">{` · avg ${valueText(axes.cStats.avg, model.compare.format, model.compare.unit)}`}</Text>
+                      <Text className="text-muted-foreground">{` · avg ${valueText(axes.cStats.avg, model.compare.format, model.compare.unit)}`}</Text>
                     ) : cmpEmpty ? (
-                      <Text className="font-medium text-muted-foreground">{" · none this day"}</Text>
+                      <Text className="text-muted-foreground">{" · none this day"}</Text>
                     ) : null}
                   </Text>
-                  <Icon icon={X} size={15} tone="muted-foreground" strokeWidth={2} />
+                  <Icon icon={X} size={14} tone="muted-foreground" strokeWidth={2} />
                 </Press>
               ) : (
-                <Press activeScale={0.96} accessibilityRole="button" accessibilityLabel="Compare with another metric" onPress={() => (haptic.tap(), pick("compare"))} className={PILL}>
-                  <Icon icon={Plus} size={15} tone="foreground" strokeWidth={2.25} />
-                  <Text className="text-[13px] font-semibold leading-[18px]">Compare</Text>
+                <Press activeScale={0.96} accessibilityRole="button" accessibilityLabel="Compare with another metric" onPress={() => (haptic.tap(), pick("compare"))} className={COMPARE}>
+                  <Text className={cn(LABEL, "text-[13px]")}>Compare</Text>
+                  <Icon icon={Plus} size={16} tone="foreground" strokeWidth={2.25} />
                 </Press>
               ))}
           </View>
-          {model?.shade && <Text className="text-[13px] leading-[18px] text-muted-foreground">{model.shade.label}</Text>}
-          <Text className="text-[13px] leading-[18px] text-muted-foreground">{HINT}</Text>
+          {model?.shade && <Text className="text-[13px] leading-5 text-muted-foreground">{model.shade.label}</Text>}
         </View>
       </View>
     </View>
