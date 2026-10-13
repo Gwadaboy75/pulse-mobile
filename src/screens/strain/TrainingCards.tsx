@@ -3,11 +3,15 @@
 // (Activity). Plain views only: a value, a chip, thin meters; nothing animates.
 import type { ReactNode } from "react";
 import { View } from "react-native";
+import { Activity, BedDouble, Brain, Gauge, Moon, Timer, type LucideIcon } from "lucide-react-native";
+import type { ReadinessFactorKey } from "@/core/algorithms/trainingReadiness";
 import type { ChipTone } from "@/lib/bands";
 import { clock, formatValue, MISSING } from "@/lib/format";
 import type { Metric } from "@/lib/reasons";
 import { getTraining, type TrainingEffectVM, type TrainingVM } from "@/queries/training";
 import { cn } from "@/ui/cn";
+import { Divided } from "@/ui/Divided";
+import { Icon } from "@/ui/Icon";
 import { CAPTION, LABEL, StatusChip, ValueUnit } from "@/ui/metrics/primitives";
 import { ReasonPlaceholder } from "@/ui/metrics/ReasonPlaceholder";
 import { MetricState } from "@/ui/shells/MetricState";
@@ -22,12 +26,15 @@ function P({ children }: { children: ReactNode }) {
 }
 export const SOURCE_NOTE = <Text className="text-[13px] leading-[18px] text-muted-foreground">Pulse scores, computed from your Fitbit data.</Text>;
 
-/** A tone's ink for a number: the chip's text colour. */
+/** A tone's ink for the band word under a hero number (Health's Fitness card colours its category word the same way). */
 export const TONE_TEXT: Record<ChipTone, string> = { optimal: "text-optimal-text", warning: "text-warning-text", alert: "text-recovery-red-text", neutral: "text-foreground" };
-const TONE_BG: Record<ChipTone, string> = { optimal: "bg-optimal", warning: "bg-warning", alert: "bg-recovery-red", neutral: "bg-foreground-secondary" };
-export const BIG = "font-numeric text-4xl font-bold leading-10 tracking-[-0.01em]";
+/** A meter stays quiet unless it flags something: only a weak value (warning, alert) takes a colour. */
+const TONE_BG: Record<ChipTone, string> = { optimal: "bg-foreground-secondary", warning: "bg-warning", alert: "bg-recovery-red", neutral: "bg-foreground-secondary" };
+/** The score heroes' number (Health's Fitness and Heart rate cards), in the foreground colour. */
+export const HERO = "font-numeric text-4xl font-bold leading-10 tracking-[-0.01em]";
+export const LINE = "text-[15px] leading-[22px] text-foreground-secondary";
 
-/** A thin meter: `frac` of the track in the tone's colour. */
+/** A thin, quiet meter: `frac` of the track. */
 export function Meter({ frac, tone }: { frac: number | null; tone: ChipTone }) {
   return (
     <View accessibilityElementsHidden className="h-1.5 w-full overflow-hidden rounded-full bg-dial-track">
@@ -36,12 +43,56 @@ export function Meter({ frac, tone }: { frac: number | null; tone: ChipTone }) {
   );
 }
 
-/** A label over its value, half the card's width. */
-export function Stat({ label, value, unit, spoken, className }: { label: string; value: string; unit?: string; spoken: string; className?: string }) {
+/** A score hero (Health's Fitness card): the number and its unit, the band word in caps under it, then a grey caption. */
+export function Hero({ value, unit, band, tone, caption, spoken }: { value: string; unit?: string; band: string; tone: ChipTone; caption?: string | null; spoken: string }) {
   return (
-    <View accessible accessibilityLabel={spoken} className="w-1/2 gap-1 pb-3">
-      <ValueUnit value={value} unit={unit} className={cn("font-numeric text-xl font-bold leading-6", value === MISSING && "text-muted-foreground", className)} />
-      <Text className={cn(LABEL, "text-muted-foreground")}>{label}</Text>
+    <View accessible accessibilityLabel={spoken} className="gap-1">
+      <ValueUnit value={value} unit={unit} className={HERO} />
+      <Text className={cn(LABEL, TONE_TEXT[tone])}>{band}</Text>
+      {!!caption && <Text className={cn(CAPTION, "tabular-nums")}>{caption}</Text>}
+    </View>
+  );
+}
+
+/**
+ * KeyStatRow's "row" for a value that is not a plain metric: an optional icon, the caps label with a grey caption, and
+ * the value on the right in the display font (`word`: a word in body type). Put rows in <Divided>.
+ */
+export function StatRow({
+  icon,
+  label,
+  caption,
+  value,
+  unit,
+  spoken,
+  word,
+  chip,
+}: {
+  icon?: ReactNode;
+  label: string;
+  caption?: string | null;
+  value: string;
+  unit?: string;
+  spoken: string;
+  word?: boolean;
+  /** A status in place of the value. */
+  chip?: { tone: ChipTone; text: string };
+}) {
+  const missing = value === MISSING;
+  return (
+    <View accessible accessibilityLabel={spoken} className="min-h-14 flex-row items-center gap-3 py-2">
+      {icon && <View className="size-5 shrink-0 items-center justify-center">{icon}</View>}
+      <View className="min-w-0 flex-1">
+        <Text className={LABEL}>{label}</Text>
+        {!!caption && <Text className={cn(CAPTION, "mt-0.5")}>{caption}</Text>}
+      </View>
+      {chip ? (
+        <StatusChip tone={chip.tone} className="self-center">{chip.text}</StatusChip>
+      ) : word ? (
+        <Text className={cn("max-w-[50%] text-right text-base font-semibold leading-6", missing && "text-muted-foreground")}>{value}</Text>
+      ) : (
+        <ValueUnit value={value} unit={unit} className={cn("shrink-0 font-numeric text-xl font-bold leading-6", missing && "text-muted-foreground")} />
+      )}
     </View>
   );
 }
@@ -111,7 +162,7 @@ export const hoursText = (h: number) => {
   return min === 60 ? `${whole + 1} h` : min ? `${whole} h ${min} min` : `${whole} h`;
 };
 
-const factorTone = (v: number): ChipTone => (v >= 75 ? "optimal" : v >= 50 ? "neutral" : v >= 25 ? "warning" : "alert");
+const FACTOR_ICON: Record<ReadinessFactorKey, LucideIcon> = { sleep: Moon, recoveryTime: Timer, hrv: Activity, load: Gauge, sleepHistory: BedDouble, stressHistory: Brain };
 const cardSkeleton = <Skeleton className="h-40 w-full rounded-lg" />;
 
 function ReadinessBody({ vm, timeZone }: { vm: TrainingVM; timeZone: string }) {
@@ -124,36 +175,43 @@ function ReadinessBody({ vm, timeZone }: { vm: TrainingVM; timeZone: string }) {
     >
       {(r) => (
         <View className="gap-4">
-          <View className="gap-2">
-            <View accessible accessibilityLabel={`Training Readiness ${r.score} of 100, ${r.band}`} className="flex-row flex-wrap items-center gap-3">
-              <ValueUnit value={String(r.score)} unit="of 100" className={cn(BIG, TONE_TEXT[r.tone])} />
-              <StatusChip tone={r.tone} className="self-center">{r.band}</StatusChip>
-              {vm.isToday && r.atWake !== null && r.atWake !== r.score && <Text className={cn(CAPTION, "tabular-nums")}>At wake {r.atWake}</Text>}
-            </View>
-            <Text className="text-[15px] leading-[22px] text-foreground-secondary">{r.line}</Text>
-          </View>
-          {rt && (
-            <View accessible accessibilityLabel={rt.hours > 0 ? `Recovery time ${hoursText(rt.hours)}` : "Recovery time: fully recovered"} className="gap-0.5">
-              <View className="flex-row flex-wrap items-baseline justify-between gap-x-3">
-                <Text className={LABEL}>Recovery time</Text>
-                <Text className={cn("font-numeric text-xl font-bold leading-6 tabular-nums", rt.hours > 0 ? "text-warning-text" : "text-optimal-text")}>{rt.hours > 0 ? hoursText(rt.hours) : "Recovered"}</Text>
-              </View>
-              {rt.readyAt !== null && vm.isToday && (
-                <Text className={CAPTION}>{`Ready for hard training around ${clock(rt.readyAt, timeZone)}${rt.hours >= 24 ? ` in ${Math.round(rt.hours / 24)} day${Math.round(rt.hours / 24) === 1 ? "" : "s"}` : ""}`}</Text>
-              )}
-            </View>
-          )}
           <View className="gap-3">
-            {r.factors.map((f) => (
-              <View key={f.key} accessible accessibilityLabel={`${f.label}: ${f.value === null ? "not available" : `${f.value} of 100`}`} className="gap-1.5">
-                <View className="flex-row items-baseline justify-between gap-3">
-                  <Text className="min-w-0 shrink text-[15px] leading-5 text-foreground-body">{f.label}</Text>
-                  <Text className={cn("font-numeric text-base font-bold leading-5 tabular-nums", f.value === null && "text-muted-foreground")}>{f.value === null ? MISSING : f.value}</Text>
-                </View>
-                <Meter frac={f.value === null ? null : f.value / 100} tone={f.value === null ? "neutral" : factorTone(f.value)} />
-              </View>
-            ))}
+            <Hero
+              value={String(r.score)}
+              unit="of 100"
+              band={r.band}
+              tone={r.tone}
+              caption={vm.isToday && r.atWake !== null && r.atWake !== r.score ? `At wake ${r.atWake}` : null}
+              spoken={`Training Readiness ${r.score} of 100, ${r.band}`}
+            />
+            <Text className={LINE}>{r.line}</Text>
           </View>
+          <Divided>
+            {rt && (
+              <StatRow
+                icon={<Icon icon={Timer} size={20} tone="muted-foreground" strokeWidth={1.75} />}
+                label="Recovery time"
+                caption={
+                  rt.readyAt !== null && vm.isToday
+                    ? `Ready for hard training around ${clock(rt.readyAt, timeZone)}${rt.hours >= 24 ? ` in ${Math.round(rt.hours / 24)} day${Math.round(rt.hours / 24) === 1 ? "" : "s"}` : ""}`
+                    : null
+                }
+                value={hoursText(rt.hours)}
+                chip={rt.hours > 0 ? undefined : { tone: "optimal", text: "Recovered" }}
+                spoken={rt.hours > 0 ? `Recovery time ${hoursText(rt.hours)}` : "Recovery time: fully recovered"}
+              />
+            )}
+            {/* WHOOP's contributor rows (strain-02): icon, caps label, the value on the right. */}
+            {r.factors.map((f) => (
+              <StatRow
+                key={f.key}
+                icon={<Icon icon={FACTOR_ICON[f.key]} size={20} tone="muted-foreground" strokeWidth={1.75} />}
+                label={f.label}
+                value={f.value === null ? MISSING : String(f.value)}
+                spoken={`${f.label}: ${f.value === null ? "not available" : `${f.value} of 100`}`}
+              />
+            ))}
+          </Divided>
         </View>
       )}
     </MetricState>
@@ -175,21 +233,21 @@ function StatusBody({ status }: { status: TrainingVM["status"] }) {
       )}
     >
       {(s) => (
-        <View className="gap-4">
+        <View className="gap-3">
           <View className="gap-2">
             <StatusChip tone={s.tone}>{s.status}</StatusChip>
-            <Text className="text-[15px] leading-[22px] text-foreground-secondary">{s.line}</Text>
+            <Text className={LINE}>{s.line}</Text>
           </View>
-          <View className="flex-row flex-wrap">
-            <Stat label="Load ratio" value={formatValue("decimal2", s.loadRatio)} spoken={`Load ratio ${s.loadRatio ?? "not available"}`} />
-            <Stat
+          <Divided>
+            <StatRow label="Load ratio" value={formatValue("decimal2", s.loadRatio)} spoken={`Load ratio ${s.loadRatio ?? "not available"}`} />
+            <StatRow
               label="VO2 max trend"
               value={s.vo2PerMonth === null ? MISSING : `${s.vo2PerMonth > 0 ? "+" : ""}${formatValue("decimal1", s.vo2PerMonth)}`}
               unit="a month"
               spoken={s.vo2PerMonth === null ? "VO2 max trend not available" : `VO2 max trend ${s.vo2PerMonth} a month`}
             />
-            <Stat label="HRV status" value={s.hrv ?? "Not yet"} spoken={`HRV status ${s.hrv ?? "not yet"}`} className={cn("font-sans text-base", !s.hrv && "text-muted-foreground")} />
-          </View>
+            <StatRow label="HRV status" value={s.hrv ?? "Not yet"} word spoken={`HRV status ${s.hrv ?? "not yet"}`} />
+          </Divided>
         </View>
       )}
     </MetricState>
@@ -218,27 +276,22 @@ export function TrainingEffectCard({ te }: { te: TrainingEffectVM | null }) {
     <SectionShell variant="card" title="Training effect" info={TRAINING_EFFECT_INFO}>
       <MetricState metric={metric} skeleton={null}>
         {(t) => (
-          <View className="gap-4">
-            <View accessible accessibilityLabel={`Aerobic Training Effect ${formatValue("decimal1", t.te)} of 5, ${t.label}`} className="gap-2">
-              <View className="flex-row flex-wrap items-center gap-3">
-                <ValueUnit value={formatValue("decimal1", t.te)} unit="of 5" className={cn(BIG, TONE_TEXT[t.tone])} />
-                <StatusChip tone={t.tone} className="self-center">{t.label}</StatusChip>
-              </View>
+          <View className="gap-3">
+            <View className="gap-3">
+              <Hero value={formatValue("decimal1", t.te)} unit="of 5" band={t.label} tone={t.tone} spoken={`Aerobic Training Effect ${formatValue("decimal1", t.te)} of 5, ${t.label}`} />
               <Meter frac={t.te / 5} tone={t.tone} />
             </View>
-            <View className="gap-1">
-              <View className="flex-row flex-wrap items-baseline gap-x-2">
-                <Text className={cn(LABEL, "text-muted-foreground")}>Main benefit</Text>
-                <Text className="text-base font-semibold leading-[22px]">{t.benefit}</Text>
-              </View>
-              <Text className={CAPTION}>{t.benefitLine}</Text>
-            </View>
-            {t.recoveryHours > 0 && (
-              <View accessible accessibilityLabel={`Adds ${hoursText(t.recoveryHours)} of recovery time`} className="flex-row flex-wrap items-baseline justify-between gap-x-3">
-                <Text className={LABEL}>Adds recovery time</Text>
-                <Text className="font-numeric text-xl font-bold leading-6 tabular-nums text-warning-text">{hoursText(t.recoveryHours)}</Text>
-              </View>
-            )}
+            <Divided>
+              <StatRow label="Main benefit" caption={t.benefitLine} value={t.benefit} word spoken={`Main benefit ${t.benefit}. ${t.benefitLine}`} />
+              {t.recoveryHours > 0 && (
+                <StatRow
+                  icon={<Icon icon={Timer} size={20} tone="muted-foreground" strokeWidth={1.75} />}
+                  label="Adds recovery time"
+                  value={hoursText(t.recoveryHours)}
+                  spoken={`Adds ${hoursText(t.recoveryHours)} of recovery time`}
+                />
+              )}
+            </Divided>
           </View>
         )}
       </MetricState>

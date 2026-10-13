@@ -10,14 +10,14 @@ import { getHrvStatus, type HrvStatusVM } from "@/queries/training";
 import { ChartFigure, PlotCanvas } from "@/ui/charts/ChartFrame";
 import { alpha } from "@/ui/color";
 import { ReasonPlaceholder } from "@/ui/metrics/ReasonPlaceholder";
-import { StatusChip } from "@/ui/metrics/primitives";
+import { Divided } from "@/ui/Divided";
 import { MetricState } from "@/ui/shells/MetricState";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import type { InfoContent } from "@/ui/shells/InfoButton";
 import { Skeleton } from "@/ui/Skeleton";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
-import { SOURCE_NOTE, Stat, TONE_TEXT } from "../strain/TrainingCards";
+import { Hero, LINE, SOURCE_NOTE, StatRow } from "../strain/TrainingCards";
 import { useScreen } from "../useScreen";
 
 function P({ children }: { children: ReactNode }) {
@@ -86,21 +86,27 @@ export function HrvStatusCard({ d }: { d?: string }) {
         renderReason={(r, meta) => <ReasonPlaceholder reason={r} nightsLeft={meta.nightsLeft} size="md" copy={r === "calibrating" ? "HRV Status needs 21 nights of HRV to learn your usual range." : undefined} />}
       >
         {(v) => (
-          <View className="gap-4">
-            <View className="gap-2">
-              <StatusChip tone={v.tone}>{v.status}</StatusChip>
-              <Text className="text-[15px] leading-[22px] text-foreground-secondary">{v.line}</Text>
+          <View className="gap-3">
+            <View className="gap-3">
+              <Hero
+                value={formatValue("int", v.weekAverage)}
+                unit="ms"
+                band={v.status}
+                tone={v.tone}
+                caption="7-day average"
+                spoken={`HRV Status ${v.status}, 7-day average ${Math.round(v.weekAverage)} milliseconds`}
+              />
+              <Text className={LINE}>{v.line}</Text>
             </View>
-            <View className="flex-row flex-wrap">
-              <Stat label="7-day average" value={formatValue("int", v.weekAverage)} unit="ms" spoken={`7-day average ${Math.round(v.weekAverage)} milliseconds`} className={TONE_TEXT[v.tone]} />
-              <Stat label="Last night" value={formatValue("int", v.lastNight)} unit="ms" spoken={v.lastNight == null ? "No HRV last night" : `Last night ${Math.round(v.lastNight)} milliseconds`} />
-              <Stat
+            <Divided>
+              <StatRow label="Last night" value={formatValue("int", v.lastNight)} unit="ms" spoken={v.lastNight == null ? "No HRV last night" : `Last night ${Math.round(v.lastNight)} milliseconds`} />
+              <StatRow
                 label="Usual range"
                 value={`${formatValue("int", v.band.low)}–${formatValue("int", v.band.high)}`}
                 unit="ms"
                 spoken={`Usual range ${Math.round(v.band.low)} to ${Math.round(v.band.high)} milliseconds`}
               />
-            </View>
+            </Divided>
             <Nights vm={v} />
           </View>
         )}

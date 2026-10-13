@@ -236,10 +236,12 @@ export function BreatheScreen() {
     primary = (
       <View className="gap-3">
         <SectionShell variant="card" title="Pace" info={false}>
-          <View accessibilityRole="radiogroup" accessibilityLabel="Pace" className="gap-2">
-            {PROTOCOLS.map((p) => (
-              <ProtocolRow key={p.id} p={p} selected={p.id === protocol.id} onPress={() => choose({ id: p.id })} />
-            ))}
+          <View accessibilityRole="radiogroup" accessibilityLabel="Pace">
+            <Divided>
+              {PROTOCOLS.map((p) => (
+                <ProtocolRow key={p.id} p={p} selected={p.id === protocol.id} onPress={() => choose({ id: p.id })} />
+              ))}
+            </Divided>
           </View>
           <Text className={cn(LABEL, "mb-2 mt-5")}>Length</Text>
           <Segmented
@@ -303,22 +305,22 @@ function RecentRr({ onChange, live }: { onChange: (rr: number[]) => void; live: 
   return null;
 }
 
-/** One pace in the picker: its name and timing, the chosen one raised with a check. */
+/** One pace in the picker, a row of the card: its name in caps over its timing, a check on the chosen one. */
 function ProtocolRow({ p, selected, onPress }: { p: BreathProtocol; selected: boolean; onPress: () => void }) {
   return (
     <Press
-      activeScale={0.98}
+      activeBg="bg-accent"
       onPress={onPress}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
       accessibilityLabel={`${p.title}, ${p.subtitle}`}
-      className={cn("min-h-[60px] flex-row items-center gap-3 rounded-xl px-3.5 py-2.5", selected ? "bg-secondary" : "bg-inset")}
+      className="min-h-14 flex-row items-center gap-3 py-2"
     >
-      <View className="min-w-0 flex-1 gap-0.5">
-        <Text className={ROW_TITLE}>{p.title}</Text>
-        <Text className={CAPTION}>{p.subtitle}</Text>
+      <View className="min-w-0 flex-1">
+        <Text className={LABEL}>{p.title}</Text>
+        <Text className={cn(CAPTION, "mt-0.5")}>{p.subtitle}</Text>
       </View>
-      {selected && <Icon icon={Check} size={20} tone="foreground" strokeWidth={2.5} />}
+      <View className="size-5 shrink-0 items-center justify-center">{selected && <Icon icon={Check} size={20} tone="foreground" strokeWidth={2.5} />}</View>
     </Press>
   );
 }

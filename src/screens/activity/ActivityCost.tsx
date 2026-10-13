@@ -3,6 +3,7 @@
 // fields and copy) drawn with Pulse's kit. The wording lives in src/queries/activityCost.ts.
 import { View } from "react-native";
 import { Activity } from "lucide-react-native";
+import type { DeltaDir, Tone } from "@/lib/bands";
 import { clock, formatValue, MISSING } from "@/lib/format";
 import { baselineText, bounceText, costCaption, costSentence, costTone, costValue } from "@/queries/activityCost";
 import type { ActivityCostEntry, ActivityCostVM, ActivityVM, DetectedItem } from "@/queries/types";
@@ -11,11 +12,24 @@ import { cn } from "@/ui/cn";
 import { Divided } from "@/ui/Divided";
 import { Icon } from "@/ui/Icon";
 import { ACTIVITY_ICON } from "@/ui/icons";
-import { CAPTION, LABEL } from "@/ui/metrics/primitives";
+import { CAPTION, DeltaMark, LABEL } from "@/ui/metrics/primitives";
 import { Text } from "@/ui/Text";
+import { HERO, LINE, StatRow } from "@/screens/strain/TrainingCards";
 
 const CAVEAT = "Averages over your history, not proof of cause.";
-const TONE: Record<ReturnType<typeof costTone>, string> = { cost: "text-recovery-red-text", lift: "text-optimal-text", flat: "text-foreground-secondary" };
+/** The change's direction as KeyStatRow marks it: a dip is down and bad, a lift up and good, barely any a dot. */
+const MARK: Record<ReturnType<typeof costTone>, { dir: DeltaDir; tone: Tone }> = { cost: { dir: "down", tone: "bad" }, lift: { dir: "up", tone: "good" }, flat: { dir: "flat", tone: "neutral" } };
+
+/** The change in the foreground colour with its direction mark beside it. */
+function CostValue({ e, value, className }: { e: ActivityCostEntry; value: string | null; className: string }) {
+  const mark = MARK[costTone(e)];
+  return (
+    <View className="shrink-0 flex-row items-center gap-2">
+      <Text className={cn(className, "tabular-nums", !value && "text-muted-foreground")}>{value ?? MISSING}</Text>
+      {value && <DeltaMark dir={mark.dir} tone={mark.tone} />}
+    </View>
+  );
+}
 
 function CostRow({ e, minSessions }: { e: ActivityCostEntry; minSessions: number }) {
   const value = costValue(e);
@@ -27,7 +41,7 @@ function CostRow({ e, minSessions }: { e: ActivityCostEntry; minSessions: number
         <Text className={LABEL}>{e.name}</Text>
         <Text className={cn(CAPTION, "mt-0.5")}>{caption}</Text>
       </View>
-      <Text className={cn("font-numeric text-xl font-bold leading-6 tabular-nums", value ? TONE[costTone(e)] : "text-muted-foreground")}>{value ?? MISSING}</Text>
+      <CostValue e={e} value={value} className="font-numeric text-xl font-bold leading-6" />
     </View>
   );
 }
@@ -51,26 +65,26 @@ export function ActivityCostList({ vm, items = vm.items }: { vm: ActivityCostVM;
 export function ActivityCostCard({ cost }: { cost: NonNullable<ActivityVM["cost"]> }) {
   const e = cost.item;
   const value = costValue(e);
-  const rows: [string, string][] = [];
-  if (cost.nextMorning !== null) rows.push(["Recovery after this one", `${formatValue("int", cost.nextMorning)}%`]);
+  // [label, value, a word rather than a number]
+  const rows: [string, string, boolean][] = [];
+  if (cost.nextMorning !== null) rows.push(["Recovery after this one", `${formatValue("int", cost.nextMorning)}%`, false]);
   // Only a dip has a bounce-back; the sentence says what a lift or no change means.
-  if (costTone(e) === "cost") rows.push(["Typical bounce-back", bounceText(e)]);
-  rows.push([cost.baselineKind === "rest" ? "Rest-day Recovery" : "Average Recovery", cost.baseline === null ? MISSING : `${formatValue("int", cost.baseline)}%`]);
+  if (costTone(e) === "cost") rows.push(["Typical bounce-back", bounceText(e), true]);
+  rows.push([cost.baselineKind === "rest" ? "Rest-day Recovery" : "Average Recovery", cost.baseline === null ? MISSING : `${formatValue("int", cost.baseline)}%`, false]);
   return (
     <Card className="gap-3 px-4 py-4">
       {value !== null && (
         <View accessible accessibilityLabel={`${value} next-morning Recovery`} className="gap-1">
-          <Text className={cn("font-numeric text-4xl font-bold leading-10 tabular-nums", TONE[costTone(e)])}>{value}</Text>
-          <Text className={cn(LABEL, "text-muted-foreground")}>Next-morning Recovery</Text>
+          <View className="flex-row items-center">
+            <CostValue e={e} value={value} className={HERO} />
+          </View>
+          <Text className={LABEL}>Next-morning Recovery</Text>
         </View>
       )}
-      <Text className="text-[15px] leading-[22px] text-foreground-secondary">{costSentence(e, cost)}</Text>
+      <Text className={LINE}>{costSentence(e, cost)}</Text>
       <Divided>
-        {rows.map(([k, v]) => (
-          <View key={k} accessible accessibilityLabel={`${k}: ${v}`} className="min-h-11 flex-row items-center justify-between gap-3 py-2">
-            <Text className="min-w-0 flex-1 text-[15px] leading-5 text-foreground-body">{k}</Text>
-            <Text className="shrink text-right font-numeric text-base font-bold leading-5 tabular-nums">{v}</Text>
-          </View>
+        {rows.map(([k, v, word]) => (
+          <StatRow key={k} label={k} value={v} word={word} spoken={`${k}: ${v}`} />
         ))}
       </Divided>
       <Text className={CAPTION}>{CAVEAT}</Text>
