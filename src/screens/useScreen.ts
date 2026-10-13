@@ -1,4 +1,3 @@
-import { router, type Href } from "expo-router";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import type { QueryCtx } from "@/queries/ctx";
 import { dataChanged, dataVersion, queryCtx, useDataVersion } from "@/state/app";
@@ -64,23 +63,18 @@ export function prefetch<T>(query: (ctx: QueryCtx) => Promise<T>, key: ScreenKey
   return fresh(cache.get(k)) ? Promise.resolve() : load(k, query);
 }
 
-/** A screen one tap away: its query and key, and its route when the whole page should render in the background too. */
-export type Preload = { query: (ctx: QueryCtx) => Promise<unknown>; key: ScreenKey; href?: Href };
+/** A screen one tap away: its query and key. */
+export type Preload = { query: (ctx: QueryCtx) => Promise<unknown>; key: ScreenKey };
 
-/**
- * Loads each item's data and then renders its route in the background (expo-router's prefetch: a pushed or tapped
- * route that is already rendered just slides in). One item per idle moment of the JS thread, so a tap or a scroll
- * never waits on them. Returns a cancel.
- */
+/** Loads each item's data, one item per idle moment of the JS thread, so a tap or a scroll never waits on them. Returns a cancel. */
 export function preloadWhenIdle(items: Preload[]): () => void {
   let cancelled = false;
   let idle: number | undefined;
   const next = (i: number) => {
     if (cancelled || i >= items.length) return;
     idle = requestIdleCallback(() => {
-      const { query, key, href } = items[i];
+      const { query, key } = items[i];
       prefetch(query, key)
-        .then(() => !cancelled && href && router.prefetch(href))
         .catch(() => {})
         .finally(() => next(i + 1));
     });

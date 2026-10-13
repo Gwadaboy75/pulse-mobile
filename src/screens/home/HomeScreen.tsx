@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { View } from "react-native";
-import { useFocusEffect, useNavigation, type Href } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { CalendarRange, Check, ChevronRight, CircleAlert, Info, Lightbulb, Maximize2, Moon, Plus, Sun, TriangleAlert } from "lucide-react-native";
 import { isDashboardKey } from "@/lib/dashboard";
 import { dashboardChoice } from "@/actions/dashboard";
@@ -93,36 +93,29 @@ export function HomeScreen() {
   const keys = useScreen(async (ctx) => dashboardKeys(ctx, await dashboardChoice()), ["home-keys"]).data;
   // The web shows its skeleton on every navigation: another day's data is not this day's.
   const vm = data?.day === d && timeZone ? data : undefined;
-  // What is one tap away loads while Home is in view and settled, one item per idle moment: the other tabs and, on
-  // today, the dials' screens as whole pages; the date pill's steps (the day before and after) as data. On another day
-  // only the steps load: each query reads SQLite on the JS thread, and stepping through days should not queue up a dial
-  // page's queries per step. A screen that was opened is gone after Back, so this runs again whenever Home settles.
+  // What is one tap away loads as data while Home is in view and settled, one item per idle moment: the dials' screens,
+  // the other tabs and the date pill's steps (the day before and after). On another day only the steps load: each query
+  // reads SQLite on the JS thread, and stepping through days should not queue up a dial page's queries per step. Pages
+  // are not prerendered (router.prefetch): Back pops a prerendered page, and rendering it again on Home cost two frames
+  // of 60-90 ms after every Back, more than a cold push of the page costs (docs/learning.md, "Screens open from memory").
   const day = vm?.day;
   const today = vm?.today;
   const ready = useScreenReady();
-  const navigation = useNavigation();
   useFocusEffect(
     useCallback(() => {
       if (!day || !today || !ready) return;
-      // A page still preloaded in the root stack is not preloaded again: a second PRELOAD replaces it with a fresh
-      // render, which held the JS thread for about 900 ms after every switch back to Home (a tap on Health waited).
-      const state = navigation.getParent()?.getState() as { preloadedRoutes?: { name: string }[] } | undefined;
-      const preloaded = new Set(state?.preloadedRoutes?.map((r) => `/${r.name}`));
-      const page = (href: Href) => (preloaded.has(href as string) ? undefined : href);
       const steps = [addDays(day, -1), addDays(day, 1)].filter((d) => d <= today).map((d) => ({ query: homeQuery(d), key: homeKey(d) }));
       if (day !== today) return preloadWhenIdle(steps);
-      // Tabs get their data only, as in halo: router.prefetch of a tab root sends a PRELOAD through the root stack, and
-      // on a first launch, while the stack moves from onboarding to the tabs, that could open a tab (Journal) uninvited.
       return preloadWhenIdle([
-        { href: page("/sleep"), query: sleepQuery(day), key: sleepKey(day) },
-        { href: page("/recovery"), query: recoveryQuery(), key: recoveryKey() },
-        { href: page("/strain"), query: strainQuery(), key: strainKey() },
+        { query: sleepQuery(day), key: sleepKey(day) },
+        { query: recoveryQuery(), key: recoveryKey() },
+        { query: strainQuery(), key: strainKey() },
         { query: healthQuery, key: HEALTH_KEY },
         { query: journalQuery(), key: journalKey() },
         { query: getMore, key: MORE_KEY },
         ...steps,
       ]);
-    }, [day, today, ready, navigation]),
+    }, [day, today, ready]),
   );
   return vm && timeZone ? <Home vm={vm} timeZone={timeZone} /> : <HomeSkeleton stats={keys} />;
 }

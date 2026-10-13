@@ -347,33 +347,37 @@ its last result in the first frame, with no skeleton, and refreshes it in the ba
 the result is a minute old. TanStack Query is the library version of this cache, if the app ever needs retries,
 mutations or persistence.
 
-Home preloads what is one tap away once it is in view and its transition has ended (`preloadWhenIdle`): the other tabs
-and, on today, the three dials' screens as whole pages (expo-router's `router.prefetch`; a push of a preloaded route
-reuses it, and native-stack does not freeze preloaded routes), and the date pill's neighbouring days as data. One item per
-`requestIdleCallback`, data first, so a tap or a scroll never queues behind it. Stepping through days loads only Home's
-neighbours, not the dials' pages.
+Home preloads the data of what is one tap away once it is in view and its transition has ended (`preloadWhenIdle`):
+the dials' screens, the other tabs and the date pill's neighbouring days. One item per `requestIdleCallback`, so a tap
+or a scroll never queues behind it. Stepping through days loads only Home's neighbours, not the dials' pages.
 
-A screen that mounts out of view (a preloaded route or tab) renders its header and leaves the body to a React
-transition (`useBodyShown` in the shells): a transition renders in slices with taps in between, where the preload's own
-render is synchronous (react-navigation keeps its state in `useSyncExternalStore`, which a transition cannot wrap). Back
-pops the preloaded page, so Home preloads it again, and that render used to hold the JS thread for over a second.
+Pages are not prerendered. Home used to render the dials' pages hidden (`router.prefetch`), so a push only slid in a
+page that was already built. Back pops that page, though, and Home built it again a moment later: two main-thread
+frames of 60 to 90 ms (Fabric creating and measuring the page's views) after every Back from Strain or Sleep. A trace of
+12 pushes on the phone, with and without prerendering:
 
-A cold push (a screen nobody preloaded) renders the top of the page first, because the native slide starts only after
-that render: `DetailShell` shows a card-shaped skeleton below the fold during the slide and fades the page in after.
+| | Frames over 50 ms | Worst frame after Back | Worst frame in a push's first 700 ms |
+|---|---|---|---|
+| Prerendered pages | 13 | 93 ms | 73 ms (first round), then under 16 ms |
+| Data only | 2 | 21 ms | under 16 ms |
 
-`react-freeze` around preloaded screens (to stop them re-rendering while hidden) crashed Fabric with "addViewAt: The
-specified child already has a parent" when a frozen preloaded screen was pushed: the Suspense unhide and the screen's
-move into the stack landed in one mount. Measured afterwards, preloaded screens did not re-render on Home's date steps
-anyway, so nothing replaces it.
+Without prerendering, the page's body mounts after the slide ends (`useScreen` waits for the transition), in frames of
+17 to 50 ms while nothing moves.
+
+A screen that mounts out of view renders its header and leaves the body to a React transition (`useBodyShown`
+in the shells), which renders in slices with taps in between.
+
+A cold push renders the top of the page first, because the native slide starts only after that render: `DetailShell`
+shows a card-shaped skeleton below the fold during the slide and fades the page in after.
 
 ```mermaid
 flowchart LR
   Settled[Home settled] --> Idle[Idle moment]
   Idle --> Data[Load one screen's data]
-  Data --> Page[Render its page hidden]
-  Page --> Idle
-  Tap --> Push[push: reuse the hidden page]
-  Push --> Slide[Native slide with the full page]
+  Data --> Idle
+  Tap --> Push[push: render the top of the page]
+  Push --> Slide[Native slide]
+  Slide --> Body[Body from the cached data]
   Sync[Sync or log] --> Changed[dataChanged]
   Changed --> Refresh[Refresh in background, keep showing the last result]
 ```
@@ -687,7 +691,8 @@ re-rendered the Pulse Age orb's four SVG layers on the main thread: one 88 to 11
 animation. `patches/react-native-svg@15.15.4.patch` keeps the bitmap across a detach (a prop change still drops it
 through `invalidate()`); the frame fell to about 30 ms. Separately, Home called `router.prefetch` for Sleep, Recovery
 and Strain on every focus, and a second PRELOAD of a route that is already preloaded renders it again: about 900 ms of
-JS after each switch back to Home, so the next tap waited. Home now skips routes the root stack still holds.
+JS after each switch back to Home, so the next tap waited. Home no longer prerenders pages at all ("Screens open from
+memory").
 
 ```mermaid
 flowchart LR
