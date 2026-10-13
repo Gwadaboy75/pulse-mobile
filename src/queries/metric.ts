@@ -36,13 +36,15 @@ import {
   priorStats,
   type QueryCtx,
   todayOf,
+  vitalReason,
 } from "./common";
 import { recentEntries } from "./log";
 import { TREND_METRICS } from "./trends";
 import type { KeyStat, Metric } from "./types";
 
-export type DetailKey = "steps" | "calories" | BodyKey | ExtraKey;
-export const DETAIL_KEYS: readonly DetailKey[] = ["steps", "calories", "weight", "body_fat", ...EXTRA_KEYS];
+export type VitalDetailKey = "hrv" | "rhr" | "resp" | "spo2" | "skin";
+export type DetailKey = "steps" | "calories" | VitalDetailKey | BodyKey | ExtraKey;
+export const DETAIL_KEYS: readonly DetailKey[] = ["steps", "calories", "hrv", "rhr", "resp", "spo2", "skin", "weight", "body_fat", ...EXTRA_KEYS];
 export const isDetailKey = (k: string): k is DetailKey => (DETAIL_KEYS as readonly string[]).includes(k);
 
 type Group = "activity" | "body" | "nutrition" | "vitals";
@@ -79,6 +81,11 @@ const CONFIG: Record<DetailKey, Config> = {
     sections: ["workouts"],
     about: "Everything you burned: your resting burn plus movement. Resting is the total minus active calories, since the source sends no separate resting roll-up.",
   },
+  hrv: { group: "vitals", baseline: true, sections: ["outliers"], about: "Variation in time between heartbeats during sleep, measured in milliseconds. Compare it with your own usual range." },
+  rhr: { group: "vitals", baseline: true, sections: ["outliers"], about: "Your resting heart rate from Health Connect, or the sleeping heart rate from your main sleep session when the daily value is missing." },
+  resp: { group: "vitals", baseline: true, sections: ["outliers"], about: "Breaths per minute during sleep, measured by your band." },
+  spo2: { group: "vitals", baseline: true, sections: ["outliers"], about: "Estimated blood oxygen saturation during sleep, measured by your band." },
+  skin: { group: "vitals", baseline: true, sections: ["outliers"], reference: { y: 0, label: "Baseline" }, about: "Nightly skin temperature above or below your personal baseline, in degrees Celsius. This is a temperature difference, not your body temperature." },
   weight: { group: "body", reading: true, smooth: 7, sections: ["readings"], about: "Your weight, from a connected scale or a manual log in your health app." },
   body_fat: { group: "body", reading: true, smooth: 7, sections: ["readings"], about: "Body fat percentage, from a smart scale or a manual log." },
   distance: { group: "activity", total: true, stack: "distance", sections: ["weekday"], about: "Distance covered on foot and in workouts, from your steps and GPS." },
@@ -236,7 +243,7 @@ export async function getMetricDetail(key: DetailKey, day: string, ctx: QueryCtx
     source: m.note ?? SOURCE[m.group],
     day,
     today,
-    value: value === null ? none("no_data") : ok(value),
+    value: value === null ? none(detailReason(key, rows.get(day), isToday)) : ok(value),
     valueDay: value === null ? null : valueDay,
     soFar: m.partialToday && isToday && valueDay === today && value !== null,
     average: prior.mean,
@@ -247,6 +254,12 @@ export async function getMetricDetail(key: DetailKey, day: string, ctx: QueryCtx
     chart: { stack: m.stack, reference: m.reference, smooth: m.smooth, baseline: out && { mean: out.mean, sd: out.sd } },
     sections: built.filter((sec): sec is Section => !!sec),
   };
+}
+
+function detailReason(key: DetailKey, row: DayRow | undefined, isToday: boolean) {
+  if (key === "skin" && row?.metrics?.nightlyTempC != null) return "calibrating" as const;
+  if (["hrv", "rhr", "resp", "spo2", "skin"].includes(key)) return vitalReason(row, isToday, key === "hrv");
+  return "no_data" as const;
 }
 
 /** Alias: the task's name for the metric screen query. */

@@ -56,9 +56,12 @@ const fixed = (colorBy: ChartColorBy): [number, number] | undefined => (colorBy 
 
 const isSunday = (day: string) => new Date(`${day}T00:00:00Z`).getUTCDay() === 0;
 
+// Blood oxygen and skin temperature have their own entries below (one decimal, the signed skin key the chart cards open).
+const OWN = new Set(["spo2", "skin"]);
+
 /** Every metric the explorer charts, Trends' first (in its order), then the cards' own. */
 export const CHART_METRICS: readonly ChartDef[] = [
-  ...TREND_METRICS.map(
+  ...TREND_METRICS.filter((m) => !OWN.has(m.key)).map(
     (m): ChartDef => ({
       key: m.key,
       label: m.label,
