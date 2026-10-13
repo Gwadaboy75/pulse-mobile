@@ -44,11 +44,14 @@ export type DetailShellProps = {
   footer?: ReactNode;
   /** Pull to refresh (see ScreenScroll): wire it to "sync now". */
   onRefresh?: ScreenScrollProps["onRefresh"];
+  /** What shows below the fold while a cold push slides in: the screen's own skeleton of its first sections (the same
+   *  one its loading state draws). Without it, a skeleton per section in that section's chrome. */
+  bodySkeleton?: ReactNode;
   /** A route's loading state: says "Loading…" to screen readers while skeletons show. */
   loading?: boolean;
 };
 
-export function DetailShell({ title, subtitle, info, backHref, dateSwitcher, dismiss, align, titleIcon, action, ground, hero, stats, collapse, summary, notch, insight, primary, secondary, footer, loading, onRefresh }: DetailShellProps) {
+export function DetailShell({ title, subtitle, info, backHref, dateSwitcher, dismiss, align, titleIcon, action, ground, hero, stats, collapse, summary, notch, insight, primary, secondary, footer, bodySkeleton, loading, onRefresh }: DetailShellProps) {
   const insets = useSafeAreaInsets();
   const side = summary ?? (hero ? insight : null);
   const inHeader = dateSwitcher?.placement === "header";
@@ -113,7 +116,7 @@ export function DetailShell({ title, subtitle, info, backHref, dateSwitcher, dis
               {footer}
             </Animated.View>
           ) : (
-            (primary || secondary?.length || footer) && <BodySkeleton sections={[primary, ...(secondary ?? [])]} />
+            (primary || secondary?.length || footer) && (bodySkeleton ?? <BodySkeleton sections={[primary, ...(secondary ?? [])]} />)
           )}
         </View>
       </View>}

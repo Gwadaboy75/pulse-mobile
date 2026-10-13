@@ -128,6 +128,7 @@ export function MonitorScreen() {
       info={MONITOR_INFO}
       hero={<Count count={vm.count} />}
       summary={vm.illness && <IllnessAlert />}
+      bodySkeleton={READINGS_SKELETON}
       primary={
         <SectionShell variant="section" title="Last night’s readings">
           <VitalTiles vitals={vm.vitals} day={d} today={today} />
@@ -151,6 +152,12 @@ export function MonitorScreen() {
   );
 }
 
+const READINGS_SKELETON = (
+  <SectionShell variant="section" title="Last night’s readings">
+    <VitalTilesSkeleton />
+  </SectionShell>
+);
+
 /**
  * Health Monitor loading (spec §7.8, §5.19): the date row, the count hero, the five vital tiles with the note, then
  * the two measurements every user has (Heart rhythm shows only with readings, so it is not drawn ahead).
@@ -168,11 +175,7 @@ function MonitorLoading() {
           <Skeleton className="h-6 w-28 rounded-md" />
         </View>
       }
-      primary={
-        <SectionShell variant="section" title="Last night’s readings">
-          <VitalTilesSkeleton />
-        </SectionShell>
-      }
+      primary={READINGS_SKELETON}
       footer={
         <View className="gap-8">
           <SectionShell variant="section" title="Measurements">
