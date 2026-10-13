@@ -1,16 +1,17 @@
 // The Weekly Plan sheet's words (src/screens/goals/WeeklyPlan.tsx; halo src/screens/home/weeklyPlanView.ts): value and
-// target text, the status word and colour, the line under each target, and Pulse Age's years. Pure, so it is tested without React.
+// target text, the status word and its chip tone, the line under each target, and Pulse Age's years. Pure, so it is tested without React.
 import type { PlanStatus } from "@/core/algorithms/weeklyPlan";
+import type { ChipTone } from "@/lib/bands";
 import { formatValue, MISSING, NBSP } from "@/lib/format";
 import type { PlanRow } from "@/queries/weeklyPlan";
 
-/** Each status's word and its text class: done optimal, behind warning, missed red; on pace secondary, no data muted. */
-export const PLAN_STATUS: Record<PlanStatus, { word: string; tone: string }> = {
-  done: { word: "Done", tone: "text-optimal-text" },
-  on_pace: { word: "On pace", tone: "text-foreground-secondary" },
-  behind: { word: "Behind", tone: "text-warning-text" },
-  missed: { word: "Missed", tone: "text-recovery-red-text" },
-  no_data: { word: "No data", tone: "text-muted-foreground" },
+/** Each status's word and its StatusChip tone: done optimal, behind warning, missed alert; on pace and no data neutral. */
+export const PLAN_STATUS: Record<PlanStatus, { word: string; chip: ChipTone }> = {
+  done: { word: "Done", chip: "optimal" },
+  on_pace: { word: "On pace", chip: "neutral" },
+  behind: { word: "Behind", chip: "warning" },
+  missed: { word: "Missed", chip: "alert" },
+  no_data: { word: "No data", chip: "neutral" },
 };
 
 const plural = (n: number, one: string, many = `${one}s`) => `${formatValue("grouped", n)}${NBSP}${n === 1 ? one : many}`;

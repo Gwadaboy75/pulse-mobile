@@ -125,7 +125,7 @@ function DailyGoals() {
   return (
     <>
       <SectionShell variant="card" title="Daily goals">
-        <Text className={cn(BODY, "pb-1")}>Each goal is a tile on Strain that fills through the day.</Text>
+        <Text className={cn(BODY, "pb-1")}>Each goal is a row on Strain that fills through the day.</Text>
         <View>{GOAL_KEYS.map((k, i) => field(k, k, i > 0))}</View>
         <Text className={cn(HINT, "pt-2")}>Sleep: blank follows Pulse’s sleep need for the night.</Text>
       </SectionShell>

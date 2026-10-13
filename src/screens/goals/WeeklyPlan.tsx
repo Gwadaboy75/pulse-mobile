@@ -1,18 +1,19 @@
-// Weekly plan (halo src/screens/home/WeeklyPlanCard.tsx, after WHOOP's Weekly Plan), on our kit. The card (on Strain,
-// under the goals): how many of the week's targets are on track, the plan's streak, and each target's bar with a tick
-// where an even pace would be. It opens the sheet `/weekly-plan?d=`: every target's full row (status and what is left,
-// the week's days, the last 8 weeks, what the habit is worth on Pulse Age), each a link to its screen.
-import { Fragment, createElement } from "react";
+// Weekly plan (halo src/screens/home/WeeklyPlanCard.tsx, after WHOOP's Weekly Plan), in Pulse's row language. The card
+// (on Strain, under the goals): how many of the week's targets are on track, the plan's streak, and a row per target with
+// its status chip and a thin track with a tick where an even pace would be. It opens the sheet `/weekly-plan?d=`: every
+// target's full row (status and what is left, the week's days, the last 8 weeks, what the habit is worth on Pulse Age),
+// each a link to its screen.
 import { View } from "react-native";
-import { CalendarCheck, Dumbbell, Flame, Footprints, HeartPulse, Moon, type LucideIcon } from "lucide-react-native";
+import { CalendarCheck, ChevronRight, Dumbbell, Flame, Footprints, HeartPulse, Moon, type LucideIcon } from "lucide-react-native";
 import { DAY, formatDay, rangeLabel } from "@/lib/format";
 import { getWeeklyPlan, PLAN_KEYS, type PlanKey, type PlanRow, type WeeklyPlanVM } from "@/queries/weeklyPlan";
 import { useScreen } from "@/screens/useScreen";
 import { useWeeklyPlan } from "@/state/weeklyPlan";
 import { Button } from "@/ui/Button";
-import { alpha } from "@/ui/color";
 import { cn } from "@/ui/cn";
+import { Divided } from "@/ui/Divided";
 import { Icon } from "@/ui/Icon";
+import { CAPTION, LABEL, StatusChip } from "@/ui/metrics/primitives";
 import { push } from "@/ui/navigate";
 import { Press } from "@/ui/Press";
 import { useSelectedDay } from "@/ui/shells/DateSwitcher";
@@ -22,12 +23,14 @@ import { SheetScreen, SheetSection } from "@/ui/shells/SheetScreen";
 import { closeSheet } from "@/ui/shells/sheets";
 import { SkeletonText } from "@/ui/Skeleton";
 import { Text } from "@/ui/Text";
-import { useTheme } from "@/ui/theme";
 import { GOALS_SETTINGS } from "./Goals";
-import { Bar, planColor, WeekColumns } from "./parts";
+import { Bar, Summary, UNDER_LABEL, ValueOf, WeekColumns } from "./parts";
 import { ageText, PLAN_STATUS, planCaption, planTargetText, planValueText } from "./weeklyPlanView";
 
 export const PLAN_ICON: Record<PlanKey, LucideIcon> = { zone13: HeartPulse, zone45: Flame, strength: Dumbbell, steps: Footprints, consistency: CalendarCheck, sleepNeed: Moon };
+
+/** KeyStatRow's small tile chip: a status word under a row's label. */
+const SMALL_CHIP = "min-h-5 px-1.5 py-0.5";
 
 const titleOf = (vm: { isCurrentWeek: boolean; monday: string }) => (vm.isCurrentWeek ? "This week" : `Week of ${formatDay(vm.monday, DAY.monthDay)}`);
 const streakText = (weeks: number) => (weeks === 1 ? "Every target met last week" : `Every target met ${weeks} weeks running`);
@@ -52,48 +55,59 @@ export function WeeklyPlanCard({ day }: { day: string }) {
     );
   const streak = data?.planStreak.current ?? 0;
   return (
-    <SectionShell variant="card" title={data ? `Weekly plan · ${titleOf(data).toLowerCase()}` : "Weekly plan"} href={`/weekly-plan?d=${day}`} aside={data && <Text className="font-numeric text-[13px] font-bold tabular-nums text-foreground-secondary">{`${data.onTrack} of ${data.items.length} on track`}</Text>}>
+    <SectionShell variant="card" title={data ? `Weekly plan · ${titleOf(data).toLowerCase()}` : "Weekly plan"} href={`/weekly-plan?d=${day}`}>
       {data ? (
-        <View className="gap-3">
-          {streak > 0 && <Text className="text-[13px] font-semibold leading-[18px] text-optimal-text">{streakText(streak)}</Text>}
-          {data.items.map((it) => <PlanRowCompact key={it.key} it={it} />)}
+        <View>
+          <Summary count={data.onTrack} of={data.items.length} label="on track" caption={rangeLabel(data.monday, data.sunday)} />
+          {streak > 0 && (
+            <StatusChip tone="optimal" className="mb-1">
+              {streakText(streak)}
+            </StatusChip>
+          )}
+          <Divided>{data.items.map((it) => <PlanRowCompact key={it.key} it={it} />)}</Divided>
         </View>
       ) : (
-        <View className="gap-3">{keys.map((k) => <SkeletonText key={k} lh={20} fs={15} className="w-48" />)}</View>
+        <Divided>
+          {keys.map((k) => (
+            <View key={k} className="min-h-14 flex-row items-center gap-3 py-3">
+              <Icon icon={PLAN_ICON[k]} size={20} tone="muted-foreground" />
+              <SkeletonText lh={16} fs={12} className="w-32" />
+            </View>
+          ))}
+        </Divided>
       )}
     </SectionShell>
   );
 }
 
 function PlanRowCompact({ it }: { it: PlanRow }) {
-  const { c } = useTheme();
-  const color = planColor(c, it.key);
+  const status = PLAN_STATUS[it.status];
   return (
-    <View accessible accessibilityLabel={`${it.label}: ${planValueText(it)} ${planTargetText(it)}, ${PLAN_STATUS[it.status].word}`} className="gap-1.5">
-      <View className="flex-row items-center gap-2">
-        <Icon icon={PLAN_ICON[it.key]} size={16} tone="muted-foreground" />
-        <Text className="min-w-0 flex-1 text-[14px] font-semibold leading-5" numberOfLines={1}>{it.short}</Text>
-        <Text className="font-numeric text-[14px] font-bold tabular-nums">
-          {planValueText(it)}
-          <Text className="text-xs font-medium text-muted-foreground">{` ${planTargetText(it)}`}</Text>
-        </Text>
-        <Text className={cn("w-14 text-right text-xs font-bold", PLAN_STATUS[it.status].tone)}>{PLAN_STATUS[it.status].word}</Text>
+    <View accessible accessibilityLabel={`${it.label}: ${planValueText(it)} ${planTargetText(it)}, ${status.word}`} className="gap-2 py-3">
+      <View className="flex-row items-center gap-3">
+        <Icon icon={PLAN_ICON[it.key]} size={20} tone="muted-foreground" />
+        <View className="min-w-0 flex-1 items-start">
+          <Text className={LABEL} numberOfLines={1}>{it.short}</Text>
+          <StatusChip tone={status.chip} className={cn(SMALL_CHIP, "mt-1")} textClassName="text-[11px]">
+            {status.word}
+          </StatusChip>
+        </View>
+        <ValueOf value={planValueText(it)} of={planTargetText(it)} muted={it.value === null} />
       </View>
-      <Bar value={it.progress} color={it.done ? color : alpha(color, 0.85)} tick={paceOf(it)} />
+      <Bar value={it.progress} done={it.done} tick={paceOf(it)} className={UNDER_LABEL} />
     </View>
   );
 }
 
-/** The last 8 weeks as dots, oldest first: filled when the target was met. */
-function WeekDots({ it, color }: { it: PlanRow; color: string }) {
-  const { c } = useTheme();
+/** The last 8 weeks as small squares, oldest first: optimal when the target was met, outlined without data. */
+function WeekDots({ it }: { it: PlanRow }) {
   const met = it.weeks.filter((w) => w.met).length;
   return (
-    <View accessible accessibilityLabel={`Met in ${met} of the last ${it.weeks.length} weeks`} className="flex-row items-center gap-2">
-      <Text className="min-w-0 flex-1 text-[13px] leading-[18px] text-muted-foreground">{`Last ${it.weeks.length} weeks`}</Text>
+    <View accessible accessibilityLabel={`Met in ${met} of the last ${it.weeks.length} weeks`} className={cn(UNDER_LABEL, "flex-row items-center gap-2")}>
+      <Text className={cn(CAPTION, "min-w-0 flex-1")}>{`Last ${it.weeks.length} weeks`}</Text>
       <View className="flex-row gap-1">
         {it.weeks.map((w) => (
-          <View key={w.monday} style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: w.met ? color : "transparent", borderWidth: 2, borderColor: w.met ? color : w.value === null ? c.border : alpha(color, 0.45) }} />
+          <View key={w.monday} className={cn("size-2.5 rounded-xs", w.met ? "bg-optimal" : w.value === null ? "border border-border" : "bg-muted")} />
         ))}
       </View>
     </View>
@@ -102,33 +116,35 @@ function WeekDots({ it, color }: { it: PlanRow; color: string }) {
 
 /** One target's full row in the sheet; the head links to its screen. */
 function PlanLine({ it, day, onOpen }: { it: PlanRow; day: string; onOpen: () => void }) {
-  const { c } = useTheme();
-  const color = planColor(c, it.key);
   const age = ageText(it.ageYears);
-  const quiet = it.status === "on_pace" || it.status === "no_data";
+  const status = PLAN_STATUS[it.status];
   const frac = (v: number | null, met: boolean) => (v === null ? null : it.key === "sleepNeed" || it.key === "consistency" ? (met ? 1 : 0.4) : Math.min(1, v / Math.max(1, ...it.days.map((d) => d.value ?? 0))));
   return (
     <View className="gap-3 py-4">
-      <Press activeBg="bg-fill-pressed" accessibilityRole="link" accessibilityLabel={`${it.label}: ${planValueText(it)} ${planTargetText(it)}. ${planCaption(it)}`} onPress={onOpen} className="-mx-2 flex-row items-start gap-3 rounded-xl px-2 py-1">
-        <View className="mt-0.5">{createElement(PLAN_ICON[it.key], { size: 22, color, strokeWidth: 1.75 })}</View>
+      <Press activeBg="bg-fill-pressed" accessibilityRole="link" accessibilityLabel={`${it.label}: ${planValueText(it)} ${planTargetText(it)}. ${planCaption(it)}`} onPress={onOpen} className="-mx-2 flex-row items-center gap-3 rounded-xl px-2 py-1">
+        <Icon icon={PLAN_ICON[it.key]} size={20} tone="muted-foreground" />
         <View className="min-w-0 flex-1">
-          <Text className="text-base font-semibold leading-[21px]">{it.label}</Text>
-          <Text className={cn("mt-0.5 text-[13px] leading-[18px]", quiet ? "text-muted-foreground" : cn("font-semibold", PLAN_STATUS[it.status].tone))}>{planCaption(it)}</Text>
+          <Text className={LABEL}>{it.label}</Text>
+          <Text className={cn(CAPTION, "mt-0.5")}>{planCaption(it)}</Text>
         </View>
-        <View className="shrink-0 items-end">
-          <Text className="font-numeric text-[22px] font-bold leading-[26px] tabular-nums" style={{ color }}>{planValueText(it)}</Text>
-          <Text className="text-xs font-medium leading-4 text-muted-foreground">{planTargetText(it)}</Text>
-        </View>
+        <ValueOf value={planValueText(it)} of={planTargetText(it)} muted={it.value === null} />
+        <Icon icon={ChevronRight} size={16} tone="muted-foreground" />
       </Press>
-      <View className="flex-row items-center gap-2.5">
-        <Bar value={it.progress} color={it.done ? color : alpha(color, 0.85)} tick={paceOf(it)} className="flex-1" />
-        <Text className={cn("w-14 text-right text-xs font-bold", PLAN_STATUS[it.status].tone)}>{PLAN_STATUS[it.status].word}</Text>
+      <View className={cn(UNDER_LABEL, "flex-row items-center gap-2.5")}>
+        <Bar value={it.progress} done={it.done} tick={paceOf(it)} className="flex-1" />
+        <StatusChip tone={status.chip} className={SMALL_CHIP} textClassName="text-[11px]">
+          {status.word}
+        </StatusChip>
       </View>
-      <WeekColumns cols={it.days.map((d) => ({ day: d.day, frac: frac(d.value, d.met), met: d.met }))} color={color} height={32} current={day} label={`${it.label}, this week: met on ${it.days.filter((d) => d.met).length} days`} />
-      <WeekDots it={it} color={color} />
-      <View className="flex-row items-start gap-2">
-        <Text className="min-w-0 flex-1 text-[13px] leading-[18px] text-muted-foreground">{it.detail}</Text>
-        {age && <Text className={cn("shrink-0 font-numeric text-[13px] font-semibold tabular-nums", it.ageYears! > 0.05 ? "text-warning-text" : it.ageYears! < -0.05 ? "text-optimal-text" : "text-muted-foreground")}>{`Pulse Age ${age}`}</Text>}
+      <WeekColumns cols={it.days.map((d) => ({ day: d.day, frac: frac(d.value, d.met), met: d.met }))} current={day} label={`${it.label}, this week: met on ${it.days.filter((d) => d.met).length} days`} className={UNDER_LABEL} />
+      <WeekDots it={it} />
+      <View className={cn(UNDER_LABEL, "flex-row items-start gap-2")}>
+        <Text className={cn(CAPTION, "min-w-0 flex-1")}>{it.detail}</Text>
+        {age && (
+          <StatusChip tone={it.ageYears! > 0.05 ? "warning" : it.ageYears! < -0.05 ? "optimal" : "neutral"} className={cn(SMALL_CHIP, "shrink-0")} textClassName="text-[11px]">
+            {`Pulse Age ${age}`}
+          </StatusChip>
+        )}
       </View>
     </View>
   );
@@ -161,13 +177,12 @@ export function WeeklyPlanSheetBody() {
 function PlanList({ data, go }: { data: WeeklyPlanVM; go: (href: string) => void }) {
   return (
     <View>
-      {data.planStreak.current > 0 && <Text className="pb-3 text-[15px] font-semibold leading-[22px] text-optimal-text">{streakText(data.planStreak.current)}</Text>}
-      {data.items.map((it, i) => (
-        <Fragment key={it.key}>
-          {i > 0 && <View className="h-px bg-border" />}
-          <PlanLine it={it} day={data.day} onOpen={() => go(it.href.replace("#", "?section="))} />
-        </Fragment>
-      ))}
+      {data.planStreak.current > 0 && (
+        <StatusChip tone="optimal" className="mb-1">
+          {streakText(data.planStreak.current)}
+        </StatusChip>
+      )}
+      <Divided>{data.items.map((it) => <PlanLine key={it.key} it={it} day={data.day} onOpen={() => go(it.href.replace("#", "?section="))} />)}</Divided>
       <View className="mt-5 gap-2">
         <SheetSection>Why these</SheetSection>
         <Text className="text-sm leading-[19px] text-muted-foreground">These are the habits Pulse Age scores. The defaults follow the WHO’s 150 moderate or 75 vigorous minutes and two strength days a week, about 8,000 steps a day, and a steady sleep schedule. A tick on a bar marks where an even pace would be by now.</Text>
