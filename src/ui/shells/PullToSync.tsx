@@ -12,8 +12,9 @@ import { useTheme } from "../theme";
 // pull of TRIGGER starts a sync, and the indicator follows the finger up to MAX.
 const TRIGGER = 64;
 const MAX = 96;
-// The owner asked for the indicator to stay at least 1-2 s: a sync that returns at once otherwise flashes it away.
-const MIN_SHOWN_MS = 1500;
+// How long the chip stays after a pull: the owner asked for 1-2 s. The sync itself shows on the band's ring in the
+// header, so the chip does not wait for it.
+const SHOWN_MS = 1500;
 const ease = { duration: DURATION.fast, easing: EASE.standard };
 
 /**
@@ -24,14 +25,12 @@ const ease = { duration: DURATION.fast, easing: EASE.standard };
 export function usePullToSync(offset: SharedValue<number>, onRefresh?: () => void | Promise<unknown>) {
   const pull = useSharedValue(0);
   const armed = useSharedValue(false);
-  /** 1 while the sync runs (the chip stays and spins), 0 otherwise. */
+  /** 1 for SHOWN_MS after a pull (the chip stays and spins), 0 otherwise. */
   const syncing = useSharedValue(0);
   const run = () => {
     syncing.value = withTiming(1, ease);
-    const min = new Promise((r) => setTimeout(r, MIN_SHOWN_MS));
-    void Promise.all([Promise.resolve(onRefresh?.()).catch(() => {}), min]).then(() => {
-      syncing.value = withTiming(0, ease);
-    });
+    void Promise.resolve(onRefresh?.()).catch(() => {});
+    setTimeout(() => (syncing.value = withTiming(0, ease)), SHOWN_MS);
   };
   const gesture = Gesture.Pan()
     .enabled(!!onRefresh)
@@ -58,8 +57,8 @@ export function usePullToSync(offset: SharedValue<number>, onRefresh?: () => voi
 }
 
 /**
- * The web's indicator: a round chip with the refresh arrows, turning with the pull, then held and spinning while the
- * sync runs (at least MIN_SHOWN_MS), as the web keeps it.
+ * The web's indicator: a round chip with the refresh arrows, turning with the pull, then held and spinning for
+ * SHOWN_MS after the pull; the header's band ring shows the sync from there.
  */
 function PullIndicator({ pull, syncing }: { pull: SharedValue<number>; syncing: SharedValue<number> }) {
   const { c } = useTheme();
