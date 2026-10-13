@@ -19,8 +19,8 @@ import { InsightCard } from "@/ui/metrics/InsightCard";
 import { useSelectedDay } from "@/ui/shells/DateSwitcher";
 import { PageShell } from "@/ui/shells/PageShell";
 import { CollapsibleSection } from "@/ui/shells/CollapsibleSection";
-import { openSheet } from "@/ui/shells/sheets";
 import { ActionLink, SectionShell } from "@/ui/shells/SectionShell";
+import { push } from "@/ui/navigate";
 
 /** Journal `/journal?d=` (spec §7.11, journey 7). */
 export default function Journal() {
@@ -83,6 +83,6 @@ function useOfferYesterday(vm: Awaited<ReturnType<typeof getJournal>> | undefine
   const offer = offered === false && !!yesterday && !yesterday.done;
   useEffect(() => {
     if (!offer || !yesterday) return;
-    AsyncStorage.setItem(YESTERDAY_OFFERED_KEY, "1").then(() => openSheet(`/checkin?d=${yesterday.day}`), () => {});
+    AsyncStorage.setItem(YESTERDAY_OFFERED_KEY, "1").then(() => push(`/checkin?d=${yesterday.day}`), () => {});
   }, [offer, yesterday]);
 }

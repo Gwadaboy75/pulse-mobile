@@ -41,11 +41,10 @@ export function DismissDialog({ open, onKeep, onDismiss }: { open: boolean; onKe
             <Text className="shrink text-xs font-bold uppercase leading-4 tracking-[0.1em]">Don’t show me this message again</Text>
           </Pressable>
           <View className="gap-3">
-            <Button size="sheet" onPress={onKeep}>
+            <Button onPress={onKeep}>
               No, complete journal
             </Button>
             <Button
-              size="sheet"
               variant="outline-pill"
               onPress={() => {
                 if (checked) quiet = true;

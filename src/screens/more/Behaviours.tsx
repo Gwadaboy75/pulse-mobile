@@ -14,7 +14,7 @@ import { haptic } from "@/ui/haptics";
 import { Skeleton, SkeletonText } from "@/ui/Skeleton";
 import { DetailShell } from "@/ui/shells/DetailShell";
 import { SectionShell } from "@/ui/shells/SectionShell";
-import { SheetSection } from "@/ui/shells/SheetScreen";
+import { TaskSection } from "@/ui/shells/TaskPage";
 import { Text } from "@/ui/Text";
 import { TextField } from "../settings/controls";
 import { toast } from "@/ui/Toast";
@@ -120,7 +120,7 @@ function Behaviours({ vm }: { vm: BehavioursVM }) {
       {/* Pinned over the list once something changed, clear of the round action at the phone's foot. */}
       {(dirty || saving) && (
         <Animated.View entering={FadeInDown.duration(DURATION.base)} exiting={FadeOut.duration(DURATION.fast)} className="absolute inset-x-4" style={{ bottom: Math.max(insets.bottom + 84, 96) }}>
-          <Button size="sheet" disabled={saving} onPress={save}>
+          <Button disabled={saving} onPress={save}>
             {saving ? "Saving…" : "Save behaviours"}
           </Button>
         </Animated.View>
@@ -146,7 +146,7 @@ function BehavioursLoading() {
               ))}
             </View>
             <View className="mt-4">
-              <SheetSection>Selected</SheetSection>
+              <TaskSection>Selected</TaskSection>
             </View>
             <View className="mt-1">
               {Array.from({ length: 9 }, (_, i) => (

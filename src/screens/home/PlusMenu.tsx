@@ -1,5 +1,5 @@
 // My Day's "+": a white key that opens the action menu (the reference app, home-08), ported from pulse
-// (app)/_lib/PlusMenu.tsx. On a phone the menu is a sheet route (app/(sheets)/plus.tsx) instead of a dropdown under the key,
+// (app)/_lib/PlusMenu.tsx. On a phone the menu is a sheet route (app/plus.tsx) instead of a dropdown under the key,
 // and the key does not turn into an X while it is open. Entries without a data source in Pulse (Start activity, Strength
 // trainer, Share live: `FEATURES`, all off) are left out, as the web hides them.
 import { View } from "react-native";
@@ -8,14 +8,14 @@ import { NotebookPen, Plus } from "lucide-react-native";
 import { Gradient } from "@/ui/Gradient";
 import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
-import { SheetScreen } from "@/ui/shells/SheetScreen";
+import { TaskPage } from "@/ui/shells/TaskPage";
 import { InfoDialog } from "@/ui/shells/InfoDialog";
-import { openSheet } from "@/ui/shells/sheets";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { useState } from "react";
 import { ADD_ACTIVITY_INFO } from "../_lib/info";
 import { Press } from "@/ui/Press";
+import { push } from "@/ui/navigate";
 
 /** The ~34 pt white key with a soft top light; the hit area grows to 44 px without moving it. */
 export function PlusKey({ label }: { label: string }) {
@@ -27,7 +27,7 @@ export function PlusKey({ label }: { label: string }) {
       accessibilityLabel={label}
       onPress={() => {
         haptic.tap();
-        openSheet(`/plus?label=${encodeURIComponent(label)}`);
+        push(`/plus?label=${encodeURIComponent(label)}`);
       }}
       hitSlop={5}
       className="size-[34px] items-center justify-center overflow-hidden rounded-lg"
@@ -39,11 +39,11 @@ export function PlusKey({ label }: { label: string }) {
 }
 
 /** The sheet's body: "Add activity" explains where workouts come from (§11 R2), "Complete your journal" opens the check-in. */
-export function PlusSheet({ label }: { label: string }) {
+export function PlusPage({ label }: { label: string }) {
   const [info, setInfo] = useState(false);
   const item = "h-12 flex-row items-center gap-3 rounded-xl px-3";
   return (
-    <SheetScreen title={label}>
+    <TaskPage title={label}>
       <View accessibilityRole="menu">
         <Press activeBg="bg-fill-pressed" accessibilityRole="menuitem" onPress={() => setInfo(true)} className={item}>
           <Icon icon={Plus} size={20} tone="foreground-secondary" strokeWidth={1.75} />
@@ -56,6 +56,6 @@ export function PlusSheet({ label }: { label: string }) {
         </Press>
       </View>
       <InfoDialog open={info} onClose={() => setInfo(false)} {...ADD_ACTIVITY_INFO} />
-    </SheetScreen>
+    </TaskPage>
   );
 }

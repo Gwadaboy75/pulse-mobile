@@ -135,20 +135,20 @@ function Screens({ onboarded }: { onboarded: boolean }) {
           <Stack.Screen name="dev/kit/detail" />
           <Stack.Screen name="dev/kit/home" />
           <Stack.Screen name="dev/kit/metrics" />
-          {/* Task pages: the web's drawers, pushed as pages (src/ui/shells/sheets.ts says how to add one). */}
-          <Stack.Screen name="(sheets)/dashboard" />
-          <Stack.Screen name="(sheets)/plus" />
-          <Stack.Screen name="(sheets)/trends-metric" />
-          <Stack.Screen name="(sheets)/ecg" />
-          <Stack.Screen name="(sheets)/profile" />
-          <Stack.Screen name="(sheets)/checkin" />
-          <Stack.Screen name="(sheets)/log" />
-          <Stack.Screen name="(sheets)/food" />
-          <Stack.Screen name="(sheets)/goals" />
-          <Stack.Screen name="(sheets)/weekly-plan" />
-          <Stack.Screen name="(sheets)/chart-metric" />
+          {/* Task pages (the web's drawers) are ordinary pages: a route in app/ rendering <TaskPage>, opened with push(). */}
+          <Stack.Screen name="dashboard" />
+          <Stack.Screen name="plus" />
+          <Stack.Screen name="trends-metric" />
+          <Stack.Screen name="ecg" />
+          <Stack.Screen name="profile" />
+          <Stack.Screen name="checkin" />
+          <Stack.Screen name="log" />
+          <Stack.Screen name="food" />
+          <Stack.Screen name="goals" />
+          <Stack.Screen name="weekly-plan" />
+          <Stack.Screen name="chart-metric" />
           <Stack.Screen name="journal/impact" />
-          <Stack.Screen name="dev/sheet" />
+          <Stack.Screen name="dev/task" />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>

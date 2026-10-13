@@ -139,9 +139,9 @@ React Native 0.86 on the new architecture takes a CSS-like `boxShadow` string, i
 
 Everything the kit uses (Skia, Reanimated, gesture handler, SVG, safe-area, expo-font) is bundled in Expo Go for SDK 57; NativeWind and the icons are plain JavaScript; form sheets, `expo-blur`, `expo-linear-gradient` and `expo-haptics` are in Expo Go too (haptics: the docs do not print the badge, so the checklist confirms it). So `npx expo start --go` is enough on Android. An iPhone needs a development build, since the App Store's Expo Go stops at SDK 54.
 
-## Task sheets are pages
+## Tasks are pages, not sheets
 
-A task (check-in, logs, info, Goals, the Behaviour detail) is a file under `app/(sheets)/` (or `app/journal/impact.tsx`) registered in `app/_layout.tsx` as a plain `<Stack.Screen>`: the stack pushes it like every detail page, with the same slide, the Android back gesture, and `<SheetScreen>` drawing the detail header (Back, the caps title), the scrolling body and the pinned actions. They were native form sheets (`presentation: "formSheet"`, a bottom sheet on Android with `fitToContents` or `[0.92]` detents); the owner did not want anything sliding up from the bottom, so the presentation options went and the routes stayed. Open with `openSheet("/name")`, close with `closeSheet()`.
+A task (check-in, logs, info, Goals, the Behaviour detail) is a file under `app/` (or `app/journal/impact.tsx`) registered in `app/_layout.tsx` as a plain `<Stack.Screen>`: the stack pushes it like every detail page, with the same slide, the Android back gesture, and `<TaskPage>` drawing the detail header (Back, the caps title), the scrolling body and the pinned actions. They were native form sheets (`presentation: "formSheet"`, a bottom sheet on Android with `fitToContents` or `[0.92]` detents); the owner did not want anything sliding up from the bottom, so the presentation options went and the routes stayed. Later the sheet vocabulary went too: `SheetScreen` became `<TaskPage>`, the `(sheets)` folder's routes moved to `app/`, the big `size="sheet"` pill button went (pages use the 44 px touch button; only a form's Save is pinned), and the sheet colour tokens were dropped. Open with `push("/name")`, close with `goBack()` (`src/ui/navigate.ts`).
 
 The pinned actions pad below themselves by `max(insets.bottom, 16)` from `useSafeAreaInsets()`, so they sit above the gesture bar. Inside the old Android form sheet that padding did not clear it: the Goals and Weekly plan buttons sat half under the gesture area.
 
@@ -209,7 +209,7 @@ Settings › Delete everything calls `reset()` (`src/state/app.ts`, halo's): eve
 
 The web's `<input type="datetime-local">` and `type="date"` are the browser's own pickers. React Native has none, so the log sheets use `@expo/ui/community/datetime-picker`, a drop-in for `@react-native-community/datetimepicker` that is in Expo Go: on iOS the compact SwiftUI date picker sits inside the field, on Android the field opens the system date dialog and then the time dialog. The pickers work in the phone's local time while the app's wall times are in the profile's zone, so a value is a bare `YYYY-MM-DDTHH:mm` string and the picker is handed a `Date` with the same digits (`wallToDate`, `dateToWall` in `src/screens/log/form.ts`).
 
-## Asking before a sheet closes: `beforeRemove`
+## Asking before a task page closes: `beforeRemove`
 
 The check-in must not lose answers to Back or the Android back gesture. `navigation.addListener("beforeRemove", ...)` (from `useNavigation`) can cancel the removal with `e.preventDefault()` while the sheet has unsaved changes and show "Dismiss journal?"; `gestureEnabled: false` on the same screen stops the iOS swipe from starting. Confirming sets a ref and closes again, so the listener lets it through.
 
@@ -637,7 +637,7 @@ dangerous mod, writes `res/xml/shortcuts.xml`, the labels (`res/values/strings_s
 string resources) and one vector drawable per glyph (the PWA's lucide paths in its deep brand tones). Both run on every
 prebuild, so `expo prebuild --clean` keeps them. Each shortcut is an `ACTION_VIEW` intent on `pulse://checkin`,
 `pulse://recovery` or `pulse://sleep`; expo-router reads everything after `pulse://` as the path, so they open
-`/checkin` (the `(sheets)/checkin` sheet), `/recovery` and `/sleep`. A cold start has no screen under a deep-linked one,
+`/checkin` (the `checkin` sheet), `/recovery` and `/sleep`. A cold start has no screen under a deep-linked one,
 so the root layout exports `unstable_settings = { anchor: "(tabs)" }` (SDK 57 replaced `initialRouteName` with
 `anchor`): the tabs sit under it and back goes Home. Before onboarding the tabs are guarded off, so the stack falls back
 to onboarding. A warm start goes through `singleTask` and `onNewIntent` and pushes the route on the open stack.

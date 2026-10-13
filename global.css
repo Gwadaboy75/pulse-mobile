@@ -37,8 +37,6 @@
   --accent: 221 226 230;
   --accent-foreground: 16 21 24;
   --inset: 238 241 243;
-  --sheet: 255 255 255;
-  --sheet-bottom: 246 248 249;
   --field: 237 240 242;
   --destructive: 255 0 38;
   --border: rgb(16 21 24 / 0.1);
@@ -109,7 +107,6 @@
   --dim: rgb(16 21 24 / 0.45);
   --dim-strong: rgb(16 21 24 / 0.7);
   --card-edge: rgb(255 255 255 / 0);
-  --sheet-edge: rgb(16 21 24 / 0.06);
   --on-media: 255 255 255;
   --media-ground: 0 0 0;
   --orb-green: 35 168 101;
@@ -203,8 +200,6 @@
   --accent: 65 72 75;
   --accent-foreground: 255 255 255;
   --inset: 17 22 25;
-  --sheet: 20 24 28;
-  --sheet-bottom: 15 19 22;
   --field: 50 57 62;
   --destructive: 255 0 38;
   --border: rgb(255 255 255 / 0.1);
@@ -275,7 +270,6 @@
   --dim: rgb(0 0 0 / 0.65);
   --dim-strong: rgb(0 0 0 / 0.85);
   --card-edge: rgb(255 255 255 / 0.06);
-  --sheet-edge: rgb(255 255 255 / 0.14);
   --on-media: 255 255 255;
   --media-ground: 0 0 0;
   --orb-green: 76 212 140;

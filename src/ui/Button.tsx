@@ -9,7 +9,7 @@ import { Press } from "./Press";
 
 // shadcn's Button in Pulse's touch sizes (web: components/ui/button.tsx). Only the variants the kit uses.
 type Variant = "default" | "outline" | "secondary" | "ghost" | "outline-pill";
-type Size = "touch" | "icon-touch" | "sheet";
+type Size = "touch" | "icon-touch";
 
 // Every web button is `border border-transparent bg-clip-padding`: a 1 px border in the box, the fill inside it. React
 // Native paints a background under the border, so the fill is its own view, which an absolute child places inside
@@ -20,13 +20,13 @@ const VARIANT: Record<Variant, { box?: string; fill?: string; text: string }> = 
   outline: { box: "border-border dark:border-input", fill: "bg-background dark:bg-input/30", text: "text-foreground" },
   secondary: { fill: "bg-secondary", text: "text-secondary-foreground" },
   ghost: { text: "text-foreground" },
-  // The second action in sheets and the info card ("Delete", "Open trend view"): ring-1 ring-foreground/70, outside the box (a shadow below).
-  "outline-pill": { box: "rounded-full", text: "text-foreground" },
+  // The second action ("Delete", "Open trend view"): ring-1 ring-foreground/70, outside the box (a shadow below); the
+  // size gives the radius.
+  "outline-pill": { text: "text-foreground" },
 };
 const SIZE: Record<Size, { box: string; fill: string; text: string }> = {
   touch: { box: "h-11 gap-2 rounded-xl px-4", fill: "rounded-[11px]", text: "text-[13px] font-bold uppercase tracking-[0.1em]" },
   "icon-touch": { box: "size-11 rounded-full", fill: "rounded-full", text: "" },
-  sheet: { box: "h-14 w-full gap-2 rounded-full px-6", fill: "rounded-full", text: "text-[15px] font-bold uppercase tracking-[0.1em]" },
 };
 
 export type ButtonProps = {
@@ -40,11 +40,11 @@ export type ButtonProps = {
   /** The web colours a button's label with a `text-*` class on the button; a phone's text does not inherit, so it goes here ("text-recovery-red-text"). */
   textClassName?: string;
   accessibilityLabel?: string;
-  /** The tap haptic. On by default for actions (the primary variant and sheet buttons); pass false for a button that only navigates. */
+  /** The tap haptic. On by default for actions (the primary variant); pass false for a button that only navigates. */
   haptic?: boolean;
 };
 
-export function Button({ variant = "default", size = "touch", onPress, disabled, children, className, textClassName, accessibilityLabel, haptic: feel = variant === "default" || size === "sheet" }: ButtonProps) {
+export function Button({ variant = "default", size = "touch", onPress, disabled, children, className, textClassName, accessibilityLabel, haptic: feel = variant === "default" }: ButtonProps) {
   const { c } = useTheme();
   const v = VARIANT[variant];
   const s = SIZE[size];

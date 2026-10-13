@@ -1,4 +1,4 @@
-// The explorer's metric and compare pickers (halo src/screens/chart/MetricSheet.tsx) as our route sheet
+// The explorer's metric and compare pickers (halo src/screens/chart/MetricPage.tsx) as our route sheet
 // `/chart-metric?for=metric|compare&metric=&r=&d=&compare=`: Trends' metric sheet (one section open at a time, its
 // metrics as wrapping chips) over the explorer's catalogue. A choice goes back to /chart with the new params.
 import { useState } from "react";
@@ -11,7 +11,7 @@ import { cn } from "@/ui/cn";
 import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
 import { Press } from "@/ui/Press";
-import { SheetScreen } from "@/ui/shells/SheetScreen";
+import { TaskPage } from "@/ui/shells/TaskPage";
 import { Text } from "@/ui/Text";
 import { DAY_COMPARE, NO_COMPARE, parseRange } from "./model";
 
@@ -25,7 +25,7 @@ function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () 
   );
 }
 
-export function ChartMetricSheet() {
+export function ChartMetricPage() {
   const p = useLocalSearchParams<{ for?: string; metric?: string; r?: string; d?: string; compare?: string }>();
   const def = chartDef(p.metric);
   const range = parseRange(p.r, !!def?.day);
@@ -50,7 +50,7 @@ export function ChartMetricSheet() {
   const pickCompare = (key: string | null) => go({ compare: key ?? (view ? NO_COMPARE : null) });
 
   return (
-    <SheetScreen title={isCompare ? "Compare with" : "Metric"}>
+    <TaskPage title={isCompare ? "Compare with" : "Metric"}>
       <View className="px-4">
         {isCompare && (
           <View className="flex-row pb-3">
@@ -81,6 +81,6 @@ export function ChartMetricSheet() {
           );
         })}
       </View>
-    </SheetScreen>
+    </TaskPage>
   );
 }

@@ -10,7 +10,6 @@ import { Text } from "../Text";
 import { useTheme } from "../theme";
 import { FAB_SIZE, TAB_ROOTS, useTabBarBottom } from "./layout";
 import { useShellCalendar } from "./ShellStatus";
-import { openSheet } from "./sheets";
 import { push } from "../navigate";
 import { Press } from "../Press";
 import { GLASS_RADIUS } from "../radius";
@@ -36,7 +35,7 @@ function Monogram() {
 
 /**
  * The "Check in" action (spec §4.2.1): indigo-rimmed glass with the "P" monogram. It opens the check-in sheet, the route
- * app/(sheets)/checkin.tsx, over the screen you are on, for the day that screen shows: `/checkin?d=` carries the screen's
+ * app/checkin.tsx, over the screen you are on, for the day that screen shows: `/checkin?d=` carries the screen's
  * `d` as the web keeps `?d=` beside `?checkin=1`. (The tab bar sits in the tabs layout, so the day is the focused route's:
  * the global params, not the layout's own.) With a coach key saved, it opens the coach instead (the web's coach access).
  */
@@ -53,7 +52,7 @@ export function CheckInAction({ onPress }: { onPress?: () => void }) {
       accessibilityLabel={label}
       onPress={() => {
         haptic.tap();
-        (onPress ?? (() => (coach ? push("/coach") : openSheet(`/checkin?d=${d}`))))();
+        (onPress ?? (() => (coach ? push("/coach") : push(`/checkin?d=${d}`))))();
       }}
     >
       <Glass radius={GLASS_RADIUS} action style={{ width: FAB_SIZE, height: FAB_SIZE, alignItems: "center", justifyContent: "center" }}>

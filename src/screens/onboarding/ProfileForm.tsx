@@ -135,7 +135,7 @@ export function ProfileForm({
 /** The submit, as the web's `SaveButton`: a sheet-size pill that reads "Saving…" while the action runs. */
 export function SaveButton({ pending, label, onPress }: { pending: boolean; label: string; onPress: () => void }) {
   return (
-    <Button size="sheet" disabled={pending} onPress={onPress}>
+    <Button disabled={pending} onPress={onPress}>
       {pending ? "Saving…" : label}
     </Button>
   );

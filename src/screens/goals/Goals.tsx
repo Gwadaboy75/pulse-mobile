@@ -11,16 +11,16 @@ import { STAT_ICON } from "@/screens/_lib/view";
 import { useScreen } from "@/screens/useScreen";
 import { useGoals, type Goals } from "@/state/goals";
 import { Button } from "@/ui/Button";
+import { Card } from "@/ui/Card";
 import { cn } from "@/ui/cn";
 import { Divided } from "@/ui/Divided";
 import { Icon } from "@/ui/Icon";
 import { LABEL } from "@/ui/metrics/primitives";
-import { push } from "@/ui/navigate";
+import { goBack, push } from "@/ui/navigate";
 import { useSelectedDay } from "@/ui/shells/DateSwitcher";
 import { EmptyState } from "@/ui/shells/EmptyState";
 import { SectionShell } from "@/ui/shells/SectionShell";
-import { SheetScreen, SheetSection } from "@/ui/shells/SheetScreen";
-import { closeSheet } from "@/ui/shells/sheets";
+import { TaskPage, TaskSection } from "@/ui/shells/TaskPage";
 import { useShellCalendar } from "@/ui/shells/ShellStatus";
 import { SkeletonText } from "@/ui/Skeleton";
 import { Text } from "@/ui/Text";
@@ -132,19 +132,24 @@ function GoalLine({ g }: { g: GoalRow }) {
   );
 }
 
-/** The sheet `/goals?d=` (halo's GoalsSheet). */
-export function GoalsSheetBody() {
+/** The sheet `/goals?d=` (halo's GoalsPage). */
+export function GoalsPageBody() {
   const [day] = useSelectedDay();
   const { today } = useShellCalendar();
   const { goals, data } = useGoalsDay(day);
   const edit = () => {
-    closeSheet();
+    goBack();
     push(GOALS_SETTINGS);
   };
   return (
-    <SheetScreen title="Goals" description={dayLabel(day, today)} footer={<Button size="sheet" onPress={edit}>Edit goals</Button>}>
-      <View className="px-4">{data ? <GoalsList goals={goals} rows={data.goals} week={data.week} /> : <View className="gap-4 py-2">{GOAL_KEYS.filter((k) => goals.enabled[k]).map((k) => <SkeletonText key={k} lh={26} fs={22} className="w-40" />)}</View>}</View>
-    </SheetScreen>
+    <TaskPage title="Goals" description={dayLabel(day, today)}>
+      <View className="gap-4">
+        <Card className="gap-0 px-4 py-1">
+          {data ? <GoalsList goals={goals} rows={data.goals} week={data.week} /> : <View className="gap-4 py-3">{GOAL_KEYS.filter((k) => goals.enabled[k]).map((k) => <SkeletonText key={k} lh={26} fs={22} className="w-40" />)}</View>}
+        </Card>
+        <Button variant="secondary" onPress={edit}>Edit goals</Button>
+      </View>
+    </TaskPage>
   );
 }
 
@@ -158,7 +163,7 @@ function GoalsList({ goals, rows, week }: { goals: Goals; rows: GoalRow[]; week:
       </Divided>
       {off.length > 0 && (
         <View className="mt-5 gap-2">
-          <SheetSection>Off</SheetSection>
+          <TaskSection>Off</TaskSection>
           <Text className="text-sm leading-[19px] text-muted-foreground">{`${off.map((k) => GOAL_META[k].label).join(", ")}. Switch them on in Settings › Goals.`}</Text>
         </View>
       )}

@@ -5,7 +5,7 @@
 // up, stress or the Energy Bank with heart rate on the right axis; resting and average heart rate as a labelled line on
 // the heart rate; workouts lit on it; the night's heart rate over its stage lanes. Our chrome: the detail header row, the
 // range as the kit's segmented control, the window's numbers and the chart on cards. The pickers are the route sheet
-// /chart-metric (./MetricSheet.tsx).
+// /chart-metric (./MetricPage.tsx).
 import * as React from "react";
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -29,7 +29,6 @@ import { Segmented } from "@/ui/Segmented";
 import { DateSwitcher } from "@/ui/shells/DateSwitcher";
 import { DetailHeaderRow } from "@/ui/shells/DetailHeader";
 import { EmptyState } from "@/ui/shells/EmptyState";
-import { openSheet } from "@/ui/shells/sheets";
 import { useShellCalendar } from "@/ui/shells/ShellStatus";
 import { Skeleton } from "@/ui/Skeleton";
 import { Text } from "@/ui/Text";
@@ -74,6 +73,7 @@ import {
   type Series,
   type SeriesColor,
 } from "./model";
+import { push } from "@/ui/navigate";
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 /** Said to screen readers on the chart; no longer printed under it. */
@@ -185,7 +185,7 @@ export default function ChartExplorer() {
   // Clearing the compare: a day view remembers "none" (its default would come back otherwise).
   const clearCompare = () => setParams({ compare: mode === "day" ? NO_COMPARE : null });
   const pick = (kind: "metric" | "compare") =>
-    openSheet(`/chart-metric?for=${kind}&metric=${encodeURIComponent(def.key)}&r=${range}${params.d ? `&d=${params.d}` : ""}${rawParam ? `&compare=${encodeURIComponent(rawParam)}` : ""}`);
+    push(`/chart-metric?for=${kind}&metric=${encodeURIComponent(def.key)}&r=${range}${params.d ? `&d=${params.d}` : ""}${rawParam ? `&compare=${encodeURIComponent(rawParam)}` : ""}`);
 
   // --- Data ---
   const series = useScreen((ctx) => (mode === "daily" ? getChartSeries(def.key, ctx) : Promise.resolve(null)), ["chartSeries", mode === "daily" ? def.key : null]);

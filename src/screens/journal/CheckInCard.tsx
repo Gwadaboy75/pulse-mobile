@@ -3,8 +3,8 @@ import type { JournalVM } from "@/queries/types";
 import { Button } from "@/ui/Button";
 import { StatusChip } from "@/ui/metrics/primitives";
 import { SectionShell } from "@/ui/shells/SectionShell";
-import { openSheet } from "@/ui/shells/sheets";
 import { Text } from "@/ui/Text";
+import { push } from "@/ui/navigate";
 
 /** The pill of a behaviour: 28 px, secondary fill, 13 px semibold (the web's Badge with TAG_CLASS). */
 export function TagBadge({ children }: { children: string }) {
@@ -17,7 +17,7 @@ export function TagBadge({ children }: { children: string }) {
 
 /** The Journal's check-in card (spec §7.11, journey 7). Its button opens the app-wide check-in sheet. */
 export function CheckInCard({ dayLabel, day, today, checkIn }: { dayLabel: string; day: string; today: string; checkIn: JournalVM["checkIn"] }) {
-  const start = () => openSheet(day === today ? "/checkin" : `/checkin?d=${day}`);
+  const start = () => push(day === today ? "/checkin" : `/checkin?d=${day}`);
   // The section above is headed "Check-in", so the card is titled by its day, as History's rows are (SYM2).
   return (
     <SectionShell variant="card" title={dayLabel} fill>

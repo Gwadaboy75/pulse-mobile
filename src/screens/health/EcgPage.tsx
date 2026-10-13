@@ -1,21 +1,21 @@
-// An ECG reading's sheet (the web's `?ecg=<id>` ResponsiveSheet "ECG reading", pulse monitor/HeartRhythm.tsx).
+// An ECG reading's page (the web shows it in a `?ecg=<id>` ResponsiveSheet, "ECG reading"; pulse monitor/HeartRhythm.tsx).
 import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { DAY, formatDay } from "@/lib/format";
 import { getMonitor } from "@/queries/health";
 import { StatusChip, ValueUnit, CAPTION } from "@/ui/metrics/primitives";
 import { EmptyState } from "@/ui/shells/EmptyState";
-import { SheetScreen } from "@/ui/shells/SheetScreen";
+import { TaskPage } from "@/ui/shells/TaskPage";
 import { Text } from "@/ui/Text";
 import { useScreen } from "../useScreen";
 import { bpm, RHYTHM_DISCLAIMER } from "./HeartRhythm";
 
-export function EcgSheet() {
+export function EcgPage() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   // halo has no single-reading query: the reading comes from the Health Monitor's heart rhythm (ECGs from an older Google import).
-  const { data: shown } = useScreen(async (ctx) => (await getMonitor(ctx.today, ctx)).heartRhythm.ecg.find((e) => e.id === id) ?? null, ["ecgSheet", id]);
+  const { data: shown } = useScreen(async (ctx) => (await getMonitor(ctx.today, ctx)).heartRhythm.ecg.find((e) => e.id === id) ?? null, ["ecgPage", id]);
   return (
-    <SheetScreen title="ECG reading">
+    <TaskPage title="ECG reading">
       {/* Opened without a reading it knows (a bare link, or one Health Connect no longer has), it says so: before, the page was empty. */}
       {shown === null && <EmptyState body="No ECG reading to show. Health Connect does not carry ECG readings." />}
       {shown && (
@@ -31,6 +31,6 @@ export function EcgSheet() {
           <Text className={CAPTION}>{RHYTHM_DISCLAIMER}</Text>
         </View>
       )}
-    </SheetScreen>
+    </TaskPage>
   );
 }

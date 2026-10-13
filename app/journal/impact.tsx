@@ -6,26 +6,26 @@ import { FOOTER, MetricToggle, parseMetric, WORD } from "@/screens/journal/insig
 import { useScreen } from "@/screens/useScreen";
 import { cn } from "@/ui/cn";
 import { DriverList } from "@/ui/metrics/DriverList";
-import { SheetScreen } from "@/ui/shells/SheetScreen";
+import { TaskPage } from "@/ui/shells/TaskPage";
 import { Text } from "@/ui/Text";
 
 /** A behaviour's detail (the web's impact sheet, `?behaviour=`): /journal/impact?m=hrv&behaviour=alcohol. */
-export default function ImpactSheet() {
+export default function ImpactPage() {
   const { m, behaviour } = useLocalSearchParams<{ m?: string; behaviour?: string }>();
   const metric = parseMetric(m);
   const { data: vm } = useScreen((ctx) => getJournalInsights(metric, ctx), ["journalInsights", metric]);
   const item = vm?.items.find((i) => i.key === behaviour);
-  if (!vm) return <SheetScreen title="Behaviour">{null}</SheetScreen>;
+  if (!vm) return <TaskPage title="Behaviour">{null}</TaskPage>;
   // Opened without a behaviour it knows (a bare pulse://journal/impact): the impact list, a row opening its detail here.
   // Before, the page stayed empty. With too few check-ins the list says so (DriverList's empty state).
   if (!item)
     return (
-      <SheetScreen title="Behaviour">
+      <TaskPage title="Behaviour">
         <View className="gap-4 pt-2">
           <MetricToggle metric={metric} />
           <DriverList variant="impact" unit={vm.unit} data={{ value: vm.items, reason: null, provisional: false }} onSelect={(k) => router.setParams({ behaviour: k })} outcome={WORD[metric]} />
         </View>
-      </SheetScreen>
+      </TaskPage>
     );
 
   const sd = vm.unit === "SD";
@@ -40,7 +40,7 @@ export default function ImpactSheet() {
     ["Average without", avg(item.avgWithout)],
   ];
   return (
-    <SheetScreen title={item.label}>
+    <TaskPage title={item.label}>
       <View className="gap-4 pt-2">
         <View>
           <Text className={cn("font-numeric text-4xl font-bold leading-10 tracking-[-0.01em] tabular-nums", tone)}>{fx(item.delta)}</Text>
@@ -56,6 +56,6 @@ export default function ImpactSheet() {
         </View>
         <Text className="text-xs font-medium leading-4 text-muted-foreground">{FOOTER}</Text>
       </View>
-    </SheetScreen>
+    </TaskPage>
   );
 }

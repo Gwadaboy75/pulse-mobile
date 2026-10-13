@@ -10,16 +10,16 @@ import { getWeeklyPlan, PLAN_KEYS, type PlanKey, type PlanRow, type WeeklyPlanVM
 import { useScreen } from "@/screens/useScreen";
 import { useWeeklyPlan } from "@/state/weeklyPlan";
 import { Button } from "@/ui/Button";
+import { Card } from "@/ui/Card";
 import { cn } from "@/ui/cn";
 import { Divided } from "@/ui/Divided";
 import { Icon } from "@/ui/Icon";
 import { CAPTION, DeltaMark } from "@/ui/metrics/primitives";
-import { push } from "@/ui/navigate";
+import { goBack, push } from "@/ui/navigate";
 import { useSelectedDay } from "@/ui/shells/DateSwitcher";
 import { EmptyState } from "@/ui/shells/EmptyState";
 import { SectionShell } from "@/ui/shells/SectionShell";
-import { SheetScreen, SheetSection } from "@/ui/shells/SheetScreen";
-import { closeSheet } from "@/ui/shells/sheets";
+import { TaskPage, TaskSection } from "@/ui/shells/TaskPage";
 import { SkeletonText } from "@/ui/Skeleton";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
@@ -146,27 +146,29 @@ function PlanLine({ it, day, onOpen }: { it: PlanRow; day: string; onOpen: () =>
   );
 }
 
-/** The sheet `/weekly-plan?d=` (halo's PlanSheet). */
-export function WeeklyPlanSheetBody() {
+/** The sheet `/weekly-plan?d=` (halo's PlanPage). */
+export function WeeklyPlanPageBody() {
   const [day] = useSelectedDay();
   const { keys, data } = usePlanWeek(day);
   const go = (href: string) => {
-    closeSheet();
+    goBack();
     push(href);
   };
   return (
-    <SheetScreen
+    <TaskPage
       title={data ? titleOf(data) : "This week"}
       description={data ? `${rangeLabel(data.monday, data.sunday)} · ${data.onTrack} of ${data.items.length} on track` : undefined}
-      footer={
-        <>
-          <Button size="sheet" onPress={() => go(GOALS_SETTINGS)}>Edit weekly targets</Button>
-          <Button size="sheet" variant="outline-pill" onPress={() => go("/health/healthspan")}>Open Pulse Age</Button>
-        </>
-      }
     >
-      <View className="px-4">{data ? <PlanList data={data} go={go} /> : <View className="gap-4 py-2">{keys.map((k) => <SkeletonText key={k} lh={26} fs={22} className="w-40" />)}</View>}</View>
-    </SheetScreen>
+      <View className="gap-4">
+        <Card className="gap-0 px-4 py-1">
+          {data ? <PlanList data={data} go={go} /> : <View className="gap-4 py-3">{keys.map((k) => <SkeletonText key={k} lh={26} fs={22} className="w-40" />)}</View>}
+        </Card>
+        <View className="flex-row gap-3">
+          <Button variant="secondary" className="flex-1" onPress={() => go(GOALS_SETTINGS)}>Edit targets</Button>
+          <Button variant="secondary" className="flex-1" onPress={() => go("/health/healthspan")}>Pulse Age</Button>
+        </View>
+      </View>
+    </TaskPage>
   );
 }
 
@@ -176,7 +178,7 @@ function PlanList({ data, go }: { data: WeeklyPlanVM; go: (href: string) => void
       {data.planStreak.current > 0 && <Text className={cn(CAPTION, "pb-1")}>{streakText(data.planStreak.current)}</Text>}
       <Divided>{data.items.map((it) => <PlanLine key={it.key} it={it} day={data.day} onOpen={() => go(it.href.replace("#", "?section="))} />)}</Divided>
       <View className="mt-5 gap-2">
-        <SheetSection>Why these</SheetSection>
+        <TaskSection>Why these</TaskSection>
         <Text className="text-sm leading-[19px] text-muted-foreground">These are the habits Pulse Age scores. The defaults follow the WHO’s 150 moderate or 75 vigorous minutes and two strength days a week, about 8,000 steps a day, and a steady sleep schedule. A tick on a bar marks where an even pace would be by now.</Text>
       </View>
     </View>

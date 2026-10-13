@@ -13,7 +13,7 @@ import { DetailShell } from "@/ui/shells/DetailShell";
 import { ActionLink, SectionShell } from "@/ui/shells/SectionShell";
 import { chartHref, type ChartRange } from "@/screens/chart/href";
 import { SkeletonText } from "@/ui/Skeleton";
-import { MetricPicker } from "./MetricSheet";
+import { MetricPicker } from "./MetricPage";
 import { Divided, LoadError, PERIOD, RangedTrendChart } from "./parts";
 
 /** The chart's points and each range's change against the one before, once per loaded view model. */

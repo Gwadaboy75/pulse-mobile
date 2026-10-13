@@ -25,11 +25,11 @@ import { Segmented } from "@/ui/Segmented";
 import { DetailShell } from "@/ui/shells/DetailShell";
 import { EmptyState } from "@/ui/shells/EmptyState";
 import { SectionShell } from "@/ui/shells/SectionShell";
-import { openSheet } from "@/ui/shells/sheets";
 import { Skeleton } from "@/ui/Skeleton";
 import { Text } from "@/ui/Text";
 import { toast } from "@/ui/Toast";
-import { foodHref } from "./FoodSheet";
+import { foodHref } from "./FoodPage";
+import { push } from "@/ui/navigate";
 
 const grouped = (v: number) => FORMATS.grouped(v);
 const grams = (v: number) => FORMATS.int(v);
@@ -103,7 +103,7 @@ function FoodRow({ f, timeZone, onDelete, onSeparate }: { f: FoodItem; timeZone:
       </View>
       {mine && (
         <View className="flex-row">
-          <Press activeBg="bg-fill-hover" accessibilityRole="button" accessibilityLabel={`Edit ${f.title}`} onPress={() => openSheet(foodHref({ edit: f.id }))} className="size-11 items-center justify-center rounded-full">
+          <Press activeBg="bg-fill-hover" accessibilityRole="button" accessibilityLabel={`Edit ${f.title}`} onPress={() => push(foodHref({ edit: f.id }))} className="size-11 items-center justify-center rounded-full">
             <Icon icon={Pencil} size={17} tone="muted-foreground" />
           </Press>
           <Press activeBg="bg-fill-hover" accessibilityRole="button" accessibilityLabel={`Delete ${f.title}`} onPress={onDelete} className="size-11 items-center justify-center rounded-full">
@@ -195,7 +195,7 @@ export function NutritionScreen() {
         hero={<Today vm={vm} />}
         primary={
           <View className="gap-6">
-            <Button size="sheet" onPress={() => openSheet(foodHref())}>
+            <Button onPress={() => push(foodHref())}>
               <Icon icon={Plus} size={18} tone="primary-foreground" />
               <Text className="text-[15px] font-bold uppercase tracking-[0.1em] text-primary-foreground">Add food</Text>
             </Button>

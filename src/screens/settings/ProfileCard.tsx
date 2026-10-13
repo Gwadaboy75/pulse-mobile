@@ -1,5 +1,5 @@
 // Settings › Profile. Ported from pulse (app)/settings/SettingsView.tsx `Profile` and SettingsClient.tsx `EditProfileButton`:
-// the rows, and "Edit", which opens the onboarding fields in a sheet (the route app/(sheets)/profile.tsx, U19). Above
+// the rows, and "Edit", which opens the onboarding fields in a sheet (the route app/profile.tsx, U19). Above
 // them, the web's Account head: the photo and the name, and the Photo button (src/actions/photo.ts), whose menu offers
 // Take photo, Choose photo and, once there is one, Remove photo.
 import { useState } from "react";
@@ -17,10 +17,10 @@ import { DAY, formatDay } from "@/lib/format";
 import type { SettingsVM } from "@/queries/types";
 import { CAPTION } from "@/ui/metrics/primitives";
 import { SectionShell } from "@/ui/shells/SectionShell";
-import { openSheet } from "@/ui/shells/sheets";
 import { Text } from "@/ui/Text";
 import { cn } from "@/ui/cn";
 import { ROW, ROW_LABEL, ROW_RULE, ROW_VALUE, SmallButton } from "./controls";
+import { push } from "@/ui/navigate";
 
 export function ProfileCard({ profile }: { profile: SettingsVM["profile"] }) {
   const name = useApp((s) => s.profile?.name);
@@ -33,7 +33,7 @@ export function ProfileCard({ profile }: { profile: SettingsVM["profile"] }) {
     ["Time zone", profile.timeZone],
   ];
   return (
-    <SectionShell variant="card" title="Profile" action={<SmallButton icon={Pencil} label="Edit" accessibilityLabel="Edit profile" onPress={() => openSheet("/profile")} className="-my-2" />}>
+    <SectionShell variant="card" title="Profile" action={<SmallButton icon={Pencil} label="Edit" accessibilityLabel="Edit profile" onPress={() => push("/profile")} className="-my-2" />}>
       <View className="min-h-11 flex-row items-center gap-3">
         <UserAvatar size={56} />
         <View className="min-w-0 flex-1">

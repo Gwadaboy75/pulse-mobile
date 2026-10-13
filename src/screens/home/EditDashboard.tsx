@@ -1,7 +1,7 @@
 // Home › My Dashboard's CUSTOMIZE (dashboard-03..06, spec §11 CD1, CD2, R41): the reference app's full-screen editor,
 // ported from pulse (app)/_lib/EditDashboard.tsx. "My Dashboard" holds the shown metrics in order, each dragged by its
 // handle and removed with its minus; "Add to My Dashboard" holds the rest by group with a search field, and a tap adds
-// one at the end. SAVE stores the list and shows Success. The sheet is a route (app/(sheets)/dashboard.tsx) that takes
+// one at the end. SAVE stores the list and shows Success. The sheet is a route (app/dashboard.tsx) that takes
 // the metrics on Home now (`keys`) and the ones with no data (`empty`) as comma-separated params.
 import { useEffect, useState } from "react";
 import { TextInput, View } from "react-native";
@@ -17,14 +17,14 @@ import { cn } from "@/ui/cn";
 import { FACES } from "@/ui/fontClasses";
 import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
-import { SheetScreen, SheetSection } from "@/ui/shells/SheetScreen";
-import { closeSheet, openSheet } from "@/ui/shells/sheets";
+import { TaskPage, TaskSection } from "@/ui/shells/TaskPage";
 import { Text } from "@/ui/Text";
 import { useShadow } from "@/ui/shadow";
 import { useTheme } from "@/ui/theme";
 import { statIcon } from "../_lib/view";
 import { Press } from "@/ui/Press";
 import { DURATION } from "@/ui/motion";
+import { goBack, push } from "@/ui/navigate";
 
 const CARD = "min-h-14 flex-row items-center gap-3 rounded-xl bg-foreground/[0.07] pl-4";
 const NAME = "min-w-0 flex-1 text-[13px] font-bold uppercase leading-4 tracking-[0.1em]";
@@ -45,7 +45,7 @@ export function EditDashboardButton({ keys, empty }: { keys: DashboardKey[]; emp
       activeBg="bg-fill-faint"
       accessibilityRole="button"
       accessibilityLabel="Customize My Dashboard"
-      onPress={() => openSheet(`/dashboard?keys=${keys.join(",")}&empty=${empty.join(",")}`)}
+      onPress={() => push(`/dashboard?keys=${keys.join(",")}&empty=${empty.join(",")}`)}
       hitSlop={{ top: 6, bottom: 6 }}
       className="-mr-2 h-8 flex-row items-center gap-1.5 rounded-full px-2"
     >
@@ -57,7 +57,7 @@ export function EditDashboardButton({ keys, empty }: { keys: DashboardKey[]; emp
 
 const keysOf = (raw: string | undefined) => (raw ?? "").split(",").filter(isDashboardKey);
 
-export function EditDashboardSheet({ keys: rawKeys, empty: rawEmpty }: { keys?: string; empty?: string }) {
+export function EditDashboardPage({ keys: rawKeys, empty: rawEmpty }: { keys?: string; empty?: string }) {
   const { c } = useTheme();
   const [shown, setShown] = useState(() => keysOf(rawKeys));
   const [query, setQuery] = useState("");
@@ -103,14 +103,14 @@ export function EditDashboardSheet({ keys: rawKeys, empty: rawEmpty }: { keys?: 
   };
 
   return (
-    <SheetScreen
+    <TaskPage
       title="Customize dashboard"
-      done={done ? { title: "Success", body: "Your preferences have been saved.", onDone: closeSheet } : null}
+      done={done ? { title: "Success", body: "Your preferences have been saved.", onDone: goBack } : null}
       footer={
         <>
           {/* The web shows a toast; a phone sheet shows the line above its button. */}
           {failed && <Text accessibilityRole="alert" className="text-center text-[15px] leading-[22px] text-destructive">Couldn’t save your dashboard. Try again.</Text>}
-          <Button size="sheet" variant="outline-pill" onPress={save} disabled={saving || shown.length === 0}>
+          <Button variant="outline-pill" onPress={save} disabled={saving || shown.length === 0}>
             {saving ? "Saving…" : "Save"}
           </Button>
         </>
@@ -131,7 +131,7 @@ export function EditDashboardSheet({ keys: rawKeys, empty: rawEmpty }: { keys?: 
       )}
 
       <View className="mt-8">
-        <SheetSection>Add to My Dashboard</SheetSection>
+        <TaskSection>Add to My Dashboard</TaskSection>
       </View>
       <View className="relative mt-3">
         <View pointerEvents="none" className="absolute left-3.5 top-0 z-10 h-12 justify-center">
@@ -181,7 +181,7 @@ export function EditDashboardSheet({ keys: rawKeys, empty: rawEmpty }: { keys?: 
         <Text className="py-6 text-center text-[15px] leading-[22px] text-foreground-secondary">{hidden.length ? `No metric matches “${query.trim()}”.` : "Every metric is on Home."}</Text>
       )}
       <Text accessibilityLiveRegion="polite" className="absolute h-px w-px opacity-0">{status}</Text>
-    </SheetScreen>
+    </TaskPage>
   );
 }
 

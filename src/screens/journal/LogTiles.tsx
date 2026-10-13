@@ -1,4 +1,4 @@
-// Journal's Log tiles (spec §11 LG1), pulse's (app)/journal/Log.tsx without its sheet (that is app/(sheets)/log.tsx):
+// Journal's Log tiles (spec §11 LG1), pulse's (app)/journal/Log.tsx without its sheet (that is app/log.tsx):
 // one tile per thing to log, with the day's figure, each opening its sheet. A row that scrolls edge to edge, as the
 // day strip above it.
 import { ScrollView, View } from "react-native";
@@ -8,9 +8,9 @@ import { KIND_LABEL, MOODS, VALENCES, type LogData, type LogKind } from "@/queri
 import type { DayLogVM as LogVM } from "@/queries/journalExtras";
 import { CARD_CLASS, CardFill, useCardStyle } from "@/ui/Card";
 import { Icon } from "@/ui/Icon";
-import { openSheet } from "@/ui/shells/sheets";
 import { Text } from "@/ui/Text";
 import { Press } from "@/ui/Press";
+import { push } from "@/ui/navigate";
 
 export const ICON: Record<LogKind, LucideIcon> = {
   water: Droplet,
@@ -66,7 +66,7 @@ function Tile({ k, vm }: { k: LogKind; vm: LogVM }) {
       activeScale={0.96}
       accessibilityRole="button"
       accessibilityLabel={t ? `${label}, ${t.value}${t.sub ? ` on ${t.sub}` : ""}. Log ${label.toLowerCase()}` : `Log ${label.toLowerCase()}`}
-      onPress={() => openSheet(logHref(k, vm))}
+      onPress={() => push(logHref(k, vm))}
       className={`${CARD_CLASS} h-24 w-24 justify-between p-3`}
       style={shadow}
     >

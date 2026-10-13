@@ -1,6 +1,6 @@
 // Health Monitor's Heart rhythm section: the latest ECG (result, average heart rate, date), older readings as rows, and
 // the irregular rhythm notification count. Ported from pulse src/app/(app)/health/monitor/HeartRhythm.tsx. Each reading
-// opens its sheet (`/ecg?id=`, app/(sheets)/ecg.tsx) where the web sets `?ecg=<id>`. With nothing recorded it is one
+// opens its sheet (`/ecg?id=`, app/ecg.tsx) where the web sets `?ecg=<id>`. With nothing recorded it is one
 // quiet row, so a screen most people see empty never looks broken.
 import { View } from "react-native";
 import { Activity, ChevronRight, HeartPulse } from "lucide-react-native";
@@ -10,9 +10,9 @@ import { Card } from "@/ui/Card";
 import { cn } from "@/ui/cn";
 import { Icon } from "@/ui/Icon";
 import { CAPTION, LABEL, StatusChip, ValueUnit } from "@/ui/metrics/primitives";
-import { openSheet } from "@/ui/shells/sheets";
 import { Text } from "@/ui/Text";
 import { Press } from "@/ui/Press";
+import { push } from "@/ui/navigate";
 
 /** Fitbit's and the reference app's notes both say "not a diagnosis" and name what ECG can't detect (pulse docs/research/heart-rhythm-ui.md). */
 export const RHYTHM_DISCLAIMER = "Not a diagnosis. ECG and irregular rhythm notifications can’t detect a heart attack, blood clots or stroke. Talk to your doctor about any result.";
@@ -21,7 +21,7 @@ const ROW = "min-h-14 flex-row items-center gap-3 px-4 py-2";
 export const when = (e: EcgReading) => `${formatDay(e.day, DAY.short)}, ${e.time}`;
 export const bpm = (e: EcgReading) => (e.avgBpm === null ? "--" : formatValue("int", e.avgBpm));
 
-const open = (e: EcgReading) => openSheet(`/ecg?id=${encodeURIComponent(e.id)}`);
+const open = (e: EcgReading) => push(`/ecg?id=${encodeURIComponent(e.id)}`);
 
 export function HeartRhythm({ rhythm }: { rhythm: HeartRhythmVM }) {
   const { ecg, irn } = rhythm;

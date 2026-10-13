@@ -18,13 +18,13 @@ import { Button } from "@/ui/Button";
 import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
 import { CAPTION } from "@/ui/metrics/primitives";
-import { SheetScreen, SheetSection } from "@/ui/shells/SheetScreen";
-import { closeSheet } from "@/ui/shells/sheets";
+import { TaskPage, TaskSection } from "@/ui/shells/TaskPage";
 import { Text } from "@/ui/Text";
 import { cn } from "@/ui/cn";
+import { goBack } from "@/ui/navigate";
 
 /** A log sheet (spec §11 LG1): /log?kind=water&d=2026-10-02, the web's `?log=water` over Journal's day. */
-export default function LogSheet() {
+export default function LogPage() {
   const { kind: raw, d } = useLocalSearchParams<{ kind?: string; d?: string }>();
   const kind = (LOG_KINDS as readonly string[]).includes(raw ?? "") ? (raw as LogKind) : "water";
   const { data: vm } = useScreen((ctx) => getDayLog(parseDay(d, todayOf(ctx)).d, ctx), ["log", d]);
@@ -41,9 +41,9 @@ export default function LogSheet() {
   const title = `Log ${KIND_LABEL[kind].toLowerCase()}`;
   if (!vm)
     return (
-      <SheetScreen title={title}>
+      <TaskPage title={title}>
         <View className="h-40" />
-      </SheetScreen>
+      </TaskPage>
     );
 
   const time = at ?? defaultAt(vm);
@@ -60,7 +60,7 @@ export default function LogSheet() {
       return;
     }
     dataChanged();
-    if (close) closeSheet();
+    if (close) goBack();
     toast.success(`${KIND_LABEL[input.kind]} saved`);
   };
   const save = () => {
@@ -82,13 +82,13 @@ export default function LogSheet() {
   const when = (children: React.ReactNode) => <Section title="When">{children}</Section>;
 
   return (
-    <SheetScreen
+    <TaskPage
       title={title}
       description="Kept on this phone"
       footer={
         <>
           {error && <FormAlert>{error}</FormAlert>}
-          <Button size="sheet" onPress={save} disabled={saving}>
+          <Button onPress={save} disabled={saving}>
             {saving ? "Saving…" : "Save"}
           </Button>
         </>
@@ -200,7 +200,7 @@ export default function LogSheet() {
             </>
           )}
       </View>
-    </SheetScreen>
+    </TaskPage>
   );
 }
 
@@ -208,7 +208,7 @@ export default function LogSheet() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View className="gap-3">
-      <SheetSection>{title}</SheetSection>
+      <TaskSection>{title}</TaskSection>
       {children}
     </View>
   );

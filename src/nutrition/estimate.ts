@@ -157,7 +157,7 @@ export const looksLikeRefusal = (text: string | undefined) =>
 export type EstimateInput = { image: { base64: string; mediaType: string } } | { text: string };
 
 /**
- * Why an estimate failed, each with its own sentence on screen (FoodSheet): too slow, turned down, an answer that
+ * Why an estimate failed, each with its own sentence on screen (FoodPage): too slow, turned down, an answer that
  * isn't nutrition numbers, the key refused, the provider rate-limiting, no connection, another provider error, or
  * the person cancelled.
  */

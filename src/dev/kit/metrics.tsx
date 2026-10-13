@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
 import { View } from "react-native";
-import { openSheet } from "@/ui/shells/sheets";
 import { Activity, Droplet, Footprints, Heart, Moon, Rabbit, Thermometer, Timer, Turtle, Wind, Zap, type LucideIcon } from "lucide-react-native";
 import { REASON_CODES } from "@/lib/reasons";
 import { Card, INSET_ROW } from "@/ui/Card";
@@ -25,16 +24,17 @@ import { TrendLegend } from "@/ui/metrics/TrendLegend";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { cn } from "@/ui/cn";
+import { push } from "@/ui/navigate";
 
 const STAT_ICON: Record<string, LucideIcon> = { hrv: Activity, rhr: Heart, rr: Wind, sleep: Moon, cal: Zap, steps: Footprints, spo2: Droplet, temp: Thermometer, max: Heart, dur: Timer, hours: Moon, consistency: Moon, efficiency: Moon, restorative: Moon };
 const statIcon = (key: string, stroke = 1.75): ReactNode => (STAT_ICON[key] ? <Icon icon={STAT_ICON[key]} size={20} tone="muted-foreground" strokeWidth={stroke} /> : undefined);
 const reasons = REASON_CODES.map((r) => ({ r, metric: fx.why<number>(r, 4) }));
 const HOUR = 3_600_000;
 
-// The vital's and the factor's detail sheets are placeholders: they open the kit's demo sheet route (app/dev/sheet.tsx).
+// The vital's and the factor's detail pages are placeholders: they open the kit's demo task page (app/dev/task.tsx).
 function SelectableTile() {
   const v = fx.vitals[0];
-  return <KeyStatRow variant="tile" icon={<Icon icon={Wind} size={20} tone="muted-foreground" strokeWidth={1.5} />} direction="neutral" label={v.label} metric={v.metric} unit={v.unit} format={v.format} chip={v.chip} onSelect={() => openSheet("/dev/sheet?size=default&title=Respiratory%20rate")} />;
+  return <KeyStatRow variant="tile" icon={<Icon icon={Wind} size={20} tone="muted-foreground" strokeWidth={1.5} />} direction="neutral" label={v.label} metric={v.metric} unit={v.unit} format={v.format} chip={v.chip} onSelect={() => push("/dev/task?title=Respiratory%20rate")} />;
 }
 
 function SelectableImpact() {
@@ -46,7 +46,7 @@ function HealthspanList() {
   return (
     <Divided>
       {fx.healthspan.map(({ key, ...h }) => (
-        <ContributorRow key={key} variant="healthspan" icon={statIcon("rhr")} onSelect={() => openSheet("/dev/sheet?size=default&title=Healthspan%20factor")} {...h} />
+        <ContributorRow key={key} variant="healthspan" icon={statIcon("rhr")} onSelect={() => push("/dev/task?title=Healthspan%20factor")} {...h} />
       ))}
     </Divided>
   );

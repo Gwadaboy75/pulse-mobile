@@ -10,7 +10,7 @@ Every screen stream follows these. A stream brief adds its own scope on top.
 - Build only from the kit (`src/ui`): shells, metrics, charts, `Text`, `Card`, `Button`, `Icon`. No platform-default
   visuals: no Material components, no system headers or tab bars, no new visual ideas. If React Native cannot reproduce
   something the web does, say so in the report with the exact difference; do not invent a substitute.
-- Native only in behaviour: the native stack's push and swipe-back, sheets as routes (`src/ui/shells/sheets.ts`), the
+- Native only in behaviour: the native stack's push and swipe-back, task pages as routes (`<TaskPage>`, `src/ui/shells/TaskPage.tsx`), the
   centred info card (`InfoButton`).
 - Haptics, always through `src/ui/haptics.ts` (its header lists where each kind fires). The kit already fires them for
   `Button` (primary and sheet buttons), tabs, segmented controls, day changes, chart scrubbing and pull to refresh. A
@@ -63,5 +63,5 @@ The app must stay at the frame rate of the phone. On every screen:
 Do not edit: `src/ui/**`, `src/queries/common.ts`, `src/queries/types.ts`, `src/queries/testing.ts`,
 `src/screens/_lib/**`, `src/screens/useScreen.ts`, `src/data/**`, `src/pipeline/**`, `src/google/**`, `src/core/**`,
 `src/lib/**`, `src/profile.ts`, `app/(tabs)/_layout.tsx`, `package.json`. Put the exact change you need and why in your
-report. The one exception: a stream that adds a sheet route adds its `<Stack.Screen name="(sheets)/<name>" ...>` line
+report. The one exception: a stream that adds a sheet route adds its `<Stack.Screen name="<name>" ...>` line
 to `app/_layout.tsx` and nothing else there.

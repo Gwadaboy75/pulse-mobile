@@ -1,4 +1,4 @@
-// The Journal (spec §7.11, journal-01..15), pulse's (app)/journal/CheckIn.tsx `CheckInSheet`: the full-screen check-in
+// The Journal (spec §7.11, journal-01..15), pulse's (app)/journal/CheckIn.tsx `CheckInPage`: the full-screen check-in
 // over whatever screen is showing, for that screen's day (`d`); the strip and arrows inside move between days. Closing it
 // (X, Back, swipe down, Save) leaves that screen as it was (spec §11 UX2). There is no offline queue (the phone
 // writes to its own database, so a save cannot be "offline") and Select Behaviors is not a dialog (the pencil opens
@@ -19,15 +19,14 @@ import { alpha } from "@/ui/color";
 import { Button } from "@/ui/Button";
 import { haptic } from "@/ui/haptics";
 import { DayStrip } from "@/ui/metrics/DayStrip";
-import { SheetScreen, SheetSection } from "@/ui/shells/SheetScreen";
-import { closeSheet } from "@/ui/shells/sheets";
+import { TaskPage, TaskSection } from "@/ui/shells/TaskPage";
 import { useShellCalendar } from "@/ui/shells/ShellStatus";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { changedEntries, heading, type Values } from "./checkin";
 import { DismissDialog, dismissIsQuiet } from "./DismissDialog";
 import { Slider } from "./Slider";
-import { push } from "@/ui/navigate";
+import { goBack, push } from "@/ui/navigate";
 import { Press } from "@/ui/Press";
 
 /** A behaviour with the question the check-in asks and its section, from the catalogue (src/lib/behaviors.ts). */
@@ -70,7 +69,7 @@ function Answer({ kind, on, label, onPress }: { kind: "no" | "yes"; on: boolean;
 }
 
 /** /checkin?d=2026-10-02: the sheet the round check-in button opens. `d` is the screen's day (today when absent). */
-export function CheckInSheet() {
+export function CheckInPage() {
   const { today } = useShellCalendar();
   const { d: raw } = useLocalSearchParams<{ d?: string }>();
   const { d: urlDay } = parseDay(raw, today);
@@ -140,7 +139,7 @@ export function CheckInSheet() {
   const finish = () => {
     allow.current = true;
     setConfirm(null);
-    closeSheet();
+    goBack();
   };
 
   // Back and the swipe down ask first when answers would be lost (journal-15); the X always asks, below.
@@ -229,7 +228,7 @@ export function CheckInSheet() {
 
   return (
     <>
-      <SheetScreen
+      <TaskPage
         title="Journal"
         glow
         onClose={close}
@@ -254,7 +253,7 @@ export function CheckInSheet() {
             {saveError && <FormAlert>Couldn’t save. Check your connection and try again.</FormAlert>}
             {/* Nothing answered, nothing to save: the sheet can open by itself (Log yesterday) right where the Journal tab was
                 tapped, and a second tap must not file an empty check-in. */}
-            <Button size="sheet" onPress={save} disabled={saving || !loaded || !dirty}>
+            <Button onPress={save} disabled={saving || !loaded || !dirty}>
               {saving ? "Saving…" : "Save journal"}
             </Button>
           </>
@@ -303,7 +302,7 @@ export function CheckInSheet() {
             if (!items.length && g.key !== "custom") return null;
             return (
               <View key={g.key} className="mt-7">
-                <SheetSection>{g.title}</SheetSection>
+                <TaskSection>{g.title}</TaskSection>
                 <View className="mt-3 gap-3">
                   {items.map((t) => {
                     const v = values[t.tag];
@@ -369,7 +368,7 @@ export function CheckInSheet() {
           })}
         {DETAILS && loaded && (
           <View className="mt-7">
-            <SheetSection>Notes</SheetSection>
+            <TaskSection>Notes</TaskSection>
             <Input
               accessibilityLabel="Notes"
               value={note}
@@ -383,7 +382,7 @@ export function CheckInSheet() {
             />
           </View>
         )}
-      </SheetScreen>
+      </TaskPage>
       <DismissDialog open={!!confirm} onKeep={keepEditing} onDismiss={dismiss} />
     </>
   );

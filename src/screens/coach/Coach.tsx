@@ -18,9 +18,9 @@ import { Icon } from "@/ui/Icon";
 import { Press } from "@/ui/Press";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
-import { openSheet } from "@/ui/shells/sheets";
 import { Evidence } from "./Evidence";
 import { Prose } from "./Prose";
+import { push } from "@/ui/navigate";
 
 type Part = UIMessage["parts"][number];
 
@@ -180,7 +180,7 @@ function Empty({ providerLabel, suggestions, today, onAsk }: { providerLabel: st
           </Press>
         ))}
       </View>
-      <Press accessibilityRole="button" onPress={() => openSheet(`/checkin?d=${today}`)} className="mt-3 h-10 flex-row items-center gap-2 rounded-full px-4">
+      <Press accessibilityRole="button" onPress={() => push(`/checkin?d=${today}`)} className="mt-3 h-10 flex-row items-center gap-2 rounded-full px-4">
         <Icon icon={NotebookPen} size={16} tone="foreground-secondary" />
         <Text className="text-[14px] font-medium text-foreground-secondary">Check in for today</Text>
       </Press>
@@ -248,7 +248,7 @@ export function Coach({ id, initial, prefill, auto, providerLabel, suggestions, 
   const lastAnswer = messages.at(-1)?.role === "assistant" ? messages.at(-1)!.id : null;
 
   return (
-    // iOS only: Android resizes the window for the keyboard itself (as SheetScreen relies on), and padding on top of that
+    // iOS only: Android resizes the window for the keyboard itself (as TaskPage relies on), and padding on top of that
     // lifted the composer a keyboard's height above it, into the middle of the screen.
     <KeyboardAvoidingView behavior="padding" enabled={Platform.OS === "ios"} style={{ flex: 1 }}>
       <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" className="flex-1" contentContainerClassName="grow px-4 pb-6 pt-2">

@@ -9,8 +9,8 @@ import { haptic } from "@/ui/haptics";
 import { cn } from "@/ui/cn";
 import { SEGMENT, SEGMENT_ON } from "@/ui/Segmented";
 import { DriverList } from "@/ui/metrics/DriverList";
-import { openSheet } from "@/ui/shells/sheets";
 import { Text } from "@/ui/Text";
+import { push } from "@/ui/navigate";
 
 export const WORD: Record<ImpactMetricKey, string> = { recovery: "Recovery", hrv: "HRV", sleep: "sleep performance" };
 export const TITLE: Record<ImpactMetricKey, string> = { recovery: "Recovery", hrv: "HRV", sleep: "Sleep" };
@@ -69,7 +69,7 @@ export function ImpactList({ vm }: { vm: JournalInsightsVM }) {
       selectedKey={selected}
       onSelect={(k) => {
         setSelected(k);
-        openSheet(`/journal/impact?${vm.metric === "recovery" ? "" : `m=${vm.metric}&`}behaviour=${encodeURIComponent(k)}`);
+        push(`/journal/impact?${vm.metric === "recovery" ? "" : `m=${vm.metric}&`}behaviour=${encodeURIComponent(k)}`);
       }}
       outcome={WORD[vm.metric]}
     />

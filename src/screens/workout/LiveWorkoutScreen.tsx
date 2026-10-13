@@ -231,7 +231,7 @@ export function LiveWorkoutScreen() {
     primary = (
       <View className="gap-3">
         <RunningStats snap={snap} start={active.start} lost={ctl.status !== "live"} name={ctl.device?.name ?? null} />
-        <Button variant="secondary" size="sheet" haptic onPress={() => finish()}>
+        <Button variant="secondary" haptic onPress={() => finish()}>
           End workout
         </Button>
       </View>
@@ -240,10 +240,10 @@ export function LiveWorkoutScreen() {
     summary = <WorkoutSummary rec={result} />;
     primary = (
       <View className="gap-3">
-        <Button size="sheet" onPress={start} disabled={!isLive || !setup}>
+        <Button onPress={start} disabled={!isLive || !setup}>
           Start another
         </Button>
-        <Button variant="secondary" size="sheet" onPress={() => (router.canGoBack() ? router.back() : push("/strain"))}>
+        <Button variant="secondary" onPress={() => (router.canGoBack() ? router.back() : push("/strain"))}>
           Done
         </Button>
       </View>
@@ -259,7 +259,7 @@ export function LiveWorkoutScreen() {
             <Switch value={haptics} onValueChange={setHaptics} label="Haptic cues" />
           </View>
         </SectionShell>
-        <Button size="sheet" onPress={start} disabled={!isLive || !setup}>
+        <Button onPress={start} disabled={!isLive || !setup}>
           Start workout
         </Button>
       </View>

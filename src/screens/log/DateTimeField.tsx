@@ -77,7 +77,7 @@ export function DateTimeField({ value, onChange, mode, max, min, label }: DateTi
                   onChange(clamp(date ? dateToDay(d) : dateToWall(d)));
                 }}
               />
-              <Button size="sheet" onPress={() => setStep(null)}>
+              <Button onPress={() => setStep(null)}>
                 Done
               </Button>
             </Panel>

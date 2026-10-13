@@ -14,7 +14,7 @@ import { cn } from "@/ui/cn";
 import { Gradient } from "@/ui/Gradient";
 import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
-import { SheetSection } from "@/ui/shells/SheetScreen";
+import { TaskSection } from "@/ui/shells/TaskPage";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { TextField } from "../settings/controls";
@@ -99,7 +99,7 @@ export function BehaviorPicker({ tags, initial, selected, onChange }: { tags: Be
         (g) =>
           g.rows.length > 0 && (
             <View key={g.key} accessibilityLabel={g.title} className="mt-4">
-              <SheetSection>{g.title}</SheetSection>
+              <TaskSection>{g.title}</TaskSection>
               <View className="mt-1">
                 {g.rows.map((i) => {
                   const on = selected.has(i.key);

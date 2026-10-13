@@ -9,13 +9,14 @@ import { alpha } from "../color";
 import { DetailHeader, DetailHeaderRow, detailRowHeight } from "./DetailHeader";
 import { DoneScreen } from "./DoneScreen";
 import { HEADER_FADE, useHeaderHeight } from "./Header";
-import { closeSheet } from "./sheets";
+import { goBack } from "@/ui/navigate";
 
-export type SheetScreenProps = {
+export type TaskPageProps = {
   title: string;
   description?: string;
   children: ReactNode;
-  /** Stacked full-width actions: `Button size="sheet"` (white primary, then `variant="outline-pill"`), pinned above the navigation bar. */
+  /** A form's Save, pinned above the navigation bar (Log, Profile, the Journal). Pages that only show things put their
+   *  actions in the content instead. */
   footer?: ReactNode;
   /** The header's right-hand control (the Journal's pencil), opposite Back. */
   action?: ReactNode;
@@ -23,12 +24,12 @@ export type SheetScreenProps = {
   glow?: boolean;
   /** What Back does where a page asks first (the Journal's "Dismiss journal?"): the web's `onOpenChange(false)`. Default: close. */
   onClose?: () => void;
-  /** Replaces the page's content with a confirmation ("Saved", "Success"), then calls `onDone` (usually `closeSheet`). */
+  /** Replaces the page's content with a confirmation ("Saved", "Success"), then calls `onDone` (usually `goBack`). */
   done?: { title: string; body: string; onDone: () => void } | null;
 };
 
-/** A caps section label with a hairline running to the edge, as the reference app's "TIME ───". Use inside a sheet. */
-export function SheetSection({ children }: { children: string }) {
+/** A caps section label with a hairline running to the edge, as the reference app's "TIME ───". Use inside a task page. */
+export function TaskSection({ children }: { children: string }) {
   return (
     <View className="flex-row items-center gap-3">
       <Text className="text-xs font-bold uppercase leading-4 tracking-[0.1em] text-muted-foreground">{children}</Text>
@@ -85,7 +86,7 @@ function useRevealFocused() {
  * pushed like any detail page (sheets.ts): the detail header (Back, the caps title, `action`) over the ground, the
  * scrolling body, and the pill actions pinned above the navigation bar. The keyboard lifts the body and the actions.
  */
-export function SheetScreen({ title, description, children, footer, action, glow, done, onClose }: SheetScreenProps) {
+export function TaskPage({ title, description, children, footer, action, glow, done, onClose }: TaskPageProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardHeight();
@@ -94,7 +95,7 @@ export function SheetScreen({ title, description, children, footer, action, glow
   const framed = useHeaderHeight(rows);
   // A glow page keeps its header in the flow over the glow (the detail header's ground fill would cover the glow).
   const top = glow ? 0 : framed;
-  const header = { title, subtitle: description, action, onBack: onClose ?? closeSheet };
+  const header = { title, subtitle: description, action, onBack: onClose ?? goBack };
   // The web's bottom padding, `pb-[max(env(safe-area-inset-bottom),16px)]`, under the actions or, with none, under the
   // body: the navigation bar's inset, so the actions sit above the gesture bar. Above the keyboard: 16 pt.
   const pad = keyboard ? 16 : Math.max(insets.bottom, 16);

@@ -18,6 +18,12 @@ export function push(href: string) {
   router.push(href as Href);
 }
 
+/** Closes the page on top (Back). With nothing to go back to (a deep link) it lands on Home. */
+export function goBack() {
+  if (router.canGoBack()) router.back();
+  else router.replace("/");
+}
+
 /** A tab root ("/", "/health", "/journal", "/more"), with or without a query. */
 export const isTabRoot = (path: string) => ["/", "/health", "/journal", "/more"].includes(path.split("?")[0]);
 

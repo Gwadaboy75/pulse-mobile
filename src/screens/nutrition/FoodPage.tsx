@@ -1,4 +1,4 @@
-// The food sheet `/food?d=&edit=` (spec §7.22): halo's src/screens/nutrition/FoodSheet.tsx in Pulse's sheet kit. Add
+// The food sheet `/food?d=&edit=` (spec §7.22): halo's src/screens/nutrition/FoodPage.tsx in Pulse's sheet kit. Add
 // food three ways (a photo, taken or chosen; a few words; or typed in), check an AI estimate as an editable list before
 // saving, and edit a food logged in Pulse. Opened from Nutrition and from the Journal's Food tile.
 //
@@ -34,10 +34,10 @@ import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
 import { CAPTION } from "@/ui/metrics/primitives";
 import { Press } from "@/ui/Press";
-import { SheetScreen, SheetSection } from "@/ui/shells/SheetScreen";
-import { closeSheet } from "@/ui/shells/sheets";
+import { TaskPage, TaskSection } from "@/ui/shells/TaskPage";
 import { Text } from "@/ui/Text";
 import { toast } from "@/ui/Toast";
+import { goBack } from "@/ui/navigate";
 
 type Step = "start" | "manual" | "estimating" | "review" | "failed";
 type Problem = EstimateProblem | "no_food";
@@ -62,7 +62,7 @@ const wallOf = (ts: number, timeZone: string) => {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View className="gap-3">
-      <SheetSection>{title}</SheetSection>
+      <TaskSection>{title}</TaskSection>
       {children}
     </View>
   );
@@ -180,11 +180,11 @@ function problemCopy(p: Problem, provider: string, photo: boolean): { title: str
   }
 }
 
-export function FoodSheet() {
+export function FoodPage() {
   const { d, edit: editId } = useLocalSearchParams<{ d?: string; edit?: string }>();
   const { custom, ready } = useNutritionTargets();
   const { data: vm } = useScreen((ctx) => (ready ? getNutrition(ctx, custom).then((v) => ({ v, day: parseDay(d, todayOf(ctx)).d })) : Promise.resolve(null)), ["nutrition", custom, ready, d]);
-  if (!vm) return <SheetScreen title={editId ? "Edit food" : "Log food"}><View className="h-40" /></SheetScreen>;
+  if (!vm) return <TaskPage title={editId ? "Edit food" : "Log food"}><View className="h-40" /></TaskPage>;
   const edit = editId ? (vm.v.meals.flatMap((g) => g.items).find((f) => f.id === editId && f.source === "pulse") ?? null) : null;
   const at = edit ? wallOf(edit.ts, vm.v.timeZone) : defaultAt({ day: vm.day, today: vm.v.today, timeZone: vm.v.timeZone });
   const meal = edit && edit.meal !== "UNKNOWN" ? edit.meal : mealAt(at.slice(11, 16));
@@ -332,7 +332,7 @@ function Sheet({ edit, at: at0, meal: meal0, timeZone, today }: { edit: FoodItem
     }
     // Food feeds the nutrition numbers, which the screens add up as they read: they read again, with no sync or scoring run.
     dataChanged();
-    closeSheet();
+    goBack();
     toast.success(message);
   };
 
@@ -429,7 +429,7 @@ function Sheet({ edit, at: at0, meal: meal0, timeZone, today }: { edit: FoodItem
       </View>
     );
     footer = (
-      <Button size="sheet" variant="outline-pill" onPress={cancel}>
+      <Button variant="outline-pill" onPress={cancel}>
         Cancel
       </Button>
     );
@@ -450,11 +450,11 @@ function Sheet({ edit, at: at0, meal: meal0, timeZone, today }: { edit: FoodItem
     footer = (
       <>
         {canRetry && (
-          <Button size="sheet" onPress={other ? again : retry}>
+          <Button onPress={other ? again : retry}>
             {other ? (photo ? "Try another photo" : "Change the description") : "Try again"}
           </Button>
         )}
-        <Button size="sheet" variant={canRetry ? "outline-pill" : "default"} onPress={typeIt}>
+        <Button variant={canRetry ? "outline-pill" : "default"} onPress={typeIt}>
           Enter it yourself
         </Button>
       </>
@@ -508,10 +508,10 @@ function Sheet({ edit, at: at0, meal: meal0, timeZone, today }: { edit: FoodItem
     footer = (
       <>
         {errorLine}
-        <Button size="sheet" onPress={saveReview} disabled={saving || !drafts.length}>
+        <Button onPress={saveReview} disabled={saving || !drafts.length}>
           {saving ? "Saving…" : drafts.length > 1 ? `Save ${drafts.length} foods` : "Save"}
         </Button>
-        <Button size="sheet" variant="outline-pill" onPress={typeIt} disabled={saving}>
+        <Button variant="outline-pill" onPress={typeIt} disabled={saving}>
           Enter it yourself
         </Button>
       </>
@@ -532,11 +532,11 @@ function Sheet({ edit, at: at0, meal: meal0, timeZone, today }: { edit: FoodItem
     footer = (
       <>
         {errorLine}
-        <Button size="sheet" onPress={saveTyped} disabled={saving}>
+        <Button onPress={saveTyped} disabled={saving}>
           {saving ? "Saving…" : edit ? "Save changes" : "Save"}
         </Button>
         {!edit && hasKey && (
-          <Button size="sheet" variant="outline-pill" onPress={again} disabled={saving}>
+          <Button variant="outline-pill" onPress={again} disabled={saving}>
             Estimate with AI instead
           </Button>
         )}
@@ -597,8 +597,8 @@ function Sheet({ edit, at: at0, meal: meal0, timeZone, today }: { edit: FoodItem
 
   const title = edit ? "Edit food" : step === "review" ? "Check the estimate" : step === "estimating" ? "Estimating…" : "Log food";
   return (
-    <SheetScreen title={title} description="Kept on this phone" footer={footer ?? undefined}>
+    <TaskPage title={title} description="Kept on this phone" footer={footer ?? undefined}>
       {body}
-    </SheetScreen>
+    </TaskPage>
   );
 }

@@ -9,10 +9,10 @@ import { Icon } from "@/ui/Icon";
 import { Press } from "@/ui/Press";
 import { CAPTION } from "@/ui/metrics/primitives";
 import { SectionShell } from "@/ui/shells/SectionShell";
-import { openSheet } from "@/ui/shells/sheets";
 import { useOptionalShellCalendar } from "@/ui/shells/ShellStatus";
 import { Text } from "@/ui/Text";
 import { useScreen } from "../useScreen";
+import { push } from "@/ui/navigate";
 
 /** Days of data before the first Pulse Age (HealthspanScreen's "needs 20 days"). */
 const FIRST_AGE_DAYS = 20;
@@ -59,7 +59,7 @@ export function FirstAge({ vm }: { vm: HealthspanVM }) {
           const ready = all.filter((c) => c.metric.value !== null).length;
           return <Row key={group} done={ready === all.length} title={label} detail={`${ready} of ${all.length} measures ready`} />;
         })}
-        <Row done={height !== null} title="Height" detail={height !== null ? `${height} cm` : "Optional. Adds lean body mass."} onPress={() => openSheet("/profile")} />
+        <Row done={height !== null} title="Height" detail={height !== null ? `${height} cm` : "Optional. Adds lean body mass."} onPress={() => push("/profile")} />
       </View>
     </SectionShell>
   );

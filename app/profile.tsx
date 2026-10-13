@@ -2,8 +2,8 @@ import { View } from "react-native";
 import { ProfileForm, SaveButton } from "@/screens/onboarding/ProfileForm";
 import { toast } from "@/ui/Toast";
 import { useScreen } from "@/screens/useScreen";
-import { SheetScreen } from "@/ui/shells/SheetScreen";
-import { closeSheet } from "@/ui/shells/sheets";
+import { TaskPage } from "@/ui/shells/TaskPage";
+import { goBack } from "@/ui/navigate";
 
 // Settings › Profile › Edit (U19): the onboarding fields in a sheet, at the sheet's smaller sizes. Saving recomputes every
 // day's scores. Registered in app/_layout.tsx. Ported from pulse (app)/settings/SettingsClient.tsx `EditProfileButton`.
@@ -14,19 +14,19 @@ const DESCRIPTION = "Changing it recomputes every day’s scores.";
 
 export default function EditProfile() {
   const { data } = useScreen(async (ctx) => ctx.profile, ["profile"]);
-  if (!data) return <SheetScreen title={TITLE} description={DESCRIPTION}>{null}</SheetScreen>;
+  if (!data) return <TaskPage title={TITLE} description={DESCRIPTION}>{null}</TaskPage>;
   return (
     <ProfileForm
       defaults={{ birthDate: data.birthDate, sex: data.sex, maxHr: data.maxHr, heightCm: data.heightCm, timeZone: data.timeZone, name: data.name }}
       onSaved={() => {
-        closeSheet();
+        goBack();
         toast.success("Profile saved. Scores are being recomputed.");
       }}
       footer={({ pending, submit }) => <SaveButton pending={pending} label="Save profile" onPress={submit} />}
       sheet={(fields, footer) => (
-        <SheetScreen title={TITLE} description={DESCRIPTION} footer={<View className="px-4">{footer}</View>}>
+        <TaskPage title={TITLE} description={DESCRIPTION} footer={<View className="px-4">{footer}</View>}>
           <View className="px-4">{fields}</View>
-        </SheetScreen>
+        </TaskPage>
       )}
     />
   );

@@ -1,4 +1,4 @@
-// The Trends metric picker (web: trends/MetricSheet.tsx + parts.tsx MetricPicker). One card row names the section and
+// The Trends metric picker (web: trends/MetricPage.tsx + parts.tsx MetricPicker). One card row names the section and
 // metric on show; a tap opens a bottom sheet of the sections, the current one open, its metrics as wrapping chips (one
 // section at a time, so the sheet stays about a screen tall). On the phone the sheet is a route (/trends-metric); a choice
 // goes back to /trends with the new `metric`, keeping `r`.
@@ -9,12 +9,12 @@ import { ChevronDown, ChevronsUpDown } from "lucide-react-native";
 import { cn } from "@/ui/cn";
 import { haptic } from "@/ui/haptics";
 import { Icon } from "@/ui/Icon";
-import { SheetScreen } from "@/ui/shells/SheetScreen";
-import { openSheet } from "@/ui/shells/sheets";
+import { TaskPage } from "@/ui/shells/TaskPage";
 import { Text } from "@/ui/Text";
 import { TREND_GROUPS, TREND_METRICS, type TrendMetricKey } from "@/queries/trends";
 import { CardButton, Turn } from "./parts";
 import { Press } from "@/ui/Press";
+import { push } from "@/ui/navigate";
 
 const GROUPS = TREND_GROUPS.map((g) => ({ group: g, metrics: TREND_METRICS.filter((m) => m.group === g).map(({ key, label }) => ({ key, label })) }));
 const SHOWN = GROUPS.flatMap((g) => g.metrics.map((m) => ({ ...m, group: g.group })));
@@ -26,7 +26,7 @@ export function MetricPicker({ current, r }: { current?: TrendMetricKey; r?: str
   return (
     <CardButton
       accessibilityLabel={`${metric.group}, ${metric.label}. Choose a metric`}
-      onPress={() => openSheet(`/trends-metric?current=${metric.key}${r ? `&r=${r}` : ""}`)}
+      onPress={() => push(`/trends-metric?current=${metric.key}${r ? `&r=${r}` : ""}`)}
       className="min-h-14 w-full flex-row items-center gap-3 px-4 py-2"
     >
       <View className="min-w-0 flex-1">
@@ -39,13 +39,13 @@ export function MetricPicker({ current, r }: { current?: TrendMetricKey; r?: str
 }
 
 /** The sheet's content (route /trends-metric). */
-export function MetricSheetBody({ current, r }: { current?: string; r?: string }) {
+export function MetricPageBody({ current, r }: { current?: string; r?: string }) {
   const metric = metricOf(current);
   const [expanded, setExpanded] = useState<string>(metric.group);
   const choose = (key: TrendMetricKey) => router.dismissTo({ pathname: "/trends", params: { metric: key, ...(r ? { r } : null) } });
   return (
-    <SheetScreen title="Metric">
-      {/* The web's list has its own `px-4` inside the drawer's `px-4`: 32 px of side margin. Its `pb-[max(env(safe-area-inset-bottom),16px)]` is the sheet's own bottom padding here (SheetScreen). */}
+    <TaskPage title="Metric">
+      {/* The web's list has its own `px-4` inside the drawer's `px-4`: 32 px of side margin. Its `pb-[max(env(safe-area-inset-bottom),16px)]` is the sheet's own bottom padding here (TaskPage). */}
       <View className="px-4">
         {GROUPS.map(({ group, metrics }, i) => {
           const on = group === expanded;
@@ -76,6 +76,6 @@ export function MetricSheetBody({ current, r }: { current?: string; r?: string }
           );
         })}
       </View>
-    </SheetScreen>
+    </TaskPage>
   );
 }

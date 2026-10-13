@@ -46,7 +46,7 @@ const metricStates: [string, Metric<number> | null | undefined][] = [
 
 /** The token swatches, grouped as the web's globals.css groups them. */
 const SWATCHES: { title: string; tokens: TokenName[] }[] = [
-  { title: "Ground and surfaces", tokens: ["background-top", "background-mid", "background", "card", "card-hover", "popover", "sheet", "inset", "field", "muted", "secondary", "accent"] },
+  { title: "Ground and surfaces", tokens: ["background-top", "background-mid", "background", "card", "card-hover", "popover", "inset", "field", "muted", "secondary", "accent"] },
   { title: "Text", tokens: ["foreground", "foreground-secondary", "muted-foreground", "primary", "primary-foreground", "destructive"] },
   { title: "Recovery, strain, sleep", tokens: ["recovery-green", "recovery-yellow", "recovery-red", "recovery-red-text", "strain", "strain-text", "strain-deep", "sleep", "sleep-deep", "optimal", "optimal-text", "warning", "warning-text"] },
   { title: "Stress and coach", tokens: ["stress-low", "stress-medium", "stress-high", "coach", "coach-text", "insight-from", "insight-to", "banner-from", "banner-to"] },
@@ -86,7 +86,7 @@ const TYPE = [
 function SheetDemo() {
   return (
     <View className="flex-row flex-wrap gap-2">
-      <Button variant="secondary" onPress={() => go("/dev/sheet")}>Open task page</Button>
+      <Button variant="secondary" onPress={() => go("/dev/task")}>Open task page</Button>
     </View>
   );
 }
@@ -269,7 +269,7 @@ export default function Kit() {
           </Frame>
           <Frame name="long label at 320 px" narrow><LinkList title="Data" rows={[{ label: "Export everything Pulse has stored", href: "/dev/kit", icon: BookOpen, aside: "CSV" }]} /></Frame>
         </Entry>
-        <Entry name="SheetScreen" file="src/ui/shells/SheetScreen.tsx" use="Every task page: what the web shows in its Vaul drawer (journal entries, vitals, contributors), pushed as a full-screen page with Back. Routes: app/(sheets)/, see sheets.ts." props={["title, description", "footer", "action, onClose, done"]}>
+        <Entry name="TaskPage" file="src/ui/shells/TaskPage.tsx" use="Every task page: what the web shows in its Vaul drawer (journal entries, vitals, contributors), pushed as a full-screen page with Back. Routes: app/, see sheets.ts." props={["title, description", "footer", "action, onClose, done"]}>
           <Frame name="default, tall and screen (opens)"><SheetDemo /></Frame>
         </Entry>
         <Entry name="Page shells" file="src/ui/shells/" use="Shells that only render as a whole page. Each one is live somewhere.">

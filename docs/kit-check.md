@@ -42,7 +42,7 @@ Check each frame in light and in dark. "Same" means the same number, copy, colou
 | SectionShell | Section title 22 px, card title caps, the chevron on a whole-card link, the info button, "View all" link. |
 | CollapsibleSection, EmptyState, MetricState | The chevron turns; the five states (loading, empty, reason, provisional, value) in one list; each reason code's icon and copy. |
 | DateSwitcher, CalendarPanel | Pill sizes and labels ("Today", "Yesterday", "Mon., Sep. 28"); steppers grey out at today; the calendar drops from the top, colours Recovery days, shows a dashed ring on today and the legend; the week pill. |
-| InfoButton, LinkList, SheetScreen | The info card (centred over the dim, as the web: title caps, chip, outline action); 56 px link rows; the sheet demos (Open sheet, tall, screen): handle, centred caps title, X at the right, pill footer, the three sizes. |
+| InfoButton, LinkList, TaskPage | The info card (centred over the dim, as the web: title caps, chip, outline action); 56 px link rows; the sheet demos (Open sheet, tall, screen): handle, centred caps title, X at the right, pill footer, the three sizes. |
 | ScoreDial | The 4 degree gap at 12 o'clock; band colours (green 67+, yellow 34 to 66, red below); the Strain Target band and white tick; the stress gauge's gradient arc and needle; every reason code in the large ring; tags stack; compact form; loading; arc thickness against the web at each size. |
 | MiniRing | Track and fill at 0, mid, max; no value. |
 | KeyStatRow | Row, card and tile: label caps, value and unit, the average under the value, arrow direction and tone, the status segments, chips, tags, the wide tile with a sparkline, reasons, loading. |

@@ -215,7 +215,7 @@ export function BreatheScreen() {
     primary = (
       <View className="gap-3">
         {liveCard}
-        <Button variant="secondary" size="sheet" haptic onPress={() => finish(Date.now())}>
+        <Button variant="secondary" haptic onPress={() => finish(Date.now())}>
           End session
         </Button>
       </View>
@@ -224,10 +224,10 @@ export function BreatheScreen() {
     primary = (
       <View className="gap-3">
         <Summary rec={result} />
-        <Button size="sheet" onPress={start}>
+        <Button onPress={start}>
           Go again
         </Button>
-        <Button variant="secondary" size="sheet" onPress={() => setResult(null)}>
+        <Button variant="secondary" onPress={() => setResult(null)}>
           Change pace
         </Button>
       </View>
@@ -260,7 +260,7 @@ export function BreatheScreen() {
           </View>
         </SectionShell>
         {liveCard}
-        <Button size="sheet" onPress={start}>
+        <Button onPress={start}>
           Start
         </Button>
       </View>

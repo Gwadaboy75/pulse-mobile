@@ -2,15 +2,15 @@ import { useState } from "react";
 import { TextInput, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Button } from "@/ui/Button";
-import { SheetScreen, SheetSection } from "@/ui/shells/SheetScreen";
-import { closeSheet } from "@/ui/shells/sheets";
+import { TaskPage, TaskSection } from "@/ui/shells/TaskPage";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
+import { goBack } from "@/ui/navigate";
 
 const BODY = "text-[15px] leading-[22px] text-foreground-secondary";
 
 /**
- * The kit's task page demo: /dev/sheet (and an optional title). Has a text field to check that the keyboard does not
+ * The kit's task page demo: /dev/task (and an optional title). Has a text field to check that the keyboard does not
  * cover it, and Save for the success haptic and the confirmation.
  */
 export default function SheetDemo() {
@@ -18,22 +18,22 @@ export default function SheetDemo() {
   const { c } = useTheme();
   const [saved, setSaved] = useState(false);
   return (
-    <SheetScreen
+    <TaskPage
       title={title}
       description="Updated each morning"
-      done={saved ? { title: "Saved", body: "Have a great day!", onDone: closeSheet } : null}
+      done={saved ? { title: "Saved", body: "Have a great day!", onDone: goBack } : null}
       footer={
         <>
-          <Button size="sheet" onPress={() => setSaved(true)}>Save</Button>
-          <Button size="sheet" variant="outline-pill" onPress={closeSheet}>Cancel</Button>
+          <Button onPress={() => setSaved(true)}>Save</Button>
+          <Button variant="outline-pill" onPress={goBack}>Cancel</Button>
         </>
       }
     >
       <View className="gap-4">
-        <SheetSection>Why</SheetSection>
+        <TaskSection>Why</TaskSection>
         <Text className={BODY}>Recovery shows how ready your body is to take on strain, from 0 to 100%. Pulse scores it each morning from last night&apos;s heart rate variability, resting heart rate, respiratory rate, sleep performance and skin temperature, each compared with your own baseline.</Text>
         <Text className={BODY}>Recovery needs 7 nights of HRV before the first score and stays provisional until 14.</Text>
-        <SheetSection>Note</SheetSection>
+        <TaskSection>Note</TaskSection>
         <TextInput
           accessibilityLabel="Note"
           placeholder="Type here to try the keyboard"
@@ -43,6 +43,6 @@ export default function SheetDemo() {
           textAlignVertical="top"
         />
       </View>
-    </SheetScreen>
+    </TaskPage>
   );
 }

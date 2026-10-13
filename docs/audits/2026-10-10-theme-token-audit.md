@@ -94,10 +94,10 @@ The web uses the same modifiers (`bg-foreground/8` 23x, `/[0.06]` 21x, `bg-muted
 | `bg-foreground/[0.04]` | 2 | settings/DataSource.tsx:267, shells/DateSwitcher.tsx:83 | `bg-fill-faint` |
 | `bg-foreground/[0.045]` | 1 | shells/HomeHeader.tsx:99 | `bg-fill-faint` (drift: .045) |
 | `bg-foreground/[0.06]` | 9 | activity/ActivitiesScreen.tsx:76, home/EditDashboard.tsx:45,144, reports/ReportsScreen.tsx:91, settings/controls.tsx:58,59,136, settings/DataSource.tsx:255, kit/KitScreen.tsx:119 | `bg-fill-faint` |
-| `bg-foreground/[0.07]` | 3 | home/EditDashboard.tsx:25, journal/CheckInSheet.tsx:298, metrics/DayStrip.tsx:76 | `bg-fill-faint` (drift: .07) |
+| `bg-foreground/[0.07]` | 3 | home/EditDashboard.tsx:25, journal/CheckInPage.tsx:298, metrics/DayStrip.tsx:76 | `bg-fill-faint` (drift: .07) |
 | `bg-foreground/[0.08]` | 5 | home/HomeInsight.tsx:77,83, home/HomeSkeleton.tsx:54, shells/CalendarPanel.tsx:121, shells/DateSwitcher.tsx:90 | `bg-fill-hover` |
-| `bg-foreground/8` | 8 | activity/ActivityMenu.tsx:33, journal/CheckInSheet.tsx:233, onboarding/BirthDatePicker.tsx:125, onboarding/TimeZonePicker.tsx:106, kit/KitScreen.tsx:74, shells/DetailHeader.tsx:41, shells/InfoDialog.tsx:61, shells/SheetScreen.tsx:113 | `bg-fill-hover` (the same value as `[0.08]` written two ways) |
-| `bg-foreground/10` | 7 | activity/ActivityMenu.tsx:26, home/PlusMenu.tsx:42, trends/TrendMetricMenu.tsx:45, trends/TrendViewScreen.tsx:114, charts/ZoneBars.tsx:116, metrics/DayStrip.tsx:76, shells/SheetScreen.tsx:36 | `bg-fill-pressed` / divider |
+| `bg-foreground/8` | 8 | activity/ActivityMenu.tsx:33, journal/CheckInPage.tsx:233, onboarding/BirthDatePicker.tsx:125, onboarding/TimeZonePicker.tsx:106, kit/KitScreen.tsx:74, shells/DetailHeader.tsx:41, shells/InfoDialog.tsx:61, shells/TaskPage.tsx:113 | `bg-fill-hover` (the same value as `[0.08]` written two ways) |
+| `bg-foreground/10` | 7 | activity/ActivityMenu.tsx:26, home/PlusMenu.tsx:42, trends/TrendMetricMenu.tsx:45, trends/TrendViewScreen.tsx:114, charts/ZoneBars.tsx:116, metrics/DayStrip.tsx:76, shells/TaskPage.tsx:36 | `bg-fill-pressed` / divider |
 | `bg-foreground/[0.12]` | 1 | metrics/SleepStages.tsx:79 | `bg-fill-pressed` |
 | `bg-foreground/15` `/20` `/30` `/35` `/45` | 1 each | journal/Slider.tsx:56, metrics/ContributorRow.tsx:90,163, sleep/SleepCards.tsx:203,114 | data-viz neutrals: name `--track-neutral` (low) |
 | `bg-foreground/80` | 4 | sleep/SleepCards.tsx:72,116,276, metrics/SleepCard.tsx:29 | name `--bar-neutral` (low) |
@@ -142,15 +142,15 @@ The web uses the same modifiers (`bg-foreground/8` 23x, `/[0.06]` 21x, `bg-muted
 | `alpha(c.foreground, 0.04)` x2 | charts/ColumnChart.tsx:77, charts/TrendChart.tsx:280 | equals `--chart-band` |
 | `alpha(c.foreground, 0.06)` | charts/StrainRecoveryChart.tsx:88 | |
 | `alpha(c.foreground, 0.07)` | charts/Hypnogram.tsx:69 | equals `--chart-highlight` |
-| `alpha(c.foreground, 0.1)` x3 | journal/CheckInSheet.tsx:52, trends/TrendMetricMenu.tsx:42, charts/ChartFrame.tsx:233 | = `--border` (light) / overlay ring |
+| `alpha(c.foreground, 0.1)` x3 | journal/CheckInPage.tsx:52, trends/TrendMetricMenu.tsx:42, charts/ChartFrame.tsx:233 | = `--border` (light) / overlay ring |
 | `alpha(c.foreground, 0.16)` + `0.02` | shells/TabBar.tsx:42 | tab-selection gradient; name `--tab-pill-from/to` |
 | `alpha(c.foreground, 0.2)` | home/TonightPlan.tsx:47 | dashed line |
 | `alpha(c.foreground, 0.22)` | charts/Hypnogram.tsx:71 | |
-| `alpha(c.foreground, 0.25)` | shells/SheetScreen.tsx:157 | sheet handle; name `--sheet-handle` |
+| `alpha(c.foreground, 0.25)` | shells/TaskPage.tsx:157 | sheet handle; name `--sheet-handle` |
 | `alpha(c.foreground, 0.3)` | journal/Slider.tsx:62 | thumb shadow (see 1A) |
 | `alpha(c.foreground, 0.35)`, `0`, `0.55` | sleep/SleepCards.tsx:70,214 | baseline gradient |
 | `alpha(c.foreground, 0.7)` x3 | onboarding/BirthDatePicker.tsx:116, settings/controls.tsx:69, ui/Button.tsx:61 | = `ring-foreground/70` (class form at controls.tsx:64, Button.tsx:22): one focus ring, two spellings |
-| `alpha(c.foreground, 0.8)` | journal/CheckInSheet.tsx:53 | |
+| `alpha(c.foreground, 0.8)` | journal/CheckInPage.tsx:53 | |
 | `alpha(c.foreground, 0)` | sleep/SleepCards.tsx:70 | gradient start |
 | `alpha(c.input, 0.3)` x2 | log/DateTimeField.tsx:50, log/fields.tsx:24 | = `bg-input/30` (class form in controls.tsx and Button.tsx): same fill, two spellings; also gated on `scheme === "dark"` in JS |
 | `alpha(c.field, 0.65)`, `0` | onboarding/BirthDatePicker.tsx:101,102 | picker fade |
@@ -202,7 +202,7 @@ tailwind.config.js defines the web scale (sm 4, md 8, lg 10, xl 12, 2xl 16, 3xl 
 | src/screens/settings/controls.tsx:114 | `rounded-[10px]` | `rounded-lg` |
 | src/screens/home/PlusMenu.tsx:31, src/screens/home/HomeSkeleton.tsx:101 | `rounded-[10px]` x2 | `rounded-lg` |
 | `rounded-[2px]` x11, `rounded-[3px]` x9, `rounded-[4px]` x5, `rounded-[1px]` x1, `rounded-tl-[3px]` x1 | metrics/TrendLegend.tsx:16,18; BreakdownBar.tsx:33; ContributorRow.tsx:160,212; SleepStages.tsx:87,161,162,227; charts/TrendChart.tsx:354,360; ZoneBars.tsx:72,111,112,198; ChartFrame.tsx:246; journal/DayLog.tsx:64; sleep/SleepCards.tsx:21,50,203,276; sleep/SleepSkeleton.tsx:32,36,86,87; health/LoadChart.tsx:113; shells/DetailShell.tsx:102 | swatch radius: add `rounded-swatch` (2) and `rounded-bar` (3); `rounded-sm` is 4 |
-| `rounded-[2px]` in CheckInSheet.tsx:56 | `rounded-[` (size-11 radio) | `rounded-xl` check |
+| `rounded-[2px]` in CheckInPage.tsx:56 | `rounded-[` (size-11 radio) | `rounded-xl` check |
 
 Native sheet radius (`sheetCornerRadius: RADIUS`) cannot use a class; it must read the shared JS constant.
 
@@ -218,7 +218,7 @@ Web: fast 150, base 220, overlay 320 / 200; easings `--ease-standard (0.2,0,0,1)
 | 300 ms | ui/Toast.tsx:67, shells/DoneScreen.tsx:29,34 |
 | 120 ms | home/EditDashboard.tsx:188,203 |
 | 100 ms delay | shells/DoneScreen.tsx:34 |
-| spinner 900 / 1000 ms linear | settings/DataSource.tsx:106, journal/CheckInSheet.tsx:39 (two spinners, two speeds) |
+| spinner 900 / 1000 ms linear | settings/DataSource.tsx:106, journal/CheckInPage.tsx:39 (two spinners, two speeds) |
 | `Easing.bezier(0, 0, 0.2, 1)` + 1500/500 | health/LastReading.tsx:21 |
 | `Easing.bezier(0.16, 1, 0.3, 1)` | health/AgeOrb.tsx:410 (= `--ease-out-expo`) |
 | orb entry 1.2 s / 0.35 s | health/orb.ts:59 (art, keep) |
@@ -232,7 +232,7 @@ Proposed: `src/ui/motion.ts` exporting `DURATION = { fast: 150, base: 220, overl
 | src/ui/Ground.tsx:21,27,35,36,37 | `740`, `270`, `270 / 740` (web `--ground` stops) | `GROUND = { mid: 270, end: 740 }` shared with `groundColorAt` (already the same numbers twice in one file) |
 | src/ui/shells/Header.tsx:20 | `HEADER_FADE = 24` | fine as a named const; keep |
 | src/ui/charts/ChartFrame.tsx:121 | `textShadowRadius: 3, textShadowOffset 0/0` (label halo) | `CHART.halo` const (halo colour is `c.card`, set in StrainRecoveryChart.tsx:82 and TrendViewChart.tsx:77, two copies of the choice) |
-| src/ui/shells/SheetScreen.tsx:110 | handle `h-1.5 w-10 mt-2.5` | shared with web drawer, keep |
+| src/ui/shells/TaskPage.tsx:110 | handle `h-1.5 w-10 mt-2.5` | shared with web drawer, keep |
 | src/ui/shells/layout.ts:4-5 | `TAB_BAR_HEIGHT = 62`, `FAB_SIZE = 62` | good: already shared |
 | Stroke widths | `strokeWidth` literals: 1.75 x45 (icons; `Icon.tsx:10` default), 2 x36, 1.5 x19, 2.5 x13, 2.25 x9, 3 x8, 1 x7, 0 x3, plus 1.6, 1.25, 14 | icon stroke 1.75 is the token: 40+ call sites repeat the default of `Icon`; chart line widths 1.5/2/2.5 deserve `CHART.line` consts (low) |
 | Border widths | `border` (1 px) everywhere; `border-[5px]` x1 | fine |
@@ -257,7 +257,7 @@ Proposed: `src/ui/motion.ts` exporting `DURATION = { fast: 150, base: 220, overl
 | 4.10 | Mobile-only tokens with no web twin: `destructive`(web has it in dark only via shadcn), `answer-yes`, `on-color`, `on-strain`, `action-rim-from/to`, `on-media`, `media-ground`, `flame-*`, `chart-highlight`, `chart-faint`, `strain-band-1..4`. Fine; they mirror web values that the web writes with `color-mix()` or inlines. | ok |
 | 4.11 | Tokens used with the opposite scheme inline: `scheme === "dark" ? alpha(c.input, 0.3) : "transparent"` (log/DateTimeField.tsx:50, log/fields.tsx:24), `scheme !== "dark"` returns null in CardFill (Card.tsx:21). Behaviour keyed on the scheme instead of a token (`--card-top` equals `--card` in light, so the early return is an optimisation that breaks if the light card-top ever differs). Same for `Hatch`, `Glass`, `Card`, overlay shadows: 11 sites branch on `scheme` to pick a literal. | medium |
 
-Other scheme branches that are fine (they pick a native API value, not a colour): app/_layout.tsx:68,76 (`DarkTheme`, StatusBar), shells/SheetScreen.tsx:155 (StatusBar), health/orb.ts:66 (`ORB.theme`), Glass.tsx:30 (`tint={scheme}`).
+Other scheme branches that are fine (they pick a native API value, not a colour): app/_layout.tsx:68,76 (`DarkTheme`, StatusBar), shells/TaskPage.tsx:155 (StatusBar), health/orb.ts:66 (`ORB.theme`), Glass.tsx:30 (`tint={scheme}`).
 
 ## Category 5: Looks re-typed instead of taken from a shared piece
 

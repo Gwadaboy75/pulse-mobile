@@ -38,7 +38,7 @@ export function Consent() {
         ))}
       </View>
       {error && <Text className={ERROR}>{error}</Text>}
-      <Button size="sheet" onPress={() => void setConsent(true).catch(() => setError("Couldn’t save that. Try again."))}>
+      <Button onPress={() => void setConsent(true).catch(() => setError("Couldn’t save that. Try again."))}>
         Allow
       </Button>
     </View>
@@ -115,7 +115,7 @@ export function ConnectProvider({ current, onSaved }: { current: CoachSetup; onS
           {error}
         </Text>
       )}
-      <Button size="sheet" disabled={testing || !key.trim()} onPress={() => void save()}>
+      <Button disabled={testing || !key.trim()} onPress={() => void save()}>
         {testing ? "Testing…" : "Test and save"}
       </Button>
       <Text className={HINT}>Pulse checks the key with one tiny request before saving it.</Text>

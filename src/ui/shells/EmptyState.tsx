@@ -5,7 +5,6 @@ import { Button } from "../Button";
 import { cn } from "../cn";
 import { Icon } from "../Icon";
 import { Text } from "../Text";
-import { openSheet } from "./sheets";
 import { push } from "../navigate";
 
 export type EmptyStateProps = {
@@ -27,7 +26,7 @@ export function EmptyState({ icon, body, action, className }: EmptyStateProps) {
         <Button
           variant="secondary"
           className="mt-2"
-          onPress={() => (action.sheet ? openSheet(action.sheet) : action.href ? push(action.href) : action.onClick?.())}
+          onPress={() => (action.sheet ? push(action.sheet) : action.href ? push(action.href) : action.onClick?.())}
         >
           {action.label}
         </Button>
