@@ -15,8 +15,7 @@ export type TaskPageProps = {
   title: string;
   description?: string;
   children: ReactNode;
-  /** A form's Save, pinned above the navigation bar (Log, Profile, the Journal). Pages that only show things put their
-   *  actions in the content instead. */
+  /** The page's actions (Save, Edit), 44 px touch buttons pinned above the navigation bar. */
   footer?: ReactNode;
   /** The header's right-hand control (the Journal's pencil), opposite Back. */
   action?: ReactNode;
@@ -96,9 +95,9 @@ export function TaskPage({ title, description, children, footer, action, glow, d
   // A glow page keeps its header in the flow over the glow (the detail header's ground fill would cover the glow).
   const top = glow ? 0 : framed;
   const header = { title, subtitle: description, action, onBack: onClose ?? goBack };
-  // The web's bottom padding, `pb-[max(env(safe-area-inset-bottom),16px)]`, under the actions or, with none, under the
-  // body: the navigation bar's inset, so the actions sit above the gesture bar. Above the keyboard: 16 pt.
-  const pad = keyboard ? 16 : Math.max(insets.bottom, 16);
+  // Under the pinned actions or, with none, under the body: the navigation bar's inset plus a gap, so a button never sits
+  // on the screen's edge (the web's max(inset, 16px) left it touching the gesture bar). Above the keyboard: 16 pt.
+  const pad = keyboard ? 16 : insets.bottom + 24;
 
   return (
     <View style={[styles.fill, { backgroundColor: c.background, paddingBottom: keyboard }]}>

@@ -3,7 +3,8 @@ import { View } from "react-native";
 import { useIsFocused } from "expo-router";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { DURATION } from "../motion";
-import { Skeleton } from "../Skeleton";
+import { Card } from "../Card";
+import { Skeleton, SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { InfoContent } from "./InfoButton";
@@ -13,6 +14,7 @@ import { DateSwitcher } from "./DateSwitcher";
 import { DetailHeader, type DetailHeaderProps } from "./DetailHeader";
 import { HEADER_ROW } from "./Header";
 import { ScreenScroll, type ScreenScrollProps, useCollapse } from "./ScreenScroll";
+import { SectionShell, type SectionShellProps } from "./SectionShell";
 import { useShellSync } from "./ShellStatus";
 import { useBodyShown, useScreenReady } from "./useScreenReady";
 
@@ -58,7 +60,7 @@ export function DetailShell({ title, subtitle, info, backHref, dateSwitcher, dis
   const compact = collapse && isValidElement<{ compact?: boolean }>(hero) ? cloneElement(hero, { compact: true }) : null;
   // The whole page renders at once when the screen is preloaded (Home preloads its dials' screens) or already settled.
   // A cold push renders the top first, because the native slide starts only after that render: the page below the fold
-  // holds a card-shaped skeleton during the slide and fades in when the slide ends. Once rendered it stays.
+  // holds skeletons of its sections during the slide and fades in when the slide ends. Once rendered it stays.
   const ready = useScreenReady();
   const focused = useIsFocused();
   const [below, setBelow] = useState(ready || !focused);
@@ -111,7 +113,7 @@ export function DetailShell({ title, subtitle, info, backHref, dateSwitcher, dis
               {footer}
             </Animated.View>
           ) : (
-            (primary || secondary?.length || footer) && <Skeleton className="h-96 rounded-2xl" />
+            (primary || secondary?.length || footer) && <BodySkeleton sections={[primary, ...(secondary ?? [])]} />
           )}
         </View>
       </View>}
@@ -122,4 +124,38 @@ export function DetailShell({ title, subtitle, info, backHref, dateSwitcher, dis
 /** The small square above a summary card, pointing at the hero (the web's rotated notch). */
 function Notch() {
   return <View accessibilityElementsHidden className="absolute -top-2 left-1/2 -ml-2 size-4 rotate-45 rounded-tl-[3px] bg-card" />;
+}
+
+
+/**
+ * The page below the fold while it waits for the slide to end: one skeleton per section, each in the section's own
+ * chrome (a SectionShell with its real title), so the page's shape shows instead of one empty box. The first three are
+ * enough to fill the screen.
+ */
+function BodySkeleton({ sections }: { sections: ReactNode[] }) {
+  return (
+    <View className="gap-3">
+      {Children.toArray(sections)
+        .slice(0, 3)
+        .map((s, i) => {
+          const p = isValidElement<Partial<SectionShellProps>>(s) ? s.props : {};
+          const body = (
+            <View className="gap-3">
+              <Skeleton className="h-28 rounded-lg bg-skeleton" />
+              <SkeletonText className="w-3/4" />
+            </View>
+          );
+          return p.title ? (
+            <SectionShell key={i} variant={p.variant ?? "card"} title={p.title} info={false}>
+              {body}
+            </SectionShell>
+          ) : (
+            <Card key={i} className="gap-3 p-4">
+              <SkeletonText className="w-28" />
+              {body}
+            </Card>
+          );
+        })}
+    </View>
+  );
 }

@@ -14,18 +14,19 @@ import { Card } from "@/ui/Card";
 import { cn } from "@/ui/cn";
 import { Divided } from "@/ui/Divided";
 import { Icon } from "@/ui/Icon";
-import { CAPTION, DeltaMark } from "@/ui/metrics/primitives";
+import { CAPTION } from "@/ui/metrics/primitives";
 import { goBack, push } from "@/ui/navigate";
 import { useSelectedDay } from "@/ui/shells/DateSwitcher";
 import { EmptyState } from "@/ui/shells/EmptyState";
 import { SectionShell } from "@/ui/shells/SectionShell";
-import { TaskPage, TaskSection } from "@/ui/shells/TaskPage";
+import { InfoButton } from "@/ui/shells/InfoButton";
+import { TaskPage } from "@/ui/shells/TaskPage";
 import { SkeletonText } from "@/ui/Skeleton";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
 import { GOALS_SETTINGS } from "./Goals";
-import { ASIDE, BarLine, GoalRowShell, planColor, UNDER_LABEL, WeekColumns } from "./parts";
-import { ageText, PLAN_STATUS, planCaption, planTargetText, planValueText } from "./weeklyPlanView";
+import { ASIDE, BarLine, GoalRowShell, planColor } from "./parts";
+import { PLAN_STATUS, planCaption, planTargetText, planValueText } from "./weeklyPlanView";
 
 export const PLAN_ICON: Record<PlanKey, LucideIcon> = { zone13: HeartPulse, zone45: Flame, strength: Dumbbell, steps: Footprints, consistency: CalendarCheck, sleepNeed: Moon };
 
@@ -96,57 +97,34 @@ function PlanRowCompact({ it }: { it: PlanRow }) {
 }
 
 /** The last 8 weeks as small grey squares, oldest first: filled when the target was met, outlined otherwise. */
-function WeekDots({ it }: { it: PlanRow }) {
-  const met = it.weeks.filter((w) => w.met).length;
-  return (
-    <View accessible accessibilityLabel={`Met in ${met} of the last ${it.weeks.length} weeks`} className={cn(UNDER_LABEL, "flex-row items-center gap-2")}>
-      <Text className={cn(CAPTION, "min-w-0 flex-1")}>{`Last ${it.weeks.length} weeks`}</Text>
-      <View className="flex-row gap-1">
-        {it.weeks.map((w) => (
-          <View key={w.monday} className={cn("size-2 rounded-xs", w.met ? "bg-foreground-secondary" : "border border-border")} />
-        ))}
-      </View>
-    </View>
-  );
-}
-
 /** One target's full row in the sheet; the head links to its screen. */
-function PlanLine({ it, day, onOpen }: { it: PlanRow; day: string; onOpen: () => void }) {
+function PlanLine({ it, onOpen }: { it: PlanRow; onOpen: () => void }) {
   const { c } = useTheme();
-  const age = ageText(it.ageYears);
-  const status = PLAN_STATUS[it.status];
   return (
-    <View className="gap-2 pb-3">
-      <GoalRowShell
-        icon={PLAN_ICON[it.key]}
-        label={it.label}
-        caption={planCaption(it)}
-        value={planValueText(it)}
-        of={planTargetText(it)}
-        muted={it.value === null}
-        mark={status.mark}
-        spoken={`${it.label}: ${planValueText(it)} ${planTargetText(it)}. ${planCaption(it)}`}
-        onPress={onOpen}
-      >
-        <BarLine value={it.progress} color={planColor(c, it.key)} tick={paceOf(it)} caption={status.word} />
-      </GoalRowShell>
-      <WeekColumns cols={it.days.map((d) => ({ day: d.day, met: d.met }))} current={day} label={`${it.label}, this week: met on ${it.days.filter((d) => d.met).length} days`} className={UNDER_LABEL} />
-      <WeekDots it={it} />
-      <View className={cn(UNDER_LABEL, "flex-row items-start gap-2")}>
-        <Text className={cn(CAPTION, "min-w-0 flex-1")}>{it.detail}</Text>
-        {age && (
-          <View className="shrink-0 flex-row items-center gap-1.5">
-            <Text className={cn(CAPTION, "font-numeric tabular-nums")}>{`Pulse Age ${age}`}</Text>
-            {/* Younger is good: a habit that takes years off points down in the good tone. */}
-            <DeltaMark dir={it.ageYears! > 0.05 ? "up" : it.ageYears! < -0.05 ? "down" : "flat"} tone={it.ageYears! > 0.05 ? "bad" : it.ageYears! < -0.05 ? "good" : "neutral"} />
-          </View>
-        )}
-      </View>
-    </View>
+    <GoalRowShell
+      icon={PLAN_ICON[it.key]}
+      label={it.label}
+      value={planValueText(it)}
+      of={planTargetText(it)}
+      muted={it.value === null}
+      mark={PLAN_STATUS[it.status].mark}
+      spoken={`${it.label}: ${planValueText(it)} ${planTargetText(it)}. ${planCaption(it)}`}
+      onPress={onOpen}
+    >
+      <BarLine value={it.progress} color={planColor(c, it.key)} tick={paceOf(it)} />
+      <Text className={cn(CAPTION, "mt-1.5")}>{planCaption(it)}</Text>
+    </GoalRowShell>
   );
 }
 
-/** The sheet `/weekly-plan?d=` (halo's PlanPage). */
+// Each row is the target, its bar and one line, so the page reads at a glance (the owner found the week's days, the
+// last 8 weeks and the per-habit Pulse Age effect too noisy here). A tap opens the habit's screen; Pulse Age has its own.
+const WHY_THESE = {
+  title: "Why these",
+  body: "These are the habits Pulse Age scores. The defaults follow the WHO’s 150 moderate or 75 vigorous minutes and two strength days a week, about 8,000 steps a day, and a steady sleep schedule. A tick on a bar marks where an even pace would be by now.",
+};
+
+/** The page `/weekly-plan?d=` (halo's PlanPage). */
 export function WeeklyPlanPageBody() {
   const [day] = useSelectedDay();
   const { keys, data } = usePlanWeek(day);
@@ -158,16 +136,17 @@ export function WeeklyPlanPageBody() {
     <TaskPage
       title={data ? titleOf(data) : "This week"}
       description={data ? `${rangeLabel(data.monday, data.sunday)} · ${data.onTrack} of ${data.items.length} on track` : undefined}
-    >
-      <View className="gap-4">
-        <Card className="gap-0 px-4 py-1">
-          {data ? <PlanList data={data} go={go} /> : <View className="gap-4 py-3">{keys.map((k) => <SkeletonText key={k} lh={26} fs={22} className="w-40" />)}</View>}
-        </Card>
+      action={<InfoButton info={WHY_THESE} label="Why these" variant="header" />}
+      footer={
         <View className="flex-row gap-3">
           <Button variant="secondary" className="flex-1" onPress={() => go(GOALS_SETTINGS)}>Edit targets</Button>
           <Button variant="secondary" className="flex-1" onPress={() => go("/health/healthspan")}>Pulse Age</Button>
         </View>
-      </View>
+      }
+    >
+      <Card className="gap-0 px-4 py-1">
+        {data ? <PlanList data={data} go={go} /> : <View className="gap-4 py-3">{keys.map((k) => <SkeletonText key={k} lh={26} fs={22} className="w-40" />)}</View>}
+      </Card>
     </TaskPage>
   );
 }
@@ -176,11 +155,7 @@ function PlanList({ data, go }: { data: WeeklyPlanVM; go: (href: string) => void
   return (
     <View>
       {data.planStreak.current > 0 && <Text className={cn(CAPTION, "pb-1")}>{streakText(data.planStreak.current)}</Text>}
-      <Divided>{data.items.map((it) => <PlanLine key={it.key} it={it} day={data.day} onOpen={() => go(it.href.replace("#", "?section="))} />)}</Divided>
-      <View className="mt-5 gap-2">
-        <TaskSection>Why these</TaskSection>
-        <Text className="text-sm leading-[19px] text-muted-foreground">These are the habits Pulse Age scores. The defaults follow the WHO’s 150 moderate or 75 vigorous minutes and two strength days a week, about 8,000 steps a day, and a steady sleep schedule. A tick on a bar marks where an even pace would be by now.</Text>
-      </View>
+      <Divided>{data.items.map((it) => <PlanLine key={it.key} it={it} onOpen={() => go(it.href.replace("#", "?section="))} />)}</Divided>
     </View>
   );
 }

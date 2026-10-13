@@ -142,13 +142,10 @@ export function GoalsPageBody() {
     push(GOALS_SETTINGS);
   };
   return (
-    <TaskPage title="Goals" description={dayLabel(day, today)}>
-      <View className="gap-4">
-        <Card className="gap-0 px-4 py-1">
-          {data ? <GoalsList goals={goals} rows={data.goals} week={data.week} /> : <View className="gap-4 py-3">{GOAL_KEYS.filter((k) => goals.enabled[k]).map((k) => <SkeletonText key={k} lh={26} fs={22} className="w-40" />)}</View>}
-        </Card>
-        <Button variant="secondary" onPress={edit}>Edit goals</Button>
-      </View>
+    <TaskPage title="Goals" description={dayLabel(day, today)} footer={<Button variant="secondary" onPress={edit}>Edit goals</Button>}>
+      <Card className="gap-0 px-4 py-1">
+        {data ? <GoalsList goals={goals} rows={data.goals} week={data.week} /> : <View className="gap-4 py-3">{GOAL_KEYS.filter((k) => goals.enabled[k]).map((k) => <SkeletonText key={k} lh={26} fs={22} className="w-40" />)}</View>}
+      </Card>
     </TaskPage>
   );
 }
