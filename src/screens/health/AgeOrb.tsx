@@ -12,7 +12,6 @@ import { AGE_LABEL, formatValue } from "@/lib/format";
 import { reasonCopy, type ReasonCode } from "@/lib/reasons";
 import { parseColor } from "@/ui/color";
 import { VALUES, type TokenName } from "@/ui/palette";
-import { MetricTags } from "@/ui/metrics/primitives";
 import { useNarrow } from "@/ui/shells/layout";
 import { ReasonPlaceholder } from "@/ui/metrics/ReasonPlaceholder";
 import { Text } from "@/ui/Text";
@@ -556,11 +555,6 @@ export function AgeOrb({ age, deltaYears, provisional = false, size: sizeProp, r
         {!small && !has && (
           <Animated.View entering={entering(400)} style={{ marginTop: 12 }}>
             <ReasonPlaceholder reason={reason} size="sm" className="justify-center" />
-          </Animated.View>
-        )}
-        {!small && has && provisional && (
-          <Animated.View entering={entering(500)} style={{ marginTop: 12 }}>
-            <MetricTags provisional />
           </Animated.View>
         )}
       </View>

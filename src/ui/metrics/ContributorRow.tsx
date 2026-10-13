@@ -10,7 +10,7 @@ import { MetricState, type MetricMeta } from "../shells/MetricState";
 import { SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
-import { CAPTION, LABEL, MetricTags, ValueUnit } from "./primitives";
+import { CAPTION, LABEL, ValueUnit } from "./primitives";
 import { push } from "../navigate";
 import { Press } from "../Press";
 
@@ -97,7 +97,6 @@ function RecoveryRow({ p, value, meta }: { p: Extract<ContributorRowProps, { var
             ? (p.reasonCopy ?? "Not measured: left out of today’s score")
             : `Baseline ${formatValue(p.format, mean)} ± ${formatValue(p.format, sd).replace(/^\+/, "")}${p.unit ? (isSymbolUnit(p.unit) ? p.unit : ` ${p.unit}`) : ""}`}
         </Text>
-        {meta && value !== null && <MetricTags provisional={meta.provisional} tags={meta.tags} />}
       </View>
     </View>
   );
@@ -147,7 +146,6 @@ function HealthspanRow({ p, value, meta }: { p: Extract<ContributorRowProps, { v
       <View className="flex-row items-center gap-3">
         {p.icon && <View className="size-5 shrink-0 items-center justify-center">{p.icon}</View>}
         <Text className={cn(LABEL, "min-w-0 flex-1")}>{p.label}</Text>
-        {meta && <MetricTags provisional={meta.provisional} tags={meta.tags} />}
       </View>
       <View className="flex-row items-center gap-4">
         <View className="min-w-0 flex-1 pb-10 pt-11" onLayout={(e) => setTrack(e.nativeEvent.layout.width)}>

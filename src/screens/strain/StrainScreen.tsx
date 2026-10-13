@@ -19,7 +19,6 @@ import { ZoneBars, ZoneBarsSkeleton } from "@/ui/charts/ZoneBars"
 import { ActivityCard, TimelineSkeleton } from "@/ui/metrics/ActivityCard"
 import { InsightCard } from "@/ui/metrics/InsightCard"
 import { KeyStatRow } from "@/ui/metrics/KeyStatRow"
-import { MetricTags } from "@/ui/metrics/primitives"
 import { ScoreDial } from "@/ui/metrics/ScoreDial"
 import { SkeletonText } from "@/ui/Skeleton"
 import { DetailShell } from "@/ui/shells/DetailShell"
@@ -128,7 +127,6 @@ function TargetRow({ vm }: { vm: StrainVM }) {
             {reason}
           </Text>
         )}
-        {t.value?.estimate && <MetricTags extra={["estimate"]} className="mt-1 justify-start" />}
       </View>
       <InfoButton info={STRAIN_TARGET_INFO} label="Strain Target" variant="card" />
       {/* Same columns as KeyStatRow's value + arrow, so the values right-align down the card. */}

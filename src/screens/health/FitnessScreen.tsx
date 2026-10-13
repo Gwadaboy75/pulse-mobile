@@ -6,7 +6,7 @@ import { getFitness } from "@/queries/health";
 import type { FitnessVM } from "@/queries/types";
 import { TrendChart, TrendChartSkeleton } from "@/ui/charts/TrendChart";
 import { cn } from "@/ui/cn";
-import { CAPTION, LABEL, MetricTags, StatusChip, ValueUnit } from "@/ui/metrics/primitives";
+import { CAPTION, LABEL, StatusChip, ValueUnit } from "@/ui/metrics/primitives";
 import { ReasonPlaceholder } from "@/ui/metrics/ReasonPlaceholder";
 import { TickScale, TickScaleSkeleton } from "@/ui/metrics/TickScale";
 import { DetailShell } from "@/ui/shells/DetailShell";
@@ -45,7 +45,6 @@ function Hero({ vo2 }: { vo2: FitnessVM["vo2"] }) {
         <Text className={cn(LABEL, categoryTone(v.category))}>{categoryWord(v.category)}</Text>
       </View>
       <Text className={CAPTION}>{v.source === "run" ? `From a run on ${formatDay(v.sourceDay, DAY.monthDay)}` : "Daily estimate from Fitbit"}</Text>
-      {vo2.provisional && <MetricTags extra={["estimate"]} />}
     </View>
   );
 }

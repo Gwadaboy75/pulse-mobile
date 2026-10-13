@@ -8,7 +8,7 @@ import { Icon } from "@/ui/Icon";
 import { Mark, Wordmark } from "@/ui/brand";
 import * as fx from "@/ui/fixtures/kit";
 import { Entry, Frame, Group, KitScreen } from "@/ui/kit/KitScreen";
-import { DeltaMark, MetricTags, StatusChip, Tag, ValueUnit } from "@/ui/metrics/primitives";
+import { DeltaMark, StatusChip, ValueUnit } from "@/ui/metrics/primitives";
 import type { TokenName } from "@/ui/palette";
 import { Segmented } from "@/ui/Segmented";
 import { Skeleton, SkeletonText } from "@/ui/Skeleton";
@@ -154,13 +154,7 @@ export default function Kit() {
         <Entry name="Segmented" file="src/ui/Segmented.tsx" use="The W / M / 6M range control, the Journal Insights outcome switch, the stages tabs.">
           <Frame name="outcome"><SegmentedDemo /></Frame>
         </Entry>
-        <Entry name="Tag, MetricTags, StatusChip, DeltaMark, ValueUnit" file="src/ui/metrics/primitives.tsx" use="The small marks every kit component shares: status tags, range chips, delta arrows and value-unit pairs." props={["Tag kind", "MetricTags provisional, tags, extra", "StatusChip tone: optimal | warning | alert | neutral, delta", "DeltaMark dir, tone", "ValueUnit value, unit"]}>
-          <Frame name="tags (one look per meaning, never coloured)">
-            <View className="flex-row flex-wrap gap-2">
-              {(["provisional", "stale_baseline", "updated", "so_far", "partial_week", "partial_month", "estimate"] as const).map((k) => <Tag key={k} kind={k} />)}
-            </View>
-          </Frame>
-          <Frame name="MetricTags (wraps and centres)" narrow><MetricTags provisional tags={["stale_baseline", "updated"]} extra={["so_far"]} /></Frame>
+        <Entry name="StatusChip, DeltaMark, ValueUnit" file="src/ui/metrics/primitives.tsx" use="The small marks every kit component shares: status tags, range chips, delta arrows and value-unit pairs." props={["Tag kind", "MetricTags provisional, tags, extra", "StatusChip tone: optimal | warning | alert | neutral, delta", "DeltaMark dir, tone", "ValueUnit value, unit"]}>
           <Frame name="StatusChip tones and a delta">
             <View className="flex-row flex-wrap gap-2">
               <StatusChip tone="optimal">within 16.1 - 16.9</StatusChip>
@@ -209,7 +203,7 @@ export default function Kit() {
             </SectionShell>
           </Frame>
           <Frame name="whole-card link, tags aside">
-            <SectionShell variant="card" title="Energy Bank" href="/dev/kit/charts" aside={<MetricTags provisional />}>
+            <SectionShell variant="card" title="Energy Bank" href="/dev/kit/charts">
               <Text className={BODY}>The whole card presses in.</Text>
             </SectionShell>
           </Frame>
@@ -242,7 +236,6 @@ export default function Kit() {
                     {(v, meta) => (
                       <View className="flex-row items-center gap-2">
                         <Text className="font-numeric font-bold tabular-nums">{`${v}%`}</Text>
-                        <MetricTags provisional={meta.provisional} tags={meta.tags} />
                       </View>
                     )}
                   </MetricState>

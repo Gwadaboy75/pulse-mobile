@@ -25,7 +25,6 @@ import { Icon } from "@/ui/Icon";
 import { DriverList, DriverListSkeleton } from "@/ui/metrics/DriverList";
 import { InsightCard, InsightCardSkeleton } from "@/ui/metrics/InsightCard";
 import { KeyStatRow, KeyStatRowSkeleton } from "@/ui/metrics/KeyStatRow";
-import { MetricTags } from "@/ui/metrics/primitives";
 import { ScoreDial, ScoreDialSkeleton } from "@/ui/metrics/ScoreDial";
 import { DetailShell } from "@/ui/shells/DetailShell";
 import { EmptyState } from "@/ui/shells/EmptyState";
@@ -196,7 +195,6 @@ export default function ReportScreen() {
           <View className="items-center gap-3">
             <PeriodSwitcher vm={vm} />
             <KindToggle kind={vm.kind} week={vm.latestWeek} month={vm.latestMonth} />
-            {vm.partial && <MetricTags extra={[vm.kind === "week" ? "partial_week" : "partial_month"]} />}
           </View>
           <Dials vm={vm} />
         </View>

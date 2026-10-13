@@ -2,7 +2,7 @@ import { View } from "react-native";
 import { Check, CircleAlert, Triangle, TriangleAlert, type LucideIcon } from "lucide-react-native";
 import { CHIP_TONE_CLASS, type ChipTone, type DeltaDir, type Tone } from "@/lib/bands";
 import { isSymbolUnit } from "@/lib/format";
-import { TAG_COPY, type MetricTag } from "@/lib/reasons";
+import { TAG_COPY } from "@/lib/reasons";
 import { cn } from "../cn";
 import { Icon } from "../Icon";
 import type { Family } from "../fontClasses";
@@ -29,36 +29,6 @@ export function capTrim(fontSize: number, family: Family = "sans") {
 }
 
 export type TagKind = keyof typeof TAG_COPY | "so_far" | "partial_week" | "partial_month" | "estimate" | "beta";
-const EXTRA_TAGS: Record<Exclude<TagKind, keyof typeof TAG_COPY>, string> = {
-  so_far: "So far",
-  partial_week: "Partial week",
-  partial_month: "Partial month",
-  estimate: "Estimate",
-  beta: "Beta",
-};
-export const tagLabel = (kind: TagKind) => (kind in TAG_COPY ? TAG_COPY[kind as keyof typeof TAG_COPY].label : EXTRA_TAGS[kind as keyof typeof EXTRA_TAGS]);
-
-/** Status tag ("Provisional", "So far"…). Never coloured: colour is for data. */
-export function Tag({ kind, className }: { kind: TagKind; className?: string }) {
-  return (
-    <View className={cn("h-5 items-center justify-center rounded-full border border-border px-2", className)}>
-      <Text className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.1em] text-foreground-secondary">{tagLabel(kind)}</Text>
-    </View>
-  );
-}
-
-/** The tags a metric carries: "Provisional" first, then "Baseline stale" / "Updated". */
-export function MetricTags({ provisional, tags, extra, className }: { provisional?: boolean; tags?: MetricTag[]; extra?: TagKind[]; className?: string }) {
-  const all: TagKind[] = [...(provisional ? ["provisional" as const] : []), ...(tags ?? []), ...(extra ?? [])];
-  if (!all.length) return null;
-  return (
-    <View className={cn("flex-row flex-wrap items-center justify-center gap-1", className)}>
-      {all.map((k) => (
-        <Tag key={k} kind={k} />
-      ))}
-    </View>
-  );
-}
 
 const CHIP_ICON: Record<ChipTone, LucideIcon | null> = { optimal: Check, warning: TriangleAlert, alert: CircleAlert, neutral: null };
 

@@ -12,7 +12,6 @@ import { EmptyState } from "../shells/EmptyState";
 import { MetricState } from "../shells/MetricState";
 import { SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
-import { MetricTags } from "./primitives";
 import { Press } from "../Press";
 
 export type DriverItem = {
@@ -67,7 +66,6 @@ function Header({ variant, unit, provisional }: { variant: DriverListProps["vari
       </View>
       <View className="flex-row items-center gap-2">
         <Text className={cn(cap, "text-muted-foreground")}>{mid}</Text>
-        {provisional && <MetricTags provisional />}
       </View>
       <View className="flex-1 flex-row items-center justify-end gap-2">
         <Text className={cn(cap, "text-optimal-text")}>{right}</Text>

@@ -7,7 +7,7 @@ import { cn } from "../cn";
 import { MetricState } from "../shells/MetricState";
 import { Skeleton } from "../Skeleton";
 import { Text } from "../Text";
-import { MetricTags, ValueUnit } from "./primitives";
+import { ValueUnit } from "./primitives";
 
 export type TickScaleProps = {
   /** `marker`: the reference app's ruler (Pace of Aging, ACWR). `meter`: another app's segmented meter (Energy). */
@@ -67,12 +67,13 @@ function Scale({ p, value, provisional }: { p: TickScaleProps; value: number | n
         className={cn("font-numeric font-bold text-foreground", p.variant === "meter" ? "text-2xl leading-8" : "text-[22px] leading-7", value === null && "text-muted-foreground")}
         unitClassName={p.unit === "%" || p.unit === "x" ? cn("font-bold text-foreground", p.variant === "meter" ? "text-[17px] leading-5" : "text-[15px] leading-5") : undefined}
       />
-      {provisional && <MetricTags provisional />}
     </View>
   );
 
   const ticks = (
-    <View accessibilityElementsHidden className="h-8 min-w-0 flex-1 flex-row items-end justify-between">
+    // flex-1 only beside the meter's label (a row). In the marker's column it would make the 32 px box's height
+    // flex-basis 0, which collapses to 0 in a layout pass before the page settles: the ticks then drew over the row above.
+    <View accessibilityElementsHidden className={cn("h-8 min-w-0 flex-row items-end justify-between", p.variant === "meter" ? "flex-1" : "w-full")}>
       {Array.from({ length: COUNT }, (_, i) => (
         <View key={i} className={tickClass(i)} />
       ))}

@@ -21,7 +21,7 @@ import { CARD_BUTTON, CARD_CLASS, CardFill, SECONDARY_ROW, useCardStyle } from "
 import { Icon } from "@/ui/Icon";
 import { ActivityCard } from "@/ui/metrics/ActivityCard";
 import { KeyStatRow } from "@/ui/metrics/KeyStatRow";
-import { CAPTION, LABEL, MetricTags } from "@/ui/metrics/primitives";
+import { CAPTION, LABEL } from "@/ui/metrics/primitives";
 import { ReasonPlaceholder } from "@/ui/metrics/ReasonPlaceholder";
 import { ScoreDial } from "@/ui/metrics/ScoreDial";
 import { SleepCard } from "@/ui/metrics/SleepCard";
@@ -454,7 +454,7 @@ function StressTile({ vm, href, timeZone }: { vm: HomePageVM; href: string; time
 function EnergyCard({ vm, timeZone }: { vm: HomePageVM; timeZone: string }) {
   const e = vm.energyBank;
   return (
-    <SectionShell variant="card" title="Energy Bank" info={ENERGY_INFO} aside={e.value && e.provisional ? <MetricTags provisional /> : undefined} fill>
+    <SectionShell variant="card" title="Energy Bank" info={ENERGY_INFO} fill>
       <MetricState
         metric={e}
         skeleton={null}

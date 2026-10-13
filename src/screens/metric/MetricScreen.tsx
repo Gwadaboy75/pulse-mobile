@@ -13,7 +13,7 @@ import { CAPTION, LABEL, mapMetric } from "@/screens/_lib/view";
 import { TrendChartSkeleton, type TrendSeries } from "@/ui/charts/TrendChart";
 import { cn } from "@/ui/cn";
 import { KeyStatRowSkeleton } from "@/ui/metrics/KeyStatRow";
-import { MetricTags, StatusChip, ValueUnit } from "@/ui/metrics/primitives";
+import { StatusChip, ValueUnit } from "@/ui/metrics/primitives";
 import { ReasonPlaceholder } from "@/ui/metrics/ReasonPlaceholder";
 import { DetailShell } from "@/ui/shells/DetailShell";
 import { useSelectedDay } from "@/ui/shells/DateSwitcher";
@@ -143,7 +143,6 @@ function Hero({ vm }: { vm: MetricDetailVM }) {
           return (
             <>
               <ValueUnit value={formatValue(vm.format, value)} unit={vm.unit} className="font-numeric text-[64px] font-bold leading-[64px] tracking-[-0.02em]" unitClassName="text-xl font-semibold leading-7 text-foreground-secondary" />
-              {vm.soFar && <MetricTags extra={["so_far"]} />}
               {/* A running total against whole days would always read "below": today shows the average alone. */}
               {t && diff !== null && !vm.soFar && (
                 <StatusChip tone={t.tone === "good" ? "optimal" : t.tone === "bad" ? "warning" : "neutral"} delta={t.dir} className="mt-1 self-center">

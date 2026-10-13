@@ -15,7 +15,7 @@ import { SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
 import { ARC_FROM, ARC_SWEEP } from "./MiniRing";
-import { capTrim, MetricTags, type TagKind } from "./primitives";
+import { capTrim, type TagKind } from "./primitives";
 import { push } from "../navigate";
 import { Press } from "../Press";
 
@@ -139,8 +139,6 @@ export function ScoreDial(props: ScoreDialProps) {
   // Where the arc's ends (215° and −35° in the web's angles) fall across the dial, for the 0.0 and 3.0 labels.
   const gEndPct = 50 * (1 - Math.cos((35 * Math.PI) / 180) * ((gInner + gaugeRing / 2) / rad));
 
-  const tagNode = <MetricTags provisional={!empty && props.provisional} tags={empty ? undefined : props.tags} extra={props.extraTags} />;
-  const hasTags = (!empty && props.provisional) || (!empty && (props.tags?.length ?? 0) > 0) || (props.extraTags?.length ?? 0) > 0;
 
   const aria = dialAriaLabel({
     variant,
@@ -241,7 +239,6 @@ export function ScoreDial(props: ScoreDialProps) {
                 ))}
               </View>
             )}
-            {!loading && hasTags && <View style={{ marginTop: 6 * cqi, maxWidth: 70 * cqi }}>{tagNode}</View>}
           </>
         )}
       </View>
@@ -264,7 +261,6 @@ export function ScoreDial(props: ScoreDialProps) {
         <Text className={cn(size === "sm" ? "text-xs font-medium leading-4 text-foreground-secondary" : DIAL_LABEL, "shrink text-center")}>{r.label}</Text>
         {href && <Icon icon={ChevronRight} size={12} tone="foreground" strokeWidth={2.5} />}
       </View>
-      {!loading && hasTags && tagNode}
     </View>
   );
   const longReason = lg && empty && !loading && reason && <Text className="max-w-72 text-center text-xs font-medium leading-4 text-muted-foreground">{reason.long}</Text>;

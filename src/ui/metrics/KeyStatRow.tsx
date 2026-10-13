@@ -12,7 +12,7 @@ import { SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
 import { ring } from "../shadow";
 import { useTheme } from "../theme";
-import { CAPTION, DeltaMark, LABEL, MetricTags, StatusChip, ValueUnit } from "./primitives";
+import { CAPTION, DeltaMark, LABEL, StatusChip, ValueUnit } from "./primitives";
 import { Sparkline } from "./Sparkline";
 import { push } from "../navigate";
 import { Press } from "../Press";
@@ -104,7 +104,6 @@ function Row({ p, c }: { p: KeyStatRowProps; c: Computed }) {
           </Text>
         )}
         {/* Tags sit under the label so a phone never truncates it. */}
-        {c.meta && <MetricTags provisional={c.meta.provisional} tags={c.meta.tags} className="mt-1 justify-start" />}
       </View>
       {p.status && (
         <View className="shrink-0 flex-row gap-1">
@@ -181,7 +180,6 @@ function Tile({ p, c }: { p: KeyStatRowProps; c: Computed }) {
             <Text className={CAPTION}>{c.reason}</Text>
           ) : (
             <>
-              {c.meta && <MetricTags provisional={c.meta.provisional} tags={c.meta.tags} className="justify-start" />}
               {/* On a wide tile the comparison moves to the right (below), unless there is a sparkline to show instead. */}
               {!wide &&
                 (p.chip ? (
