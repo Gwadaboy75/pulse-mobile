@@ -1,12 +1,26 @@
 import { View, type ViewProps } from "react-native";
+import Animated, { useReducedMotion } from "react-native-reanimated";
 import { cn } from "./cn";
 
 // Skeletons reuse the component's own box (spec §5.19); these are only the bars inside it.
-// animate-pulse is NativeWind's (it runs on Reanimated).
-const BAR = "animate-pulse rounded-md bg-muted";
+const BAR = "rounded-md bg-muted";
 
-export function Skeleton({ className, ...props }: ViewProps) {
-  return <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className={cn(BAR, className)} {...props} />;
+// The web's animate-pulse (Tailwind: opacity 1 → 0.5 → 1 over 2 s, cubic-bezier(0.4, 0, 0.6, 1)) as Reanimated's own CSS
+// animation on the UI thread, not through NativeWind's experimental animation support. Reduced motion holds it still.
+const PULSE = {
+  animationName: { "50%": { opacity: 0.5 } },
+  animationDuration: "2s",
+  animationIterationCount: "infinite",
+  animationTimingFunction: "cubic-bezier(0.4, 0, 0.6, 1)",
+} as const;
+
+function Bar({ className, style, ...props }: ViewProps) {
+  const still = useReducedMotion();
+  return <Animated.View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className={cn(BAR, className)} style={[!still && PULSE, style]} {...props} />;
+}
+
+export function Skeleton(props: ViewProps) {
+  return <Bar {...props} />;
 }
 
 /**
@@ -16,7 +30,7 @@ export function Skeleton({ className, ...props }: ViewProps) {
 export function SkeletonText({ lh = 16, fs = 12, className }: { lh?: number; fs?: number; className?: string }) {
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className={cn("justify-center", className)} style={{ height: lh }}>
-      <View className={cn(BAR, "w-full rounded-sm")} style={{ height: Math.round(fs * 0.72) }} />
+      <Bar className="w-full rounded-sm" style={{ height: Math.round(fs * 0.72) }} />
     </View>
   );
 }
