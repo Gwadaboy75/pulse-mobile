@@ -5,14 +5,16 @@ import { cn } from "./cn";
 // Skeletons reuse the component's own box (spec §5.19); these are only the bars inside it.
 const BAR = "rounded-md bg-muted";
 
-// The web's animate-pulse (Tailwind: opacity 1 → 0.5 → 1 over 2 s, cubic-bezier(0.4, 0, 0.6, 1)) as Reanimated's own CSS
-// animation on the UI thread, not through NativeWind's experimental animation support. Reduced motion holds it still.
+// The web's animate-pulse (Tailwind: opacity 1 → 0.5 → 1 over 2 s) as Reanimated's own CSS animation on the UI thread,
+// not through NativeWind's experimental animation support. Reanimated takes only named curves as strings (a
+// "cubic-bezier(…)" string throws), so ease-in-out (0.42, 0, 0.58, 1) stands in for Tailwind's (0.4, 0, 0.6, 1).
+// Reduced motion holds it still.
 const PULSE = {
   animationName: { "50%": { opacity: 0.5 } },
   animationDuration: "2s",
-  animationIterationCount: "infinite",
-  animationTimingFunction: "cubic-bezier(0.4, 0, 0.6, 1)",
-} as const;
+  animationIterationCount: "infinite" as const,
+  animationTimingFunction: "ease-in-out",
+};
 
 function Bar({ className, style, ...props }: ViewProps) {
   const still = useReducedMotion();
