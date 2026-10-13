@@ -145,8 +145,9 @@ function Home({ vm, timeZone }: { vm: HomePageVM; timeZone: string }) {
                 <Wordmark height={17} tone="foreground-secondary" />
               </View>
               <FirstSync />
+              {/* No provisional or other tags under the dials, as WHOOP's Home (owner, 2026-10-13); the dials' own pages show them. */}
               <View className="flex-row items-start justify-around">
-                <View className="flex-1 items-center"><ScoreDial variant="sleep" size="md" value={dials.sleep.value} reason={dials.sleep.reason} provisional={dials.sleep.provisional} tags={dials.sleep.tags} href={at("/sleep")} /></View>
+                <View className="flex-1 items-center"><ScoreDial variant="sleep" size="md" value={dials.sleep.value} reason={dials.sleep.reason} href={at("/sleep")} /></View>
                 <View className="flex-1 items-center">
                   <ScoreDial
                     variant="recovery"
@@ -154,8 +155,6 @@ function Home({ vm, timeZone }: { vm: HomePageVM; timeZone: string }) {
                     value={dials.recovery.value}
                     reason={dials.recovery.reason}
                     nightsLeft={dials.recovery.nightsLeft}
-                    provisional={dials.recovery.provisional}
-                    tags={dials.recovery.tags}
                     href={at("/recovery")}
                   />
                 </View>

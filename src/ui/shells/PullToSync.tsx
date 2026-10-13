@@ -1,7 +1,8 @@
+import { useEffect } from "react";
 import { RefreshCw } from "lucide-react-native";
 import { Gesture } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming, type SharedValue } from "react-native-reanimated";
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withRepeat, withTiming, type SharedValue } from "react-native-reanimated";
 import { haptic } from "../haptics";
 import { DURATION, EASE } from "../motion";
 import { ring, useShadow } from "../shadow";
@@ -11,6 +12,8 @@ import { useTheme } from "../theme";
 // pull of TRIGGER starts a sync, and the indicator follows the finger up to MAX.
 const TRIGGER = 64;
 const MAX = 96;
+// The owner asked for the indicator to stay at least 1-2 s: a sync that returns at once otherwise flashes it away.
+const MIN_SHOWN_MS = 1500;
 const ease = { duration: DURATION.fast, easing: EASE.standard };
 
 /**
@@ -21,9 +24,14 @@ const ease = { duration: DURATION.fast, easing: EASE.standard };
 export function usePullToSync(offset: SharedValue<number>, onRefresh?: () => void | Promise<unknown>) {
   const pull = useSharedValue(0);
   const armed = useSharedValue(false);
+  /** 1 while the sync runs (the chip stays and spins), 0 otherwise. */
+  const syncing = useSharedValue(0);
   const run = () => {
-    haptic.tap();
-    void onRefresh?.();
+    syncing.value = withTiming(1, ease);
+    const min = new Promise((r) => setTimeout(r, MIN_SHOWN_MS));
+    void Promise.all([Promise.resolve(onRefresh?.()).catch(() => {}), min]).then(() => {
+      syncing.value = withTiming(0, ease);
+    });
   };
   const gesture = Gesture.Pan()
     .enabled(!!onRefresh)
@@ -34,7 +42,11 @@ export function usePullToSync(offset: SharedValue<number>, onRefresh?: () => voi
       armed.value = offset.value <= 0;
     })
     .onUpdate((e) => {
-      if (armed.value) pull.value = Math.max(0, Math.min(e.translationY / 2, MAX));
+      if (!armed.value) return;
+      const next = Math.max(0, Math.min(e.translationY / 2, MAX));
+      // Felt as the pull crosses the point where letting go syncs.
+      if (pull.value < TRIGGER && next >= TRIGGER) runOnJS(haptic.success)();
+      pull.value = next;
     })
     .onFinalize(() => {
       const fire = armed.value && pull.value >= TRIGGER;
@@ -42,22 +54,26 @@ export function usePullToSync(offset: SharedValue<number>, onRefresh?: () => voi
       pull.value = withTiming(0, ease);
       if (fire) runOnJS(run)();
     });
-  return { gesture, indicator: onRefresh ? <PullIndicator pull={pull} /> : null };
+  return { gesture, indicator: onRefresh ? <PullIndicator pull={pull} syncing={syncing} /> : null };
 }
 
 /**
- * The web's indicator: a round chip with the refresh arrows, turning with the pull. It leaves as the finger lifts: the
- * band's ring in the header shows the sync from there (owner's call; the web keeps the chip spinning).
+ * The web's indicator: a round chip with the refresh arrows, turning with the pull, then held and spinning while the
+ * sync runs (at least MIN_SHOWN_MS), as the web keeps it.
  */
-function PullIndicator({ pull }: { pull: SharedValue<number> }) {
+function PullIndicator({ pull, syncing }: { pull: SharedValue<number>; syncing: SharedValue<number> }) {
   const { c } = useTheme();
   const shadow = useShadow();
   const insets = useSafeAreaInsets();
-  const chip = useAnimatedStyle(() => ({
-    opacity: Math.min(1, pull.value / TRIGGER),
-    transform: [{ translateY: pull.value / 2 }],
-  }));
-  const icon = useAnimatedStyle(() => ({ transform: [{ rotate: `${pull.value * 3}deg` }] }));
+  const spin = useSharedValue(0);
+  useEffect(() => {
+    spin.value = withRepeat(withTiming(360, { duration: 900, easing: Easing.linear }), -1);
+  }, [spin]);
+  const chip = useAnimatedStyle(() => {
+    const at = Math.max(pull.value, syncing.value * TRIGGER);
+    return { opacity: Math.min(1, at / TRIGGER), transform: [{ translateY: at / 2 }] };
+  });
+  const icon = useAnimatedStyle(() => ({ transform: [{ rotate: `${syncing.value > 0 ? spin.value : pull.value * 3}deg` }] }));
   return (
     <Animated.View
       pointerEvents="none"
