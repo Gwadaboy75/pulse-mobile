@@ -14,6 +14,7 @@ import { BATCH_DAYS, byteOrder, type Data, groupBy, type Progress, type Segment,
 import {
   type Cached,
   dayOf,
+  type Fold,
   forecastOf,
   type Inputs,
   newFold,
@@ -33,8 +34,9 @@ import {
 } from "./scores";
 import { type JournalImpactRow, type PipelineOptions, SCORING_VERSION, STAGE2_COLUMNS, type Stage2Row } from "./types";
 import { emptyScoreRow } from "./stage1";
+import { resume, snapshot } from "./checkpoint";
 
-export async function stage2(store: Store, data: Data, opts: PipelineOptions, onProgress?: Progress) {
+export async function stage2(store: Store, data: Data, opts: PipelineOptions, onProgress?: Progress, rerun: string[] = []) {
   const { timeZone: tz } = opts;
   const { days } = data;
   const { inputs, journal, storedImpact, storedRows } = await readInputs(store, data);
@@ -42,7 +44,11 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
   const loadSeries = new Map<string, (number | null)[]>();
   Object.assign(inputs, { stillHr, loadSeries });
 
-  const f = newFold();
+  // Pulse: start from the fold kept by the last run when no earlier day's inputs changed (checkpoint.ts).
+  const cp = resume(store, data, inputs, journal, opts, rerun);
+  const start = cp.start;
+  const f = cp.fold ?? newFold();
+  let kept: Fold | null = null;
   const out = new Map<string, Omit<Stage2Row, "journal_impact">>();
   // Stress and Energy Bank series go out in batches during the fold rather than all at the end, so memory
   // doesn't grow with history. They are idempotent upserts.
@@ -61,10 +67,11 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
   // Order matters: each scorer reads the fold as earlier scorers left it for today. The scorers are synchronous; the
   // loops here await slice() between days and between a day's scorers, so a run gives the JS thread back to the screen
   // every few milliseconds (src/lib/yield.ts). Nothing else touches the fold meanwhile, so the results don't change.
-  for (let i = 0; i < days.length; i++) {
+  for (let i = start; i < days.length; i++) {
     await slice();
     const day = days[i];
-    if (i % BATCH_DAYS === 0) {
+    if (i === cp.keepAt) kept = snapshot(f);
+    if ((i - start) % BATCH_DAYS === 0) {
       // The per-minute series the scorers read, a batch of days at a time: the scorers stay synchronous and memory
       // stays flat in history length.
       await flush();
@@ -122,14 +129,20 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
   }
   await flush();
   onProgress?.("stage2", days.length, days.length);
-  await putActivityCost(store, data, out);
+  const recovery = new Map<string, number>();
+  for (const day of days.slice(0, start)) {
+    const v = storedRows.get(day)?.recovery?.value;
+    if (v != null) recovery.set(day, v);
+  }
+  for (const [day, row] of out) if (row.recovery.value != null) recovery.set(day, row.recovery.value);
+  await putActivityCost(store, data, recovery);
 
   // ── Journal impact: as of each day, memoised on its inputs ────────────────
   onProgress?.("journal", 0, days.length);
   const entries: JournalDay[] = [...journal].map(([day, es]) => ({ day, tags: Object.fromEntries(es.map((e) => [e.tag, e.value])) }));
   const rows = new Map<string, Stage2Row>();
   const impactsAsOf = new Map<string, TagImpact[]>();
-  for (let i = 0; i < days.length; i++) {
+  for (let i = start; i < days.length; i++) {
     await slice();
     const day = days[i];
     const from = addDays(day, -90);
@@ -146,7 +159,7 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
 
   // ── Writes ────────────────────────────────────────────────────────────────
   // Only rows whose version or JSON changed are written, so an unchanged run writes nothing.
-  for (const day of days) {
+  for (const day of days.slice(start)) {
     await slice();
     const row = rows.get(day)!;
     const prev = storedRows.get(day) ?? emptyScoreRow(day);
@@ -160,9 +173,11 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
     await slice();
     const { end } = periodBounds(period);
     const asOf = end < data.last ? end : data.last;
-    reportRows.push({ period, data: buildReport(period, f.reportRows, impactsAsOf.get(asOf) ?? []) });
+    reportRows.push({ period, data: buildReport(period, f.reportRows, impactsAsOf.get(asOf) ?? storedImpact.get(asOf)?.impacts ?? []) });
   }
   await store.putReports(reportRows);
+  if (kept) cp.keep(kept);
+  return days[start];
 }
 
 const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -171,9 +186,7 @@ const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringif
  * Mobile: Activity Cost over all history (activityCost.ts), each kind of workout (the screens' run, ride, walk, strength,
  * workout) against the day's Recovery; written only when it changed.
  */
-async function putActivityCost(store: Store, data: Data, out: Map<string, Pick<Stage2Row, "recovery">>) {
-  const recovery = new Map<string, number>();
-  for (const [day, row] of out) if (row.recovery.value != null) recovery.set(day, row.recovery.value);
+async function putActivityCost(store: Store, data: Data, recovery: Map<string, number>) {
   const daysByKind = new Map<string, Set<string>>();
   for (const e of data.exercises) {
     const kind = activityKind(e.type);

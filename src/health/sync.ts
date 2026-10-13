@@ -3,7 +3,8 @@
 // heart rate and steps are read one local day at a time and written as they come, so a 180-day first sync
 // never holds more than a day of samples.
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getChanges } from "react-native-health-connect";
+import { getChanges, type RecordResult } from "react-native-health-connect";
+import { readAhead } from "@/lib/ahead";
 import { READ_TYPES, ensureInitialized, permissionState, readAll, type ReadType } from "@/health/connect";
 import { deriveDayExtras, restingHrOn, type Interval } from "@/health/derive";
 import {
@@ -149,6 +150,12 @@ async function earliestChangeSince(token: string): Promise<{ earliest: number | 
 /** Types read once for the whole window; HeartRate and Steps are read per day. */
 const WINDOW_TYPES = READ_TYPES.filter((t) => t !== "HeartRate" && t !== "Steps");
 
+/**
+ * Health Connect reads in flight at once, ahead of the mapping, which still takes their results one by one in order
+ * (readAhead). 4 is a first guess: tune it by timing a first import and a pull to sync on the phone.
+ */
+export const READ_CONCURRENCY = 4;
+
 export async function syncHealthConnect(store: Store, opts: SyncOptions): Promise<SyncResult> {
   const tz = opts.timeZone;
   const now = opts.now ?? new Date();
@@ -240,10 +247,13 @@ export async function syncHealthConnect(store: Store, opts: SyncOptions): Promis
     // 1. Whole-window reads.
     const input: HealthInput = {};
     let recordsKept = 0;
+    const windowTypes = WINDOW_TYPES.filter((t) => granted.has(t));
+    const takeWindow = readAhead(windowTypes.length, READ_CONCURRENCY, (k) => readAll(windowTypes[k], range(windowTypes[k]), undefined, origins));
+    let windowRead = 0;
     for (const type of WINDOW_TYPES) {
       progress(`read:${type}`, done, total);
       if (granted.has(type)) {
-        const records = await sliced(applySourcePolicySteps(type, await readAll(type, range(type), undefined, origins), policy, tz));
+        const records = await sliced(applySourcePolicySteps(type, (await takeWindow(windowRead++)) as never, policy, tz));
         (input as Record<string, unknown[]>)[type] = records;
         counts[`read:${type}`] = records.length;
         recordsKept += records.length;
@@ -284,14 +294,27 @@ export async function syncHealthConnect(store: Store, opts: SyncOptions): Promis
     let hrCount = 0;
     let stepCount = 0;
     const spill: { HeartRate: HeartRateRecords; Steps: StepsRecords } = { HeartRate: [], Steps: [] };
+    // The reads, in the order the loop below takes them (a day's heart rate, then its steps), run READ_CONCURRENCY ahead.
+    const dayReads: { type: "HeartRate" | "Steps"; range: { start: Date; end: Date }; lead: { start: Date; end: Date } | null }[] = [];
+    for (let i = 0; i < dayCount; i++) {
+      const dayStart = localMidnight(addDays(fromDay, i), tz);
+      const dayEnd = Math.min(localMidnight(addDays(fromDay, i + 1), tz), nowTs);
+      if (dayEnd <= dayStart) continue;
+      const range = { start: new Date(dayStart * 1000), end: new Date(dayEnd * 1000) };
+      const lead = i === 0 ? { start: new Date((dayStart - READ_LEAD_S) * 1000), end: range.start } : null;
+      for (const type of ["HeartRate", "Steps"] as const) if (granted.has(type)) dayReads.push({ type, range, lead });
+    }
+    const takeDay = readAhead(dayReads.length, READ_CONCURRENCY, (k) => {
+      const { type, range, lead } = dayReads[k];
+      return Promise.all([readAll(type, range, undefined, origins), lead ? readAll(type, lead, undefined, origins) : null]);
+    });
+    let dayRead = 0;
     /** The day's records of `type`: those begun on it, and those begun before it that run past its midnight. */
-    const dayRecords = async <T extends "HeartRate" | "Steps">(type: T, i: number, dayStart: number, dayRange: { start: Date; end: Date }) => {
-      const read = await sliced(applySourcePolicySteps(type, await readAll(type, dayRange, undefined, origins), policy, tz));
+    const dayRecords = async <T extends "HeartRate" | "Steps">(type: T, dayStart: number) => {
+      const [raw, leadRaw] = await takeDay(dayRead++);
+      const read = await sliced(applySourcePolicySteps(type, raw as RecordResult<T>[], policy, tz));
       recordsKept += read.length;
-      const before =
-        i === 0
-          ? await sliced(applySourcePolicySteps(type, await readAll(type, { start: new Date((dayStart - READ_LEAD_S) * 1000), end: dayRange.start }, undefined, origins), policy, tz))
-          : spill[type];
+      const before = leadRaw ? await sliced(applySourcePolicySteps(type, leadRaw as RecordResult<T>[], policy, tz)) : spill[type];
       return uniqueRecords([...before.filter((r) => ts(r.endTime) > dayStart), ...read]) as RecordsOf<T>;
     };
     for (let i = 0; i < dayCount; i++) {
@@ -305,14 +328,13 @@ export async function syncHealthConnect(store: Store, opts: SyncOptions): Promis
         continue;
       }
       const clip = { startTs: dayStart, endTs: dayEnd };
-      const dayRange = { start: new Date(dayStart * 1000), end: new Date(dayEnd * 1000) };
       let touched = false;
       let hr: HrSample[] = [];
       let minutes: StepsMinute[] = [];
       /** The day's largest source's steps per minute, for the derived activity minutes. */
       let deriveSteps: StepsMinute[] = [];
       if (granted.has("HeartRate")) {
-        const hrRecords = await dayRecords("HeartRate", i, dayStart, dayRange);
+        const hrRecords = await dayRecords("HeartRate", dayStart);
         spill.HeartRate = hrRecords.filter((r) => ts(r.endTime) > nextMidnight);
         hr = await sliced(mapHrSteps(hrRecords, clip));
         if (hr.length) {
@@ -322,7 +344,7 @@ export async function syncHealthConnect(store: Store, opts: SyncOptions): Promis
         }
       }
       if (granted.has("Steps")) {
-        const records = await dayRecords("Steps", i, dayStart, dayRange);
+        const records = await dayRecords("Steps", dayStart);
         spill.Steps = records.filter((r) => ts(r.endTime) > nextMidnight);
         minutes = mapSteps(records, clip);
         if (minutes.length) {

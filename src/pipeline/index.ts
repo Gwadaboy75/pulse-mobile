@@ -18,8 +18,8 @@ import type { PipelineOptions } from "./types";
 
 export * from "./types";
 
-/** What the last run did, for logs and tests. */
-export const lastRun = { stage1Days: [] as string[], ms: 0, stage1Ms: 0, stage2Ms: 0 };
+/** What the last run did, for logs and tests. stage2From: the first day stage 2 replayed (checkpoint.ts). */
+export const lastRun = { stage1Days: [] as string[], stage2From: "", ms: 0, stage1Ms: 0, stage2Ms: 0 };
 
 /**
  * The person's own max HR; else Tanaka's estimate (208 − 0.7 × age), raised to the max HR learned from their workouts
@@ -95,14 +95,14 @@ export async function runPipeline(
   const po = await pipelineOptions(store, profile, today);
   const data = await load(store, po);
   if (!data) {
-    Object.assign(lastRun, { stage1Days: [], ms: Date.now() - t0, stage1Ms: 0, stage2Ms: 0 });
+    Object.assign(lastRun, { stage1Days: [], stage2From: "", ms: Date.now() - t0, stage1Ms: 0, stage2Ms: 0 });
     return { days: 0, stage1Reran: 0 };
   }
   const dirty = await store.takeIntradayDirty();
   const t1 = Date.now();
   lastRun.stage1Days = await stage1(store, data, dirty, po, opts.onProgress);
   const t2 = Date.now();
-  await stage2(store, data, po, opts.onProgress);
+  lastRun.stage2From = await stage2(store, data, po, opts.onProgress, lastRun.stage1Days);
   const t3 = Date.now();
   Object.assign(lastRun, { stage1Ms: t2 - t1, stage2Ms: t3 - t2, ms: t3 - t0 });
   return { days: data.days.length, stage1Reran: lastRun.stage1Days.length };
