@@ -41,7 +41,6 @@ describe("named opacity tiers equal the alpha modifiers they replace", () => {
     ["fill-faint", "foreground", 0.06],
     ["fill-hover", "foreground", 0.08],
     ["fill-pressed", "foreground", 0.1],
-    ["skeleton", "muted", 0.6],
     ["foreground-body", "foreground", 0.85],
     ["card-peek", "card", 0.6],
     ["focus-ring", "foreground", 0.7],
@@ -52,6 +51,10 @@ describe("named opacity tiers equal the alpha modifiers they replace", () => {
   ] as const;
   for (const p of [LIGHT, DARK])
     for (const [tier, base, a] of TIERS) it(`${tier} = ${base} at ${a}`, () => expect(p[tier]).toBe(alpha(p[base], a)));
+  it("skeleton: muted at 60 % in light, the text colour at 6 % in dark (dark muted is the card's own colour)", () => {
+    expect(LIGHT.skeleton).toBe(alpha(LIGHT.muted, 0.6));
+    expect(DARK.skeleton).toBe(alpha(DARK.foreground, 0.06));
+  });
   it("input-fill: the input colour at 30 % in dark, nothing in light", () => {
     expect(DARK["input-fill"]).toBe(alpha(DARK.input, 0.3));
     expect(parseColor(LIGHT["input-fill"])[3]).toBe(0);

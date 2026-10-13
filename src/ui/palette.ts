@@ -277,7 +277,7 @@ export const DARK = {
   "fill-faint": "rgba(255, 255, 255, 0.06)",
   "fill-hover": "rgba(255, 255, 255, 0.08)",
   "fill-pressed": "rgba(255, 255, 255, 0.1)",
-  "skeleton": "rgba(34, 40, 44, 0.6)",
+  "skeleton": "rgba(255, 255, 255, 0.06)",
   "foreground-body": "rgba(255, 255, 255, 0.85)",
   "card-peek": "rgba(35, 38, 41, 0.6)",
   "focus-ring": "rgba(255, 255, 255, 0.7)",

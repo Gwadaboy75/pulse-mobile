@@ -2,8 +2,9 @@ import { View, type ViewProps } from "react-native";
 import Animated, { useReducedMotion } from "react-native-reanimated";
 import { cn } from "./cn";
 
-// Skeletons reuse the component's own box (spec §5.19); these are only the bars inside it.
-const BAR = "rounded-md bg-muted";
+// Skeletons reuse the component's own box (spec §5.19); these are only the bars inside it. A tint of the text colour, not
+// bg-muted: in dark mode muted (#22282c) is the card's own colour (#232629), so a bar inside a card did not show.
+const BAR = "rounded-md bg-foreground/10";
 
 // The web's animate-pulse (Tailwind: opacity 1 → 0.5 → 1 over 2 s) as Reanimated's own CSS animation on the UI thread,
 // not through NativeWind's experimental animation support. Reanimated takes only named curves as strings (a

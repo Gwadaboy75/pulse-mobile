@@ -150,7 +150,7 @@
   /* A selected driver row's ring. Differs from web: the web's ring-foreground/60 is ink in light; mobile keeps white 60 %. */
   --selected-ring: rgb(255 255 255 / 0.6);
   /* Opacity tiers the web writes as alpha modifiers, named once: fill-faint bg-foreground/[0.06], fill-hover
-     bg-foreground/8, fill-pressed bg-foreground/10, skeleton bg-muted/60, foreground-body text-foreground/85, card-peek
+     bg-foreground/8, fill-pressed bg-foreground/10, skeleton bg-muted/60 (dark: foreground at 6 %, as dark muted is the card's colour), foreground-body text-foreground/85, card-peek
      bg-card/60, focus-ring ring-foreground/70, input-fill dark:bg-input/30 (none in light), alert-ring ring-recovery-red/60,
      warning-ring the warning colour at 50 %. */
   --fill-faint: rgb(16 21 24 / 0.06);
@@ -314,7 +314,7 @@
   --fill-faint: rgb(255 255 255 / 0.06);
   --fill-hover: rgb(255 255 255 / 0.08);
   --fill-pressed: rgb(255 255 255 / 0.1);
-  --skeleton: rgb(34 40 44 / 0.6);
+  --skeleton: rgb(255 255 255 / 0.06);
   --foreground-body: rgb(255 255 255 / 0.85);
   --card-peek: rgb(35 38 41 / 0.6);
   --focus-ring: rgb(255 255 255 / 0.7);
