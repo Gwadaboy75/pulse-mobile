@@ -5,8 +5,8 @@ import { seedDemo } from "@/data/seed";
 import type { Profile } from "@/data/types";
 import { runPipeline } from "@/pipeline";
 import type { QueryCtx } from "./ctx";
-import { getMetricDetail } from "./metric";
-import { getTrends } from "./trends";
+import { getMetricDetail, isDetailKey } from "./metric";
+import { getTrends, TREND_METRICS } from "./trends";
 
 const TZ = "Asia/Kolkata";
 const TODAY = "2026-10-02";
@@ -42,5 +42,12 @@ describe("Average heart rate", () => {
     expect(last7.at(-1)).toMatchObject({ day: TODAY, partial: true });
     const sixDays = last7.slice(0, -1).map((p) => p.value!);
     expect(t.periods[0].average.value).toBeCloseTo(sixDays.reduce((a, b) => a + b, 0) / sixDays.length, 9);
+  });
+});
+
+describe("metric links", () => {
+  it("open a metric that has a screen", () => {
+    const keys = TREND_METRICS.filter((m) => m.href.startsWith("/metric/")).map((m) => m.href.replace("/metric/", ""));
+    expect(keys.filter((k) => !isDetailKey(k))).toEqual([]);
   });
 });
