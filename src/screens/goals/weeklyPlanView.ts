@@ -1,17 +1,17 @@
 // The Weekly Plan sheet's words (src/screens/goals/WeeklyPlan.tsx; halo src/screens/home/weeklyPlanView.ts): value and
-// target text, the status word and its chip tone, the line under each target, and Pulse Age's years. Pure, so it is tested without React.
+// target text, the status word and its DeltaMark, the line under each target, and Pulse Age's years. Pure, so it is tested without React.
 import type { PlanStatus } from "@/core/algorithms/weeklyPlan";
-import type { ChipTone } from "@/lib/bands";
+import type { DeltaDir, Tone } from "@/lib/bands";
 import { formatValue, MISSING, NBSP } from "@/lib/format";
 import type { PlanRow } from "@/queries/weeklyPlan";
 
-/** Each status's word and its StatusChip tone: done optimal, behind warning, missed alert; on pace and no data neutral. */
-export const PLAN_STATUS: Record<PlanStatus, { word: string; chip: ChipTone }> = {
-  done: { word: "Done", chip: "optimal" },
-  on_pace: { word: "On pace", chip: "neutral" },
-  behind: { word: "Behind", chip: "warning" },
-  missed: { word: "Missed", chip: "alert" },
-  no_data: { word: "No data", chip: "neutral" },
+/** Each status's word and its DeltaMark, as KeyStatRow marks a value: done up and good, behind and missed down and bad, on pace a grey dot, no data none. */
+export const PLAN_STATUS: Record<PlanStatus, { word: string; mark: { dir: DeltaDir; tone: Tone } | null }> = {
+  done: { word: "Done", mark: { dir: "up", tone: "good" } },
+  on_pace: { word: "On pace", mark: { dir: "flat", tone: "neutral" } },
+  behind: { word: "Behind", mark: { dir: "down", tone: "bad" } },
+  missed: { word: "Missed", mark: { dir: "down", tone: "bad" } },
+  no_data: { word: "No data", mark: null },
 };
 
 const plural = (n: number, one: string, many = `${one}s`) => `${formatValue("grouped", n)}${NBSP}${n === 1 ? one : many}`;

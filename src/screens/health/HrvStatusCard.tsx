@@ -92,7 +92,6 @@ export function HrvStatusCard({ d }: { d?: string }) {
                 value={formatValue("int", v.weekAverage)}
                 unit="ms"
                 band={v.status}
-                tone={v.tone}
                 caption="7-day average"
                 spoken={`HRV Status ${v.status}, 7-day average ${Math.round(v.weekAverage)} milliseconds`}
               />

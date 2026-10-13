@@ -1,6 +1,6 @@
 // Version 19's training cards, from halo src/screens/detail/TrainingCards.tsx (its fields and copy) drawn with Pulse's
 // kit: Training Readiness with Recovery Time and Training Status (Strain), and a workout's Aerobic Training Effect
-// (Activity). Plain views only: a value, a chip, thin meters; nothing animates.
+// (Activity). Plain views only: a value, a band word, rows and ZoneBars-style meters; nothing animates.
 import type { ReactNode } from "react";
 import { View } from "react-native";
 import { Activity, BedDouble, Brain, Gauge, Moon, Timer, type LucideIcon } from "lucide-react-native";
@@ -12,13 +12,16 @@ import { getTraining, type TrainingEffectVM, type TrainingVM } from "@/queries/t
 import { cn } from "@/ui/cn";
 import { Divided } from "@/ui/Divided";
 import { Icon } from "@/ui/Icon";
-import { CAPTION, LABEL, StatusChip, ValueUnit } from "@/ui/metrics/primitives";
+import { Bar } from "@/screens/goals/parts";
+import { CAPTION, LABEL, ValueUnit } from "@/ui/metrics/primitives";
 import { ReasonPlaceholder } from "@/ui/metrics/ReasonPlaceholder";
 import { MetricState } from "@/ui/shells/MetricState";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import type { InfoContent } from "@/ui/shells/InfoButton";
 import { Skeleton } from "@/ui/Skeleton";
 import { Text } from "@/ui/Text";
+import type { TokenName } from "@/ui/palette";
+import { useTheme } from "@/ui/theme";
 import { useScreen } from "../useScreen";
 
 function P({ children }: { children: ReactNode }) {
@@ -26,29 +29,26 @@ function P({ children }: { children: ReactNode }) {
 }
 export const SOURCE_NOTE = <Text className="text-[13px] leading-[18px] text-muted-foreground">Pulse scores, computed from your Fitbit data.</Text>;
 
-/** A tone's ink for the band word under a hero number (Health's Fitness card colours its category word the same way). */
-export const TONE_TEXT: Record<ChipTone, string> = { optimal: "text-optimal-text", warning: "text-warning-text", alert: "text-recovery-red-text", neutral: "text-foreground" };
 /** A meter stays quiet unless it flags something: only a weak value (warning, alert) takes a colour. */
-const TONE_BG: Record<ChipTone, string> = { optimal: "bg-foreground-secondary", warning: "bg-warning", alert: "bg-recovery-red", neutral: "bg-foreground-secondary" };
+const TONE_FILL: Record<ChipTone, TokenName> = { optimal: "foreground-secondary", warning: "warning", alert: "recovery-red", neutral: "foreground-secondary" };
 /** The score heroes' number (Health's Fitness and Heart rate cards), in the foreground colour. */
 export const HERO = "font-numeric text-4xl font-bold leading-10 tracking-[-0.01em]";
 export const LINE = "text-[15px] leading-[22px] text-foreground-secondary";
+/** A band or status word in caps, in secondary ink (the PWA's Fitness card category). */
+const BAND = cn(LABEL, "text-foreground-secondary");
 
-/** A thin, quiet meter: `frac` of the track. */
-export function Meter({ frac, tone }: { frac: number | null; tone: ChipTone }) {
-  return (
-    <View accessibilityElementsHidden className="h-1.5 w-full overflow-hidden rounded-full bg-dial-track">
-      {frac !== null && <View className={cn("h-full rounded-full", TONE_BG[tone])} style={{ width: `${Math.max(2, Math.min(100, frac * 100))}%` }} />}
-    </View>
-  );
+/** A quiet meter, ZoneBars' bar: `frac` of a hatched track. */
+function Meter({ frac, tone }: { frac: number; tone: ChipTone }) {
+  const { c } = useTheme();
+  return <Bar value={frac} color={c[TONE_FILL[tone]]} />;
 }
 
 /** A score hero (Health's Fitness card): the number and its unit, the band word in caps under it, then a grey caption. */
-export function Hero({ value, unit, band, tone, caption, spoken }: { value: string; unit?: string; band: string; tone: ChipTone; caption?: string | null; spoken: string }) {
+export function Hero({ value, unit, band, caption, spoken }: { value: string; unit?: string; band: string; caption?: string | null; spoken: string }) {
   return (
     <View accessible accessibilityLabel={spoken} className="gap-1">
       <ValueUnit value={value} unit={unit} className={HERO} />
-      <Text className={cn(LABEL, TONE_TEXT[tone])}>{band}</Text>
+      <Text className={BAND}>{band}</Text>
       {!!caption && <Text className={cn(CAPTION, "tabular-nums")}>{caption}</Text>}
     </View>
   );
@@ -66,7 +66,6 @@ export function StatRow({
   unit,
   spoken,
   word,
-  chip,
 }: {
   icon?: ReactNode;
   label: string;
@@ -75,8 +74,6 @@ export function StatRow({
   unit?: string;
   spoken: string;
   word?: boolean;
-  /** A status in place of the value. */
-  chip?: { tone: ChipTone; text: string };
 }) {
   const missing = value === MISSING;
   return (
@@ -86,9 +83,7 @@ export function StatRow({
         <Text className={LABEL}>{label}</Text>
         {!!caption && <Text className={cn(CAPTION, "mt-0.5")}>{caption}</Text>}
       </View>
-      {chip ? (
-        <StatusChip tone={chip.tone} className="self-center">{chip.text}</StatusChip>
-      ) : word ? (
+      {word ? (
         <Text className={cn("max-w-[50%] text-right text-base font-semibold leading-6", missing && "text-muted-foreground")}>{value}</Text>
       ) : (
         <ValueUnit value={value} unit={unit} className={cn("shrink-0 font-numeric text-xl font-bold leading-6", missing && "text-muted-foreground")} />
@@ -180,7 +175,6 @@ function ReadinessBody({ vm, timeZone }: { vm: TrainingVM; timeZone: string }) {
               value={String(r.score)}
               unit="of 100"
               band={r.band}
-              tone={r.tone}
               caption={vm.isToday && r.atWake !== null && r.atWake !== r.score ? `At wake ${r.atWake}` : null}
               spoken={`Training Readiness ${r.score} of 100, ${r.band}`}
             />
@@ -192,12 +186,13 @@ function ReadinessBody({ vm, timeZone }: { vm: TrainingVM; timeZone: string }) {
                 icon={<Icon icon={Timer} size={20} tone="muted-foreground" strokeWidth={1.75} />}
                 label="Recovery time"
                 caption={
-                  rt.readyAt !== null && vm.isToday
+                  rt.hours <= 0
+                    ? "Recovered"
+                    : rt.readyAt !== null && vm.isToday
                     ? `Ready for hard training around ${clock(rt.readyAt, timeZone)}${rt.hours >= 24 ? ` in ${Math.round(rt.hours / 24)} day${Math.round(rt.hours / 24) === 1 ? "" : "s"}` : ""}`
                     : null
                 }
                 value={hoursText(rt.hours)}
-                chip={rt.hours > 0 ? undefined : { tone: "optimal", text: "Recovered" }}
                 spoken={rt.hours > 0 ? `Recovery time ${hoursText(rt.hours)}` : "Recovery time: fully recovered"}
               />
             )}
@@ -235,7 +230,7 @@ function StatusBody({ status }: { status: TrainingVM["status"] }) {
       {(s) => (
         <View className="gap-3">
           <View className="gap-2">
-            <StatusChip tone={s.tone}>{s.status}</StatusChip>
+            <Text className={BAND}>{s.status}</Text>
             <Text className={LINE}>{s.line}</Text>
           </View>
           <Divided>
@@ -278,7 +273,7 @@ export function TrainingEffectCard({ te }: { te: TrainingEffectVM | null }) {
         {(t) => (
           <View className="gap-3">
             <View className="gap-3">
-              <Hero value={formatValue("decimal1", t.te)} unit="of 5" band={t.label} tone={t.tone} spoken={`Aerobic Training Effect ${formatValue("decimal1", t.te)} of 5, ${t.label}`} />
+              <Hero value={formatValue("decimal1", t.te)} unit="of 5" band={t.label} spoken={`Aerobic Training Effect ${formatValue("decimal1", t.te)} of 5, ${t.label}`} />
               <Meter frac={t.te / 5} tone={t.tone} />
             </View>
             <Divided>
