@@ -67,6 +67,7 @@ export function HealthspanScreen() {
   return (
     <DetailShell
       title="Healthspan"
+      bodySkeleton={BODY_SKELETON}
       subtitle={n > 0 ? `Next update in ${n} ${n === 1 ? "day" : "days"}` : undefined}
       dateSwitcher={{ mode: "week" }}
       info={HEALTHSPAN_INFO}
@@ -140,6 +141,24 @@ function Contributors({ title, n }: { title: string; n: number }) {
   );
 }
 
+const LOADING_PRIMARY = (
+  <SectionShell variant="card" title={`${AGE_LABEL} history`}>
+    <TrendChartSkeleton />
+  </SectionShell>
+);
+
+const LOADING_SECONDARY = [
+  <Contributors key="sleep" title="Sleep" n={2} />, <Contributors key="strain" title="Strain" n={4} />, <Contributors key="fitness" title="Fitness" n={3} />,
+];
+
+/** Below the fold while a cold push slides in: the loading state's first sections. */
+const BODY_SKELETON = (
+  <>
+    {LOADING_PRIMARY}
+    <View className="gap-3">{LOADING_SECONDARY.slice(0, 2)}</View>
+  </>
+);
+
 /**
  * Healthspan loading (spec §7.7, §5.19): the week row, the 300 px orb as its rim, Pace of Aging, the insight, Pulse Age
  * history, then the Sleep (2), Strain (4) and Fitness (3) contributors.
@@ -170,12 +189,9 @@ function HealthspanLoading() {
         </SectionShell>
       }
       insight={<InsightCardSkeleton title />}
-      primary={
-        <SectionShell variant="card" title={`${AGE_LABEL} history`}>
-          <TrendChartSkeleton />
-        </SectionShell>
-      }
-      secondary={[<Contributors key="sleep" title="Sleep" n={2} />, <Contributors key="strain" title="Strain" n={4} />, <Contributors key="fitness" title="Fitness" n={3} />]}
+      primary={LOADING_PRIMARY}
+      bodySkeleton={BODY_SKELETON}
+      secondary={LOADING_SECONDARY}
     />
   );
 }

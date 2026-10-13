@@ -39,6 +39,7 @@ export default function TrendsScreen() {
   return (
     <DetailShell
       title="Trends"
+      bodySkeleton={<LoadingBody current={m.key} r={r} />}
       primary={
         <View className="gap-4">
           <MetricPicker current={m.key} r={r} />
@@ -66,23 +67,29 @@ function Loading({ current, r }: { current: TrendMetric["key"]; r?: string }) {
     <DetailShell
       loading
       title="Trends"
-      primary={
-        <View accessibilityElementsHidden className="gap-4">
-          <MetricPicker current={current} r={r} />
-          <View className="gap-3">
-            <SectionShell variant="card" title={" "} aside={<SkeletonText className="w-20" />}>
-              <TrendChartSkeleton chip ranges={RANGES} />
-            </SectionShell>
-            <SectionShell variant="card" title="Averages">
-              <Divided>
-                {RANGES.map((x) => (
-                  <KeyStatRowSkeleton key={x} variant="row" label={PERIOD[x].label} />
-                ))}
-              </Divided>
-            </SectionShell>
-          </View>
-        </View>
-      }
+      primary={<LoadingBody current={current} r={r} />}
+      bodySkeleton={<LoadingBody current={current} r={r} />}
     />
+  );
+}
+
+/** The loading state's page: also what a cold push shows below the header while it slides in. */
+function LoadingBody({ current, r }: { current: TrendMetric["key"]; r?: string }) {
+  return (
+    <View accessibilityElementsHidden className="gap-4">
+      <MetricPicker current={current} r={r} />
+      <View className="gap-3">
+        <SectionShell variant="card" title={" "} aside={<SkeletonText className="w-20" />}>
+          <TrendChartSkeleton chip ranges={RANGES} />
+        </SectionShell>
+        <SectionShell variant="card" title="Averages">
+          <Divided>
+            {RANGES.map((x) => (
+              <KeyStatRowSkeleton key={x} variant="row" label={PERIOD[x].label} />
+            ))}
+          </Divided>
+        </SectionShell>
+      </View>
+    </View>
   );
 }

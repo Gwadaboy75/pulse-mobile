@@ -64,6 +64,7 @@ export function StrainScreen() {
   return (
     <DetailShell
       title="Strain"
+      bodySkeleton={BODY_SKELETON}
       info={STRAIN_INFO}
       dateSwitcher={{ mode: "day", placement: "header", steppers: false }}
       notch
@@ -141,6 +142,36 @@ function TargetRow({ vm }: { vm: StrainVM }) {
   )
 }
 
+const LOADING_PRIMARY = (
+  <SectionShell variant="card" title="Heart rate">
+    <View accessibilityElementsHidden>
+      <IntradayHrChartSkeleton />
+    </View>
+  </SectionShell>
+)
+
+const LOADING_SECONDARY = [
+  <SectionShell key="zones" variant="card" title="Time in zones">
+    <View accessibilityElementsHidden>
+      <ZoneBarsSkeleton variant="rows" />
+      <SkeletonText className="mt-3 w-56" />
+    </View>
+  </SectionShell>,
+  <SectionShell key="activities" variant="card" title="Activities">
+    <View accessibilityElementsHidden>
+      <TimelineSkeleton rows={1} />
+    </View>
+  </SectionShell>,
+]
+
+/** Below the fold while a cold push slides in: the loading state's first sections. */
+const BODY_SKELETON = (
+  <>
+    {LOADING_PRIMARY}
+    <View className="gap-3">{LOADING_SECONDARY.slice(0, 2)}</View>
+  </>
+)
+
 /** The route's loading state (pulse's StrainSkeleton). */
 function StrainSkeleton() {
   return (
@@ -149,26 +180,9 @@ function StrainSkeleton() {
       dial="strain"
       labels={["Strain Target", "Heart rate zones 1-3", "Heart rate zones 4-5", "Strength activity time", "Steps"]}
       legend="Today vs. prior 30 days"
-      primary={
-        <SectionShell variant="card" title="Heart rate">
-          <View accessibilityElementsHidden>
-            <IntradayHrChartSkeleton />
-          </View>
-        </SectionShell>
-      }
-      secondary={[
-        <SectionShell key="zones" variant="card" title="Time in zones">
-          <View accessibilityElementsHidden>
-            <ZoneBarsSkeleton variant="rows" />
-            <SkeletonText className="mt-3 w-56" />
-          </View>
-        </SectionShell>,
-        <SectionShell key="activities" variant="card" title="Activities">
-          <View accessibilityElementsHidden>
-            <TimelineSkeleton rows={1} />
-          </View>
-        </SectionShell>,
-      ]}
+      primary={LOADING_PRIMARY}
+      bodySkeleton={BODY_SKELETON}
+      secondary={LOADING_SECONDARY}
       footer={<WeeklyTrendsSkeleton titles={["Strain", "HR Zones 1-3", "HR Zones 4-5", "Steps", "Calories", "Strength Activity Time"]} />}
     />
   )

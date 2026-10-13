@@ -27,7 +27,7 @@ import { statProps } from "../_lib/view";
 import { useScreen } from "../useScreen";
 import { HoursVsNeed, SleepConsistency, SleepEfficiency } from "./SleepCards";
 import { WeeklyTrends } from "../trends/WeeklyTrends";
-import { SleepSkeleton } from "./SleepSkeleton";
+import { SLEEP_BODY_SKELETON, SleepSkeleton } from "./SleepSkeleton";
 
 /** Weekly Trends, in the reference app's order (sleep-28..34). */
 const WEEKLY: readonly TrendViewKey[] = ["sleep", "hours", "hours_need", "restorative", "consistency", "time_in_bed", "efficiency"];
@@ -72,6 +72,7 @@ function Sleep({ vm, weekly, timeZone }: { vm: SleepPageVM; weekly: TrendViewVM[
   return (
     <DetailShell
       title="Sleep"
+      bodySkeleton={SLEEP_BODY_SKELETON}
       info={SLEEP_INFO}
       dateSwitcher={{ mode: "day", placement: "header", steppers: false }}
       notch

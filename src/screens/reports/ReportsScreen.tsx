@@ -71,6 +71,7 @@ export default function ReportsScreen() {
   return (
     <DetailShell
       title="Reports"
+      bodySkeleton={LOADING_PRIMARY}
       primary={
         empty ? (
           <EmptyState body="No reports yet. Your first weekly report appears once a week has data." />
@@ -102,19 +103,22 @@ export default function ReportsScreen() {
 
 const rows = (n: number) => Array.from({ length: n }, () => ({ label: "" }));
 
+const LOADING_PRIMARY = (
+  <View accessibilityElementsHidden className={MORE_COLUMN}>
+    <View className="h-11 rounded-lg bg-muted" />
+    <LinkListSkeleton title="" rows={rows(4)} />
+    <LinkListSkeleton title="" rows={rows(4)} />
+  </View>
+);
+
 /** Reports archive: the view switch and two month groups at their final size (spec §5.19). */
 function Loading() {
   return (
     <DetailShell
       loading
       title="Reports"
-      primary={
-        <View accessibilityElementsHidden className={MORE_COLUMN}>
-          <View className="h-11 rounded-lg bg-muted" />
-          <LinkListSkeleton title="" rows={rows(4)} />
-          <LinkListSkeleton title="" rows={rows(4)} />
-        </View>
-      }
+      primary={LOADING_PRIMARY}
+      bodySkeleton={LOADING_PRIMARY}
     />
   );
 }

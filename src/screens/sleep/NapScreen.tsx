@@ -9,7 +9,7 @@ import { DetailShell } from "@/ui/shells/DetailShell";
 import { EmptyState } from "@/ui/shells/EmptyState";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { useScreen } from "../useScreen";
-import { NapSkeleton } from "./NapSkeleton";
+import { NAP_BODY_SKELETON, NapSkeleton } from "./NapSkeleton";
 
 export function NapScreen({ id }: { id: string }) {
   const { data } = useScreen(async (ctx) => ({ vm: await getNap(id, ctx), today: todayOf(ctx), timeZone: ctx.timeZone }), ["nap", id]);
@@ -20,6 +20,7 @@ export function NapScreen({ id }: { id: string }) {
   return (
     <DetailShell
       title="Nap"
+      bodySkeleton={NAP_BODY_SKELETON}
       subtitle={`${dayLabel(vm.day, today)} ${clock(vm.start, timeZone)} to ${clock(vm.end, timeZone)}`}
       align="start"
       backHref={dayHref("/sleep", vm.day, today)}

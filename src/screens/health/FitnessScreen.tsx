@@ -59,6 +59,7 @@ export function FitnessScreen() {
   return (
     <DetailShell
       title="Fitness"
+      bodySkeleton={BODY_SKELETON}
       info={FITNESS_INFO}
       hero={<Hero vo2={vm.vo2} />}
       summary={
@@ -138,6 +139,42 @@ export function FitnessScreen() {
   );
 }
 
+const LOADING_PRIMARY = (
+  <SectionShell variant="card" title="VO2 max trend">
+    <TrendChartSkeleton />
+  </SectionShell>
+);
+
+const LOADING_SECONDARY = [
+  <SectionShell key="load" variant="card" title="Training load">
+    <View accessibilityElementsHidden className="gap-4">
+      <View className="flex-row items-center gap-3">
+        <SkeletonText lh={40} fs={36} className="w-[75px]" />
+        <Skeleton className="h-6 w-20 rounded-md" />
+      </View>
+      <TickScaleSkeleton variant="marker" />
+      <View>
+        <SkeletonText lh={22} fs={15} className="w-full" />
+        <SkeletonText lh={22} fs={15} className="w-1/2" />
+      </View>
+    </View>
+  </SectionShell>,
+  <SectionShell key="ffs" variant="card" title="Fitness, fatigue and form">
+    <View accessibilityElementsHidden>
+      <Skeleton className="h-[220px] rounded-lg bg-skeleton" />
+      <Text className={cn(CAPTION, "mt-2")}>Fitness is your 42-day load, fatigue your 7-day load, form the difference.</Text>
+    </View>
+  </SectionShell>,
+];
+
+/** Below the fold while a cold push slides in: the loading state's first sections. */
+const BODY_SKELETON = (
+  <>
+    {LOADING_PRIMARY}
+    <View className="gap-3">{LOADING_SECONDARY.slice(0, 2)}</View>
+  </>
+);
+
 /** Fitness loading (spec §7.10, §5.19): no date row; the VO2 max hero with Percentile, the VO2 max trend, then Training load and Fitness, fatigue and form. */
 function FitnessLoading() {
   return (
@@ -169,32 +206,9 @@ function FitnessLoading() {
           </View>
         </SectionShell>
       }
-      primary={
-        <SectionShell variant="card" title="VO2 max trend">
-          <TrendChartSkeleton />
-        </SectionShell>
-      }
-      secondary={[
-        <SectionShell key="load" variant="card" title="Training load">
-          <View accessibilityElementsHidden className="gap-4">
-            <View className="flex-row items-center gap-3">
-              <SkeletonText lh={40} fs={36} className="w-[75px]" />
-              <Skeleton className="h-6 w-20 rounded-md" />
-            </View>
-            <TickScaleSkeleton variant="marker" />
-            <View>
-              <SkeletonText lh={22} fs={15} className="w-full" />
-              <SkeletonText lh={22} fs={15} className="w-1/2" />
-            </View>
-          </View>
-        </SectionShell>,
-        <SectionShell key="ffs" variant="card" title="Fitness, fatigue and form">
-          <View accessibilityElementsHidden>
-            <Skeleton className="h-[220px] rounded-lg bg-skeleton" />
-            <Text className={cn(CAPTION, "mt-2")}>Fitness is your 42-day load, fatigue your 7-day load, form the difference.</Text>
-          </View>
-        </SectionShell>,
-      ]}
+      primary={LOADING_PRIMARY}
+      bodySkeleton={BODY_SKELETON}
+      secondary={LOADING_SECONDARY}
     />
   );
 }

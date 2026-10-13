@@ -189,6 +189,7 @@ export default function ReportScreen() {
   return (
     <DetailShell
       title={title}
+      bodySkeleton={BODY_SKELETON}
       action={<ShareButton vm={vm} />}
       hero={
         <View className="w-full items-center gap-5">
@@ -272,6 +273,65 @@ const DIALS = [
 ] as const;
 const AVERAGES = ["Recovery", "Day strain", "Sleep performance", "Hours of sleep", "Sleep consistency", "Heart rate variability", "Resting heart rate"];
 
+const LOADING_PRIMARY = (
+  <SectionShell variant="card" title="Recovery breakdown" aside={<Text className={CAPTION}>Days</Text>}>
+    <ZoneBarsSkeleton variant="stacked" />
+  </SectionShell>
+);
+
+const LOADING_SECONDARY = [
+  <SectionShell key="avg" variant="card" title="Averages" aside={<SkeletonText className="w-20" />}>
+    <View accessibilityElementsHidden>
+      <Divided>
+        {AVERAGES.map((l) => (
+          <KeyStatRowSkeleton key={l} variant="row" label={l} />
+        ))}
+      </Divided>
+    </View>
+  </SectionShell>,
+  <SectionShell key="balance" variant="card" title="Training balance">
+    <View accessibilityElementsHidden className="gap-1">
+      <SkeletonText className="w-24" fs={20} lh={24} />
+      <SkeletonText className="w-36" />
+      <View className="pt-2">
+        <SkeletonText className="w-56" fs={15} lh={22} />
+        <SkeletonText className="w-24" fs={15} lh={22} />
+      </View>
+    </View>
+  </SectionShell>,
+  <SectionShell key="journal" variant="card" title="Top journal effects" action={{ label: "View all", href: "/journal/insights" }}>
+    <DriverListSkeleton />
+  </SectionShell>,
+  <SectionShell key="best" variant="card" title="Best and worst day">
+    <View accessibilityElementsHidden>
+      <Divided>
+        {["Best day", "Worst day"].map((l) => (
+          <View key={l} className="min-h-16 flex-row items-center gap-3 py-2">
+            <View className="min-w-0 flex-1">
+              <Text className={cn(LABEL, "text-foreground")}>{l}</Text>
+              <SkeletonText className="mt-1 w-20" />
+            </View>
+            <ScoreDialSkeleton variant="recovery" size="sm" />
+            <View className="w-12 items-end">
+              <SkeletonText className="w-9" fs={20} lh={24} />
+              <Text className={CAPTION}>Strain</Text>
+            </View>
+            <Icon icon={ChevronRight} size={16} tone="muted-foreground" strokeWidth={1.75} />
+          </View>
+        ))}
+      </Divided>
+    </View>
+  </SectionShell>,
+];
+
+/** Below the fold while a cold push slides in: the loading state's first sections. */
+const BODY_SKELETON = (
+  <>
+    {LOADING_PRIMARY}
+    <View className="gap-3">{LOADING_SECONDARY.slice(0, 2)}</View>
+  </>
+);
+
 /**
  * Report loading (spec §7.13, §5.19): the period switcher, kind toggle and three dials, the insight, Recovery
  * breakdown, then Averages, Training balance, Top journal effects and Best and worst day. Loading UI gets no params, so
@@ -305,55 +365,9 @@ function Loading() {
         </View>
       }
       insight={<InsightCardSkeleton />}
-      primary={
-        <SectionShell variant="card" title="Recovery breakdown" aside={<Text className={CAPTION}>Days</Text>}>
-          <ZoneBarsSkeleton variant="stacked" />
-        </SectionShell>
-      }
-      secondary={[
-        <SectionShell key="avg" variant="card" title="Averages" aside={<SkeletonText className="w-20" />}>
-          <View accessibilityElementsHidden>
-            <Divided>
-              {AVERAGES.map((l) => (
-                <KeyStatRowSkeleton key={l} variant="row" label={l} />
-              ))}
-            </Divided>
-          </View>
-        </SectionShell>,
-        <SectionShell key="balance" variant="card" title="Training balance">
-          <View accessibilityElementsHidden className="gap-1">
-            <SkeletonText className="w-24" fs={20} lh={24} />
-            <SkeletonText className="w-36" />
-            <View className="pt-2">
-              <SkeletonText className="w-56" fs={15} lh={22} />
-              <SkeletonText className="w-24" fs={15} lh={22} />
-            </View>
-          </View>
-        </SectionShell>,
-        <SectionShell key="journal" variant="card" title="Top journal effects" action={{ label: "View all", href: "/journal/insights" }}>
-          <DriverListSkeleton />
-        </SectionShell>,
-        <SectionShell key="best" variant="card" title="Best and worst day">
-          <View accessibilityElementsHidden>
-            <Divided>
-              {["Best day", "Worst day"].map((l) => (
-                <View key={l} className="min-h-16 flex-row items-center gap-3 py-2">
-                  <View className="min-w-0 flex-1">
-                    <Text className={cn(LABEL, "text-foreground")}>{l}</Text>
-                    <SkeletonText className="mt-1 w-20" />
-                  </View>
-                  <ScoreDialSkeleton variant="recovery" size="sm" />
-                  <View className="w-12 items-end">
-                    <SkeletonText className="w-9" fs={20} lh={24} />
-                    <Text className={CAPTION}>Strain</Text>
-                  </View>
-                  <Icon icon={ChevronRight} size={16} tone="muted-foreground" strokeWidth={1.75} />
-                </View>
-              ))}
-            </Divided>
-          </View>
-        </SectionShell>,
-      ]}
+      primary={LOADING_PRIMARY}
+      bodySkeleton={BODY_SKELETON}
+      secondary={LOADING_SECONDARY}
     />
   );
 }

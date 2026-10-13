@@ -44,6 +44,59 @@ function MeasureSkeleton({ rows: labels }: { rows: string[] }) {
   );
 }
 
+const LOADING_PRIMARY = (
+  <SectionShell variant="card" title="Last night’s sleep" aside="vs. prior 30 days">
+    <SleepStagesSkeleton />
+  </SectionShell>
+);
+
+const LOADING_SECONDARY = [
+  <CardSkeleton key="need" title="Hours vs. needed">
+    <MeasureSkeleton rows={["Healthy minimum", "Recent strain", "Sleep debt"]} />
+  </CardSkeleton>,
+  <CardSkeleton key="consistency" title="Sleep consistency">
+    <View className="gap-4">
+      <SkeletonText lh={40} fs={36} className="w-24" />
+      <Skeleton className="h-52 rounded-lg" />
+    </View>
+  </CardSkeleton>,
+  <CardSkeleton key="efficiency" title="Sleep efficiency">
+    <View accessibilityElementsHidden className="gap-4">
+      <SkeletonText lh={40} fs={36} className="w-24" />
+      <Skeleton className="h-3.5 rounded-[3px]" />
+      <Skeleton className="h-3.5 rounded-[3px] bg-skeleton" />
+      <SkeletonText className="w-32" />
+    </View>
+  </CardSkeleton>,
+  <SectionShell key="planner" variant="card" title="Tonight’s sleep" info={TONIGHT_INFO}>
+    <View accessibilityElementsHidden className="gap-2">
+      <View>
+        {rows(4, (i) => (
+          <>
+            {i > 0 && <View className="h-px bg-border" />}
+            <View className="min-h-[52px] flex-row items-center gap-3 py-2">
+              <View className="min-w-0 flex-1">
+                <SkeletonText className="w-20" />
+                <SkeletonText className="mt-0.5 w-24" />
+              </View>
+              <SkeletonText lh={24} fs={20} className="w-12" />
+            </View>
+          </>
+        ))}
+      </View>
+      <SkeletonText className="w-28" />
+    </View>
+  </SectionShell>,
+];
+
+/** Below the fold while a cold push slides in: the loading state's first sections. */
+export const SLEEP_BODY_SKELETON = (
+  <>
+    {LOADING_PRIMARY}
+    <View className="gap-3">{LOADING_SECONDARY.slice(0, 2)}</View>
+  </>
+);
+
 export function SleepSkeleton() {
   return (
     <DetailShell
@@ -66,49 +119,9 @@ export function SleepSkeleton() {
         </Card>
       }
       insight={<InsightCardSkeleton action={false} />}
-      primary={
-        <SectionShell variant="card" title="Last night’s sleep" aside="vs. prior 30 days">
-          <SleepStagesSkeleton />
-        </SectionShell>
-      }
-      secondary={[
-        <CardSkeleton key="need" title="Hours vs. needed">
-          <MeasureSkeleton rows={["Healthy minimum", "Recent strain", "Sleep debt"]} />
-        </CardSkeleton>,
-        <CardSkeleton key="consistency" title="Sleep consistency">
-          <View className="gap-4">
-            <SkeletonText lh={40} fs={36} className="w-24" />
-            <Skeleton className="h-52 rounded-lg" />
-          </View>
-        </CardSkeleton>,
-        <CardSkeleton key="efficiency" title="Sleep efficiency">
-          <View accessibilityElementsHidden className="gap-4">
-            <SkeletonText lh={40} fs={36} className="w-24" />
-            <Skeleton className="h-3.5 rounded-[3px]" />
-            <Skeleton className="h-3.5 rounded-[3px] bg-skeleton" />
-            <SkeletonText className="w-32" />
-          </View>
-        </CardSkeleton>,
-        <SectionShell key="planner" variant="card" title="Tonight’s sleep" info={TONIGHT_INFO}>
-          <View accessibilityElementsHidden className="gap-2">
-            <View>
-              {rows(4, (i) => (
-                <>
-                  {i > 0 && <View className="h-px bg-border" />}
-                  <View className="min-h-[52px] flex-row items-center gap-3 py-2">
-                    <View className="min-w-0 flex-1">
-                      <SkeletonText className="w-20" />
-                      <SkeletonText className="mt-0.5 w-24" />
-                    </View>
-                    <SkeletonText lh={24} fs={20} className="w-12" />
-                  </View>
-                </>
-              ))}
-            </View>
-            <SkeletonText className="w-28" />
-          </View>
-        </SectionShell>,
-      ]}
+      primary={LOADING_PRIMARY}
+      bodySkeleton={SLEEP_BODY_SKELETON}
+      secondary={LOADING_SECONDARY}
       footer={<WeeklyTrendsSkeleton titles={["Sleep Performance", "Hours vs. Needed (hours)", "Hours vs. Needed (%)", "Restorative Sleep", "Sleep Consistency", "Time in Bed", "Sleep Efficiency"]} />}
     />
   );

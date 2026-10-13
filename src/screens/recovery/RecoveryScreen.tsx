@@ -42,6 +42,7 @@ export function RecoveryScreen() {
   return (
     <DetailShell
       title="Recovery"
+      bodySkeleton={WEEKLY_SKELETON}
       info={RECOVERY_INFO}
       dateSwitcher={{ mode: "day", placement: "header", steppers: false }}
       notch
@@ -64,6 +65,8 @@ export function RecoveryScreen() {
   )
 }
 
+const WEEKLY_SKELETON = <WeeklyTrendsSkeleton titles={["Recovery", "Heart Rate Variability", "Resting Heart Rate", "Respiratory Rate", "Sleep Performance"]} />
+
 /** The route's loading state: the shell with each section's own box (pulse's RecoverySkeleton). */
 function RecoverySkeleton() {
   return (
@@ -72,7 +75,8 @@ function RecoverySkeleton() {
       dial="recovery"
       labels={["Heart rate variability", "Resting heart rate", "Respiratory rate", "Sleep performance"]}
       legend="Today vs. last 30 days"
-      footer={<WeeklyTrendsSkeleton titles={["Recovery", "Heart Rate Variability", "Resting Heart Rate", "Respiratory Rate", "Sleep Performance"]} />}
+      footer={WEEKLY_SKELETON}
+      bodySkeleton={WEEKLY_SKELETON}
     />
   )
 }

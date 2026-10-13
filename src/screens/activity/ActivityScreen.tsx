@@ -71,6 +71,7 @@ export function ActivityScreen() {
     <View className="flex-1">
       <DetailShell
         title={vm.name}
+        bodySkeleton={BODY_SKELETON}
         subtitle={`${dayLabel(vm.day, today)} ${clock(vm.start, timeZone)} to ${clock(vm.end, timeZone)}`}
         align="start"
         titleIcon={<Icon icon={ACTIVITY_ICON[vm.kind]} size={24} tone="foreground" strokeWidth={1.75} />}
@@ -220,6 +221,35 @@ function StatsSkeleton() {
   )
 }
 
+const LOADING_PRIMARY = (
+  <View accessibilityElementsHidden className="gap-6">
+    <IntradayHrChartSkeleton variant="activity" />
+    <View>
+      <ZoneBarsSkeleton variant="rows" />
+      <SkeletonText className="mt-3 w-56" />
+    </View>
+  </View>
+)
+
+const LOADING_SECONDARY = [
+  <SectionShell key="stats" variant="section" title="Key statistics" aside="vs. 30-day average">
+    <StatsSkeleton />
+  </SectionShell>,
+  <SectionShell key="hrr" variant="section" title="Heart rate recovery">
+    <Card accessibilityElementsHidden className="justify-center px-4">
+      <Skeleton className="h-24 rounded-lg bg-skeleton" />
+    </Card>
+  </SectionShell>,
+]
+
+/** Below the fold while a cold push slides in: the loading state's first sections. */
+const BODY_SKELETON = (
+  <>
+    {LOADING_PRIMARY}
+    <View className="gap-3">{LOADING_SECONDARY.slice(0, 2)}</View>
+  </>
+)
+
 /** The route's loading state (pulse's ActivitySkeleton). */
 function ActivitySkeleton() {
   return (
@@ -240,25 +270,9 @@ function ActivitySkeleton() {
           <SkeletonText className="w-24" />
         </View>
       }
-      primary={
-        <View accessibilityElementsHidden className="gap-6">
-          <IntradayHrChartSkeleton variant="activity" />
-          <View>
-            <ZoneBarsSkeleton variant="rows" />
-            <SkeletonText className="mt-3 w-56" />
-          </View>
-        </View>
-      }
-      secondary={[
-        <SectionShell key="stats" variant="section" title="Key statistics" aside="vs. 30-day average">
-          <StatsSkeleton />
-        </SectionShell>,
-        <SectionShell key="hrr" variant="section" title="Heart rate recovery">
-          <Card accessibilityElementsHidden className="justify-center px-4">
-            <Skeleton className="h-24 rounded-lg bg-skeleton" />
-          </Card>
-        </SectionShell>,
-      ]}
+      primary={LOADING_PRIMARY}
+      bodySkeleton={BODY_SKELETON}
+      secondary={LOADING_SECONDARY}
       footer={<InsightCardSkeleton />}
     />
   )

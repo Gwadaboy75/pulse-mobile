@@ -52,6 +52,7 @@ export function ActivitiesScreen() {
   return (
     <DetailShell
       title="Activities"
+      bodySkeleton={LOADING_PRIMARY}
       backHref="/"
       primary={
         <View className={MORE_COLUMN}>
@@ -160,28 +161,31 @@ function Day({ g, today, timeZone }: { g: Group; today: string; timeZone: string
   )
 }
 
+const LOADING_PRIMARY = (
+  <View className={MORE_COLUMN}>
+    <View className="gap-2">
+      <Text className={GROUP_LABEL}>Last 30 days</Text>
+      <Card style={{ height: 92 }} />
+    </View>
+    {[1, 2].map((n) => (
+      <View key={n} className="gap-2">
+        <Text className={GROUP_LABEL}>{" "}</Text>
+        <Card className="p-1.5">
+          <TimelineSkeleton rows={n} />
+        </Card>
+      </View>
+    ))}
+  </View>
+);
+
 /** Activities' loading state: the summary card and two day groups at their final size (spec §5.19). */
 function ActivitiesSkeleton() {
   return (
     <DetailShell
       loading
       title="Activities"
-      primary={
-        <View className={MORE_COLUMN}>
-          <View className="gap-2">
-            <Text className={GROUP_LABEL}>Last 30 days</Text>
-            <Card style={{ height: 92 }} />
-          </View>
-          {[1, 2].map((n) => (
-            <View key={n} className="gap-2">
-              <Text className={GROUP_LABEL}>{" "}</Text>
-              <Card className="p-1.5">
-                <TimelineSkeleton rows={n} />
-              </Card>
-            </View>
-          ))}
-        </View>
-      }
+      primary={LOADING_PRIMARY}
+      bodySkeleton={LOADING_PRIMARY}
     />
   )
 }

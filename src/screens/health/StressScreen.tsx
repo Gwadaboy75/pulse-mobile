@@ -90,6 +90,7 @@ export function StressScreen() {
   return (
     <DetailShell
       title="Stress Monitor"
+      bodySkeleton={BODY_SKELETON}
       dateSwitcher={{ mode: "day" }}
       info={STRESS_INFO}
       hero={
@@ -126,6 +127,45 @@ export function StressScreen() {
   );
 }
 
+const LOADING_PRIMARY = (
+  <SectionShell variant="card" title="Today">
+    <StressChartSkeleton variant="full" />
+  </SectionShell>
+);
+
+const LOADING_SECONDARY = [
+  <SectionShell key="levels" variant="card" title="Total day">
+    <View accessibilityElementsHidden className="gap-4">
+      <SkeletonText className="w-48" />
+      <View className="gap-1.5">
+        <Skeleton className="h-3 rounded-sm" />
+        <Skeleton className="h-2 rounded-sm" />
+      </View>
+      <View className="flex-row gap-3">
+        {["Low", "Medium", "High"].map((w) => (
+          <View key={w} className="flex-1">
+            <SkeletonText lh={24} fs={20} className="w-[42px]" />
+            <Text className={cn(LABEL, "mt-1")}>{w}</Text>
+            <SkeletonText className="mt-0.5 w-20" />
+          </View>
+        ))}
+      </View>
+      <SkeletonText className="w-56" />
+    </View>
+  </SectionShell>,
+  <SectionShell key="trend" variant="card" title="30-day trend">
+    <TrendChartSkeleton />
+  </SectionShell>,
+];
+
+/** Below the fold while a cold push slides in: the loading state's first sections. */
+const BODY_SKELETON = (
+  <>
+    {LOADING_PRIMARY}
+    <View className="gap-3">{LOADING_SECONDARY.slice(0, 2)}</View>
+  </>
+);
+
 /**
  * Stress Monitor loading (spec §7.9, §5.19): the date row, the gauge with the insight, the day's chart, then Total day
  * and the 30-day trend.
@@ -138,35 +178,9 @@ function StressLoading() {
       dateSwitcher={{ mode: "day" }}
       hero={<ScoreDialSkeleton variant="gauge" size="lg" />}
       insight={<InsightCardSkeleton />}
-      primary={
-        <SectionShell variant="card" title="Today">
-          <StressChartSkeleton variant="full" />
-        </SectionShell>
-      }
-      secondary={[
-        <SectionShell key="levels" variant="card" title="Total day">
-          <View accessibilityElementsHidden className="gap-4">
-            <SkeletonText className="w-48" />
-            <View className="gap-1.5">
-              <Skeleton className="h-3 rounded-sm" />
-              <Skeleton className="h-2 rounded-sm" />
-            </View>
-            <View className="flex-row gap-3">
-              {["Low", "Medium", "High"].map((w) => (
-                <View key={w} className="flex-1">
-                  <SkeletonText lh={24} fs={20} className="w-[42px]" />
-                  <Text className={cn(LABEL, "mt-1")}>{w}</Text>
-                  <SkeletonText className="mt-0.5 w-20" />
-                </View>
-              ))}
-            </View>
-            <SkeletonText className="w-56" />
-          </View>
-        </SectionShell>,
-        <SectionShell key="trend" variant="card" title="30-day trend">
-          <TrendChartSkeleton />
-        </SectionShell>,
-      ]}
+      primary={LOADING_PRIMARY}
+      bodySkeleton={BODY_SKELETON}
+      secondary={LOADING_SECONDARY}
     />
   );
 }

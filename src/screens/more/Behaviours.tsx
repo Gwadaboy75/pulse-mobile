@@ -76,6 +76,7 @@ function Behaviours({ vm }: { vm: BehavioursVM }) {
     <View className="flex-1">
       <DetailShell
         title="Behaviours"
+        bodySkeleton={LOADING_PRIMARY}
         primary={
           <View className="w-full gap-6">
             <Text className="text-[15px] leading-[22px] text-foreground-secondary">{INTRO}</Text>
@@ -129,39 +130,42 @@ function Behaviours({ vm }: { vm: BehavioursVM }) {
   );
 }
 
+const LOADING_PRIMARY = (
+  <View accessibilityElementsHidden className="w-full gap-6">
+    <Text className="text-[15px] leading-[22px] text-foreground-secondary">{INTRO}</Text>
+    <View>
+      <Skeleton className="h-12 rounded-xl" />
+      <View className="mt-3 h-11 flex-row items-center gap-6 overflow-hidden px-2.5">
+        {["w-6", "w-36", "w-36", "w-28"].map((w, i) => (
+          <SkeletonText key={i} className={`${w} shrink-0`} />
+        ))}
+      </View>
+      <View className="mt-4">
+        <TaskSection>Selected</TaskSection>
+      </View>
+      <View className="mt-1">
+        {Array.from({ length: 9 }, (_, i) => (
+          <View key={i} className="min-h-16 flex-row items-center gap-4 py-2">
+            <View className="min-w-0 flex-1">
+              <SkeletonText lh={24} fs={17} className="w-32" />
+              <SkeletonText lh={22} fs={15} className="w-48" />
+            </View>
+            <Skeleton className="size-7 rounded-lg" />
+          </View>
+        ))}
+      </View>
+    </View>
+  </View>
+);
+
 /** The web's loading.tsx: the intro, the search field, the tabs and the nine default rows under "Selected" (spec §5.19). */
 function BehavioursLoading() {
   return (
     <DetailShell
       title="Behaviours"
       loading
-      primary={
-        <View accessibilityElementsHidden className="w-full gap-6">
-          <Text className="text-[15px] leading-[22px] text-foreground-secondary">{INTRO}</Text>
-          <View>
-            <Skeleton className="h-12 rounded-xl" />
-            <View className="mt-3 h-11 flex-row items-center gap-6 overflow-hidden px-2.5">
-              {["w-6", "w-36", "w-36", "w-28"].map((w, i) => (
-                <SkeletonText key={i} className={`${w} shrink-0`} />
-              ))}
-            </View>
-            <View className="mt-4">
-              <TaskSection>Selected</TaskSection>
-            </View>
-            <View className="mt-1">
-              {Array.from({ length: 9 }, (_, i) => (
-                <View key={i} className="min-h-16 flex-row items-center gap-4 py-2">
-                  <View className="min-w-0 flex-1">
-                    <SkeletonText lh={24} fs={17} className="w-32" />
-                    <SkeletonText lh={22} fs={15} className="w-48" />
-                  </View>
-                  <Skeleton className="size-7 rounded-lg" />
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-      }
+      primary={LOADING_PRIMARY}
+      bodySkeleton={LOADING_PRIMARY}
     />
   );
 }

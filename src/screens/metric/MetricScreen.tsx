@@ -74,6 +74,7 @@ export default function MetricScreen() {
   return (
     <DetailShell
       title={vm.label}
+      bodySkeleton={LOADING_PRIMARY}
       dateSwitcher={{ mode: "day" }}
       hero={<Hero vm={vm} />}
       summary={lead && <MetricSection s={lead} vm={vm} timeZone={timeZone} />}
@@ -158,6 +159,21 @@ function Hero({ vm }: { vm: MetricDetailVM }) {
   );
 }
 
+const LOADING_PRIMARY = (
+  <View accessibilityElementsHidden className="gap-3">
+    <SectionShell variant="card" title="History">
+      <TrendChartSkeleton chip ranges={RANGES} />
+    </SectionShell>
+    <SectionShell variant="card" title="Last 30 days">
+      <Divided>
+        {["Daily average", "Highest", "Lowest", "Days with data"].map((l) => (
+          <KeyStatRowSkeleton key={l} variant="row" label={l} />
+        ))}
+      </Divided>
+    </SectionShell>
+  </View>
+);
+
 /** Metric detail: the hero's label and value, the History card and its stats with their real labels (spec §5.19). */
 function Loading() {
   return (
@@ -172,20 +188,8 @@ function Loading() {
           <SkeletonText className="w-40" />
         </View>
       }
-      primary={
-        <View accessibilityElementsHidden className="gap-3">
-          <SectionShell variant="card" title="History">
-            <TrendChartSkeleton chip ranges={RANGES} />
-          </SectionShell>
-          <SectionShell variant="card" title="Last 30 days">
-            <Divided>
-              {["Daily average", "Highest", "Lowest", "Days with data"].map((l) => (
-                <KeyStatRowSkeleton key={l} variant="row" label={l} />
-              ))}
-            </Divided>
-          </SectionShell>
-        </View>
-      }
+      primary={LOADING_PRIMARY}
+      bodySkeleton={LOADING_PRIMARY}
     />
   );
 }

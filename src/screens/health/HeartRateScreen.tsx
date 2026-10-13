@@ -108,6 +108,7 @@ export function HeartRateScreen() {
   return (
     <DetailShell
       title="Heart rate"
+      bodySkeleton={BODY_SKELETON}
       dateSwitcher={{ mode: "day" }}
       info={HEART_RATE_INFO}
       hero={
@@ -128,6 +129,26 @@ export function HeartRateScreen() {
     />
   );
 }
+
+const LOADING_PRIMARY = (
+  <SectionShell variant="card" title="Today">
+    <IntradayHrChartSkeleton />
+  </SectionShell>
+);
+
+const LOADING_SECONDARY = [
+  <SectionShell key="zones" variant="card" title="Time in zones">
+    <ZoneBarsSkeleton variant="rows" />
+  </SectionShell>,
+];
+
+/** Below the fold while a cold push slides in: the loading state's first sections. */
+const BODY_SKELETON = (
+  <>
+    {LOADING_PRIMARY}
+    <View className="gap-3">{LOADING_SECONDARY.slice(0, 2)}</View>
+  </>
+);
 
 /** Heart rate loading: the date row, the reading with its three stats, the day's chart, then time in zones. */
 function HeartRateLoading() {
@@ -150,16 +171,9 @@ function HeartRateLoading() {
           </View>
         </View>
       }
-      primary={
-        <SectionShell variant="card" title="Today">
-          <IntradayHrChartSkeleton />
-        </SectionShell>
-      }
-      secondary={[
-        <SectionShell key="zones" variant="card" title="Time in zones">
-          <ZoneBarsSkeleton variant="rows" />
-        </SectionShell>,
-      ]}
+      primary={LOADING_PRIMARY}
+      bodySkeleton={BODY_SKELETON}
+      secondary={LOADING_SECONDARY}
     />
   );
 }

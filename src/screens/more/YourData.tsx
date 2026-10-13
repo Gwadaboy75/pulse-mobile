@@ -46,32 +46,35 @@ function DownloadLink({ kind, format, busy, setBusy }: { kind: ExportKind; forma
 }
 
 const count = <SkeletonText className="w-16" />;
+const buttons = (
+  <View className="mt-4 flex-row gap-2">
+    <Skeleton className="h-11 flex-1 rounded-xl" />
+    <Skeleton className="h-11 flex-1 rounded-xl" />
+  </View>
+);
+
+const LOADING_PRIMARY = (
+  <View accessibilityElementsHidden className="w-full gap-3">
+    <SectionShell variant="card" title="Daily scores" aside={count}>
+      <SkeletonText lh={22} fs={15} className="w-full" />
+      <SkeletonText lh={22} fs={15} className="w-full" />
+      <SkeletonText lh={22} fs={15} className="w-3/4" />
+      {buttons}
+    </SectionShell>
+    <SectionShell variant="card" title="Journal" aside={count}>
+      <Text className={BODY}>Every check-in answer, hidden behaviours included. The JSON also lists your behaviours.</Text>
+      {buttons}
+    </SectionShell>
+  </View>
+);
 
 function Loading() {
-  const buttons = (
-    <View className="mt-4 flex-row gap-2">
-      <Skeleton className="h-11 flex-1 rounded-xl" />
-      <Skeleton className="h-11 flex-1 rounded-xl" />
-    </View>
-  );
   return (
     <DetailShell
       loading
       title="Your data"
-      primary={
-        <View accessibilityElementsHidden className="w-full gap-3">
-          <SectionShell variant="card" title="Daily scores" aside={count}>
-            <SkeletonText lh={22} fs={15} className="w-full" />
-            <SkeletonText lh={22} fs={15} className="w-full" />
-            <SkeletonText lh={22} fs={15} className="w-3/4" />
-            {buttons}
-          </SectionShell>
-          <SectionShell variant="card" title="Journal" aside={count}>
-            <Text className={BODY}>Every check-in answer, hidden behaviours included. The JSON also lists your behaviours.</Text>
-            {buttons}
-          </SectionShell>
-        </View>
-      }
+      primary={LOADING_PRIMARY}
+      bodySkeleton={LOADING_PRIMARY}
     />
   );
 }
@@ -88,6 +91,7 @@ export function YourDataScreen() {
     <View className="flex-1">
       <DetailShell
         title="Your data"
+        bodySkeleton={LOADING_PRIMARY}
         primary={
           <View className="w-full gap-3">
             <SectionShell variant="card" title="Daily scores" aside={<Text className={`${CAPTION} tabular-nums`}>{grouped.format(vm.days)}&nbsp;days</Text>}>

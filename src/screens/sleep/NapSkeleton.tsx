@@ -21,6 +21,45 @@ const TILES = [
   ["calories", "Calories"],
 ] as const;
 
+const LOADING_PRIMARY = (
+  <View accessibilityElementsHidden className="gap-6">
+    <IntradayHrChartSkeleton variant="activity" />
+    <View>
+      <ZoneBarsSkeleton variant="rows" />
+      <SkeletonText className="mt-3 w-56" />
+    </View>
+  </View>
+);
+
+const LOADING_SECONDARY = [
+  <SectionShell key="stats" variant="section" title="Key statistics" aside="vs. 30-day average">
+    <View accessibilityElementsHidden className="gap-3">
+      <View className="flex-row gap-3">
+        {TILES.slice(0, 2).map(([k, l]) => (
+          <View key={k} className="min-w-0 flex-1"><KeyStatRowSkeleton variant="tile" label={l} icon={statIcon(k)} /></View>
+        ))}
+      </View>
+      <View className="flex-row gap-3">
+        <View className="min-w-0 flex-1"><KeyStatRowSkeleton variant="tile" label={TILES[2][1]} icon={statIcon(TILES[2][0])} /></View>
+        <View className="min-w-0 flex-1" />
+      </View>
+    </View>
+  </SectionShell>,
+  <SectionShell key="hrr" variant="section" title="Heart rate recovery">
+    <Card className="justify-center gap-0 p-4">
+      <Skeleton className="h-24 rounded-lg bg-skeleton" />
+    </Card>
+  </SectionShell>,
+];
+
+/** Below the fold while a cold push slides in: the loading state's first sections. */
+export const NAP_BODY_SKELETON = (
+  <>
+    {LOADING_PRIMARY}
+    <View className="gap-3">{LOADING_SECONDARY.slice(0, 2)}</View>
+  </>
+);
+
 export function NapSkeleton() {
   return (
     <DetailShell
@@ -40,35 +79,9 @@ export function NapSkeleton() {
           <SkeletonText className="w-24" />
         </View>
       }
-      primary={
-        <View accessibilityElementsHidden className="gap-6">
-          <IntradayHrChartSkeleton variant="activity" />
-          <View>
-            <ZoneBarsSkeleton variant="rows" />
-            <SkeletonText className="mt-3 w-56" />
-          </View>
-        </View>
-      }
-      secondary={[
-        <SectionShell key="stats" variant="section" title="Key statistics" aside="vs. 30-day average">
-          <View accessibilityElementsHidden className="gap-3">
-            <View className="flex-row gap-3">
-              {TILES.slice(0, 2).map(([k, l]) => (
-                <View key={k} className="min-w-0 flex-1"><KeyStatRowSkeleton variant="tile" label={l} icon={statIcon(k)} /></View>
-              ))}
-            </View>
-            <View className="flex-row gap-3">
-              <View className="min-w-0 flex-1"><KeyStatRowSkeleton variant="tile" label={TILES[2][1]} icon={statIcon(TILES[2][0])} /></View>
-              <View className="min-w-0 flex-1" />
-            </View>
-          </View>
-        </SectionShell>,
-        <SectionShell key="hrr" variant="section" title="Heart rate recovery">
-          <Card className="justify-center gap-0 p-4">
-            <Skeleton className="h-24 rounded-lg bg-skeleton" />
-          </Card>
-        </SectionShell>,
-      ]}
+      primary={LOADING_PRIMARY}
+      bodySkeleton={NAP_BODY_SKELETON}
+      secondary={LOADING_SECONDARY}
       footer={<InsightCardSkeleton />}
     />
   );

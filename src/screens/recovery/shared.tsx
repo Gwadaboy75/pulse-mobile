@@ -28,6 +28,7 @@ export function DialDetailSkeleton({
   primary,
   secondary,
   footer,
+  bodySkeleton,
 }: {
   title: string
   dial: "recovery" | "strain"
@@ -36,6 +37,7 @@ export function DialDetailSkeleton({
   primary?: ReactNode
   secondary?: ReactNode[]
   footer?: ReactNode
+  bodySkeleton?: ReactNode
 }) {
   return (
     <DetailShell
@@ -58,6 +60,7 @@ export function DialDetailSkeleton({
       insight={<InsightCardSkeleton action />}
       primary={primary}
       secondary={secondary}
+      bodySkeleton={bodySkeleton}
     />
   )
 }

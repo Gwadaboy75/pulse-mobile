@@ -176,6 +176,7 @@ function MonitorLoading() {
         </View>
       }
       primary={READINGS_SKELETON}
+      bodySkeleton={READINGS_SKELETON}
       footer={
         <View className="gap-8">
           <SectionShell variant="section" title="Measurements">
