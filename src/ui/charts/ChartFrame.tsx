@@ -169,7 +169,8 @@ export const wholeTick = (fmt: (v: number) => string) => (v: number) => (Number.
 
 /**
  * Touch scrubbing over a plot. Drag horizontally to move a cursor along the data (a vertical drag still scrolls the
- * page); tap to place it, tap it again to clear. `onScrub` gets the x in plot pixels, or null when cleared.
+ * page); lifting the finger clears it, as a hover ends. A tap places it, a tap on it again clears it. `onScrub` gets the
+ * x in plot pixels, or null when cleared.
  */
 export function ScrubLayer({ width, height, onScrub, children }: Size & { onScrub: (x: number | null) => void; children?: ReactNode }) {
   const [pinned, setPinned] = useState<number | null>(null);
@@ -182,6 +183,10 @@ export function ScrubLayer({ width, height, onScrub, children }: Size & { onScru
           .failOffsetY([-14, 14])
           .onUpdate((e) => {
             runOnJS(setPinned)(e.x);
+          })
+          // Only a drag that ran clears it: a tap also begins (and fails) this pan, and must keep the point it placed.
+          .onFinalize((_e, success) => {
+            if (success) runOnJS(setPinned)(null);
           }),
         Gesture.Tap()
           .maxDuration(300)

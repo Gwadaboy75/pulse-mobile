@@ -5,6 +5,13 @@
 import { useMemo } from "react";
 import { View } from "react-native";
 import { minuteMeanHr } from "@/core/algorithms/stress";
+import { zoneNumber, zones } from "@/core/scoring/zones";
+import { ZONE_COLOR } from "@/lib/bands";
+import { addDays } from "@/lib/time";
+import { workoutSetup } from "@/live/workoutSetup";
+import { loadDays, maxHrOf } from "@/queries/common";
+import { useScreen } from "@/screens/useScreen";
+import type { TokenName } from "@/ui/palette";
 import { RECENT_MINUTES } from "@/health/live";
 import { MISSING } from "@/lib/format";
 import { useApp } from "@/state/app";
@@ -28,6 +35,12 @@ function recentMinutes(samples: { ts: number; bpm: number }[], latestTs: number)
   return minuteMeanHr(samples, end - RECENT_MINUTES * 60, end).map((v) => (v === null ? null : Math.round(v)));
 }
 
+/** Resting and max heart rate as the live workout takes them (the last 7 days' resting HR, the profile's max). */
+const zoneQuery = async (ctx: Parameters<typeof loadDays>[0]) => {
+  const s = workoutSetup(await loadDays(ctx, addDays(ctx.today, -7), ctx.today), ctx.today, maxHrOf(ctx), ctx.profile.sex);
+  return zones(s.restingHr, s.maxHr);
+};
+
 /** `phoneOnly`: Home's no-band day; with no reading at all the card stays out of the way, as the monitor cards do. */
 export function HeartRateTile({ phoneOnly }: { phoneOnly?: boolean }) {
   const { c } = useTheme();
@@ -37,6 +50,9 @@ export function HeartRateTile({ phoneOnly }: { phoneOnly?: boolean }) {
   const streaming = showsLive(live);
   const { latest, recent, updatedAt } = liveHr;
   const values = useMemo(() => (latest ? recentMinutes(recent, latest.ts) : []), [latest, recent]);
+  const { data: set } = useScreen(zoneQuery, ["hrZones"]);
+  // The line takes each minute's zone colour, as the Strain page's zones; below Zone 1 it is grey.
+  const colorOf = useMemo(() => (set ? (v: number) => c[(ZONE_COLOR[zoneNumber(set, v)] as TokenName | undefined) ?? "foreground-secondary"] : undefined), [set, c]);
   if (!latest && phoneOnly && !streaming) return null;
 
   let body;
@@ -67,7 +83,7 @@ export function HeartRateTile({ phoneOnly }: { phoneOnly?: boolean }) {
           <LastReading t={latest.ts * 1000} now={updatedAt ?? latest.ts * 1000} />
         </View>
         <View className="min-w-0 flex-1" style={{ height: 56 }}>
-          <Sparkline values={values} color={c["recovery-red"]} caption={`Last ${RECENT_MINUTES} min`} className="flex-1" />
+          <Sparkline values={values} color={c["recovery-red"]} colorOf={colorOf} caption={`Last ${RECENT_MINUTES} min`} className="flex-1" />
         </View>
       </View>
     );

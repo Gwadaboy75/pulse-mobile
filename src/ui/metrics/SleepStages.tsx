@@ -151,7 +151,7 @@ function Rows({ night, selected, onSelect, restorative }: { night: SleepStagesNi
               >
                 <View className="flex-row items-center gap-3">
                   {/* The reference app's radio: a white ring, filled white with a dark centre when chosen. */}
-                  <View className={cn("size-[26px] shrink-0 items-center justify-center rounded-full border-2", on ? "border-foreground bg-foreground" : "border-foreground/90")}>{on && <View className="size-2.5 rounded-full bg-background" />}</View>
+                  <View className={cn("size-5 shrink-0 items-center justify-center rounded-full border-2", on ? "border-foreground bg-foreground" : "border-foreground/90")}>{on && <View className="size-2 rounded-full bg-background" />}</View>
                   <View className="min-w-0 flex-1 flex-row items-baseline gap-2.5">
                     <Text className={cn(LABEL, "text-[13px]")}>{ROW_LABEL[r.stage]}</Text>
                     <Text className={cn("font-numeric text-[15px] font-bold leading-5 tabular-nums", color.text)}>{`${Math.round(r.pct)}%`}</Text>
@@ -219,7 +219,7 @@ function StageRowsSkeleton() {
       {["Awake", "Light", "SWS (Deep)", "REM"].map((l) => (
         <View key={l} className="gap-2.5">
           <View className="flex-row items-center gap-3">
-            <View className="size-[26px] rounded-full border-2 border-foreground/30" />
+            <View className="size-5 rounded-full border-2 border-foreground/30" />
             <Text className={cn(LABEL, "flex-1")}>{l}</Text>
             <View className="w-12">
               <SkeletonText lh={24} fs={20} />

@@ -11,9 +11,10 @@ import { useTheme } from "../theme";
  * A small line of recent values (oldest first) with the normal range shaded and the latest value dotted, as Bevel puts
  * in every tile. Gaps (null) break the line. The web stretches an SVG and keeps its stroke width with
  * non-scaling-stroke; here the box is measured and the line drawn in real pixels, which needs no such trick.
- * `color` is a colour string (resolve a token with `useTheme()`).
+ * `color` is a colour string (resolve a token with `useTheme()`); `colorOf` instead colours each step by the value it
+ * reaches (the Home heart-rate card's zones).
  */
-export function Sparkline({ values, band, color, caption, className }: { values: (number | null)[]; band?: { low: number; high: number } | null; color?: string; caption?: string; className?: string }) {
+export function Sparkline({ values, band, color, colorOf, caption, className }: { values: (number | null)[]; band?: { low: number; high: number } | null; color?: string; colorOf?: (v: number) => string; caption?: string; className?: string }) {
   const { c } = useTheme();
   const [box, setBox] = useState({ w: 0, h: 0 });
   const stroke = color ?? c["foreground-secondary"];
@@ -39,9 +40,16 @@ export function Sparkline({ values, band, color, caption, className }: { values:
                 ))}
               </>
             )}
-            <Path d={linePath(values.map((v, i) => ({ x: x(i), y: v === null ? null : y(v) })))} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+            {colorOf ? (
+              values.map((v, i) => {
+                const prev = values[i - 1];
+                return i > 0 && v !== null && prev != null ? <Line key={i} x1={x(i - 1)} y1={y(prev)} x2={x(i)} y2={y(v)} stroke={colorOf(v)} strokeWidth={1.5} strokeLinecap="round" /> : null;
+              })
+            ) : (
+              <Path d={linePath(values.map((v, i) => ({ x: x(i), y: v === null ? null : y(v) })))} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+            )}
             <Circle cx={x(lastI)} cy={y(values[lastI]!)} r={6} fill={c.card} />
-            <Circle cx={x(lastI)} cy={y(values[lastI]!)} r={4} fill={stroke} />
+            <Circle cx={x(lastI)} cy={y(values[lastI]!)} r={4} fill={colorOf ? colorOf(values[lastI]!) : stroke} />
           </Svg>
         )}
       </View>

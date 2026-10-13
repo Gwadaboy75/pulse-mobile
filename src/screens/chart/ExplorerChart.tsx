@@ -708,6 +708,11 @@ export function ExplorerChart(p: ExplorerChartProps) {
       .onUpdate((e) => {
         "worklet";
         cursor.set(at(e.x));
+      })
+      // Lifting the finger ends the inspection, as a hover ends.
+      .onFinalize((_e, success) => {
+        "worklet";
+        if (success) cursor.set(NaN);
       });
     // A tap pins the crosshair where it lands; a tap with it showing clears it.
     const tap = Gesture.Tap()
