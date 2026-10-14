@@ -101,7 +101,7 @@ function paintOf(colorBy: SeriesColor, c: Palette, css: (v: string) => string, z
     return { line: bands[2].color, bands, barColors: bands.map((b) => b.color), group: (v) => (v >= 67 ? 2 : v >= 34 ? 1 : 0), point: (v) => bandColor(v, bands) };
   }
   if (colorBy === "stress") {
-    const bands = [0, 1, 2].map((from) => ({ from, color: css(DATA_COLORS[STRESS_COLOR[stressLevel(from)]].css) }));
+    const bands = [0, 30, 60].map((from) => ({ from, color: css(DATA_COLORS[STRESS_COLOR[stressLevel(from)]].css) }));
     return { line: bands[1].color, bands, barColors: bands.map((b) => b.color), group: (v) => (v >= 2 ? 2 : v >= 1 ? 1 : 0), point: (v) => bandColor(v, bands) };
   }
   if (colorBy === "zones") {

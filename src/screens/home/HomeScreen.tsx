@@ -413,7 +413,7 @@ function StressCard({ vm, href, timeZone }: { vm: HomePageVM; href: string; time
   return (
     <SectionShell variant="card" title="Stress Monitor" info={false} href={href} fill>
       <MonitorLine
-        chip={<Text className={cn("font-numeric text-lg font-bold tabular-nums", tone.text)}>{formatValue("decimal1", s.value.value)}</Text>}
+        chip={<Text className={cn("font-numeric text-lg font-bold tabular-nums", tone.text)}>{formatValue("int", s.value.value)}</Text>}
         chipClass={tone.chip}
         top={tone.word}
         topClass={tone.text}
@@ -442,7 +442,7 @@ function StressTile({ vm, href, timeZone }: { vm: HomePageVM; href: string; time
           </Text>
           <View className="flex-row items-baseline gap-1.5">
             <Text className={cn("text-xs font-bold uppercase leading-4 tracking-[0.1em]", tone.text)}>{tone.word}</Text>
-            <Text className="font-numeric text-base font-bold leading-5 tabular-nums text-foreground">{formatValue("decimal1", s.value)}</Text>
+            <Text className="font-numeric text-base font-bold leading-5 tabular-nums text-foreground">{formatValue("int", s.value)}</Text>
           </View>
         </View>
       )}

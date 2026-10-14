@@ -53,7 +53,7 @@ const LINE = new Set(["hrv", "rhr", "resp", "weight", "body_fat", "avg_hr", "glu
 const SPARSE = new Set(["weight", "body_fat", "glucose", "core_temp"]);
 const BASELINE = new Set(["hrv", "rhr", "resp", "avg_hr", "glucose", "core_temp"]);
 const DAY_OF: Record<string, DayView> = { rhr: "hr", avg_hr: "hr", strain: "strain", stress: "stress", sleep: "sleep", hours: "sleep", consistency: "sleep" };
-const fixed = (colorBy: ChartColorBy): [number, number] | undefined => (colorBy === "band" ? [0, 100] : colorBy === "stress" ? [0, 3] : undefined);
+const fixed = (colorBy: ChartColorBy): [number, number] | undefined => (colorBy === "band" ? [0, 100] : colorBy === "stress" ? [0, 100] : undefined);
 
 const isSunday = (day: string) => new Date(`${day}T00:00:00Z`).getUTCDay() === 0;
 
@@ -135,7 +135,7 @@ export const chartDef = (key: string | undefined): ChartDef | null => CHART_METR
 export const DAY_VIEW: Record<DayView, { label: string; unit?: string; format: FormatKey }> = {
   hr: { label: "Heart rate", unit: "bpm", format: "int" },
   strain: { label: "Day strain", unit: "%", format: "int" },
-  stress: { label: "Stress", format: "decimal1" },
+  stress: { label: "Stress", format: "int" },
   sleep: { label: "Night heart rate", unit: "bpm", format: "int" },
   energy: { label: "Energy Bank", unit: "%", format: "int" },
 };

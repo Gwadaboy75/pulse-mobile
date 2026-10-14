@@ -18,50 +18,48 @@ export const SCORE_DOCS: ScoreDoc[] = [
   {
     slug: "recovery",
     name: "Recovery",
-    summary: "How ready your body is to take on strain today, from 0 to 100%.",
+    summary: "How ready your body is to take on strain today, from 1 to 100%.",
     href: "/recovery",
     sections: [
       {
         title: "What goes in",
         paragraphs: [
-          "Pulse scores Recovery each morning from last night’s main sleep, comparing each vital with your own baseline: a running average of recent nights that leans on the last two weeks and clips extreme nights.",
+          "Pulse scores Recovery each morning from last night’s main sleep, comparing each vital with your own baseline: its average and spread over the last 60 days.",
         ],
         rows: [
-          { term: "Heart rate variability", detail: "Fitbit’s nightly HRV, in ms. Higher is better." },
-          { term: "Resting heart rate", detail: "Fitbit’s daily resting heart rate from Health Connect, in bpm; the lowest 5-minute average during sleep only on a day it has none. Lower is better." },
-          { term: "Sleep performance", detail: "Last night’s Sleep Performance. 85% is neutral." },
-          { term: "Respiratory rate", detail: "Breaths per minute asleep, in rpm. Higher counts against you." },
-          { term: "Skin temperature", detail: "Distance from your skin-temperature baseline (your 30-night median), in °C. Either direction counts against you." },
+          { term: "Heart rate variability", detail: "The mean of Fitbit’s HRV readings while you slept, in ms. Higher is better." },
+          { term: "Resting heart rate", detail: "Your mean heart rate while you slept, in bpm. Lower is better." },
+          { term: "Sleep Score", detail: "Last night’s Sleep Score, 0 to 100." },
+          { term: "Respiratory rate", detail: "Breaths per minute asleep, in rpm. Higher than usual counts against you." },
+          { term: "Skin temperature", detail: "Last night against your skin-temperature baseline. Only warmer than usual counts, and only against you." },
         ],
       },
       {
         title: "How it is weighted",
         paragraphs: [
-          "Each input is measured in units of your usual night-to-night swing from baseline. Sleep moves one unit per 12\u00a0points away from 85%, skin temperature one unit per 1\u00a0°C. A missing input’s weight is shared among the rest.",
+          "HRV and resting heart rate are each placed on 0 to 100 by how far last night sits from your baseline, in units of its usual spread: at baseline 50, one spread better 100, one spread worse 0.",
         ],
         rows: [
-          { term: "HRV", detail: "55%" },
-          { term: "Resting heart rate", detail: "20%" },
-          { term: "Sleep performance", detail: "15%" },
-          { term: "Respiratory rate", detail: "5%" },
-          { term: "Skin temperature", detail: "5%" },
+          { term: "HRV", detail: "40%" },
+          { term: "Resting heart rate", detail: "30%" },
+          { term: "Sleep Score", detail: "30%" },
+          { term: "Respiratory rate", detail: "Then up to 10 points up or down." },
+          { term: "Skin temperature", detail: "Then up to 30 points down when you run warm; never up." },
         ],
       },
       {
         title: "What the bands mean",
-        paragraphs: [
-          "The weighted average goes through an S-shaped curve (slope 1.6). Every input at baseline lands at about 58%; a quarter of a swing above reaches green, 0.6 below drops into red.",
-        ],
+        paragraphs: ["The result is kept between 1 and 100%."],
         rows: [
           { term: "67-100%", detail: "Green: your body is primed for strain." },
           { term: "34-66%", detail: "Yellow: you are maintaining; moderate strain fits." },
-          { term: "0-33%", detail: "Red: your body needs rest." },
+          { term: "1-33%", detail: "Red: your body needs rest." },
         ],
       },
       {
         title: "Limits",
         paragraphs: [
-          "Recovery needs 7\u00a0nights of HRV before the first score and is Provisional until 14. The other vitals join once each has 4\u00a0nights of baseline. A night Fitbit could not stage has no HRV, so it gets no score rather than a guess, and after more than 14\u00a0nights without HRV the first night back is not scored. Recovery is an estimate from a wrist sensor: it reads your body, not your plans or how you feel.",
+          "Recovery shows from your second night, once there is a night to compare with, and is Provisional until your data spans 60 days. It needs HRV and heart rate in last night’s sleep and a Sleep Score; without them there is no score rather than a guess. Blood oxygen is not used: Fitbit does not share it with Health Connect. Recovery is an estimate from a wrist sensor: it reads your body, not your plans or how you feel.",
         ],
       },
     ],
@@ -167,22 +165,29 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "What goes in",
         rows: [
-          { term: "Hours asleep", detail: "Your main sleep against your sleep need. Naps are not counted here." },
-          { term: "Sleep efficiency", detail: "Time asleep as a share of time in bed." },
-          { term: "Restorative sleep", detail: "Deep and REM sleep as a share of time asleep." },
-          { term: "Sleep consistency", detail: "Your Sleep Regularity over the last 7\u00a0days." },
+          { term: "Time asleep", detail: "Your main sleep against tonight’s sleep need. Naps are not counted here." },
+          { term: "Deep sleep", detail: "Deep sleep as a share of your need." },
+          { term: "REM sleep", detail: "REM sleep as a share of your need." },
+          { term: "Heart-rate dip", detail: "How far your heart rate fell while asleep, against your daytime resting level." },
+          { term: "Efficiency", detail: "Time asleep as a share of time in bed." },
+          { term: "Continuity", detail: "How few times you woke during the night." },
         ],
         paragraphs: [
-          "Your sleep need is the upper quartile of your last 28\u00a0nights, at least 8\u00a0hours (9 under 18) and at most 9.5. Until you have 7\u00a0nights, it is 8\u00a0hours.",
+          "Your sleep need is a 7.5-hour goal, plus a little more after a day of higher Strain than usual (2% for each spread above your 30-day average), plus a quarter of your sleep debt.",
         ],
       },
       {
         title: "How it is weighted",
+        paragraphs: [
+          "Each part is scored against its target and capped at full marks; parts close to their target score nearly full, parts well short drop off steeply. Deep, REM and heart-dip targets depend on your age and sex.",
+        ],
         rows: [
-          { term: "Hours vs. need, 50%", detail: "Full marks at 100% of your need." },
-          { term: "Efficiency, 20%", detail: "Scored as the percentage itself." },
-          { term: "Restorative, 20%", detail: "Full marks when deep plus REM reach 50% of your sleep and deep alone reaches 13%. Less deep sleep scales this part down, to half at none." },
-          { term: "Consistency, 10%", detail: "Scored as the consistency percentage." },
+          { term: "Time asleep, 35%", detail: "Full marks at 100% of your need." },
+          { term: "Deep sleep, 20%", detail: "Full marks at about 15% of your need, less with age." },
+          { term: "REM sleep, 20%", detail: "Full marks at 20% of your need." },
+          { term: "Heart-rate dip, 10%", detail: "Full marks at a dip of about 30%, less with age." },
+          { term: "Efficiency, 7.5%", detail: "Falls off quickly below full efficiency." },
+          { term: "Continuity, 7.5%", detail: "Falls off with each time you woke." },
         ],
       },
       {
@@ -197,17 +202,9 @@ export const SCORE_DOCS: ScoreDoc[] = [
         ],
       },
       {
-        title: "A worked example",
-        paragraphs: [
-          "Take someone whose last 28 nights run from 6.8 to 8.8 hours. The upper quartile of those nights is 8.2 hours, above the 8-hour floor, so their sleep need is 8.2 hours. Last night they slept 6 hours 45 minutes, spent 88% of their time in bed asleep, got 55 minutes of deep and 85 minutes of REM sleep, and their Sleep Regularity over the last 7 days is 88.9%.",
-          "Hours come first: 6.75 against 8.2 is 82.3% of need, worth 50% of the score, so 41.2 points. Efficiency is scored as the percentage itself, 88, and counts 20%, so 17.6 points. Restorative sleep is deep plus REM, 140 minutes out of 405, or 34.6% of the night. Against the 50% target that is 69.1, and since deep sleep is 13.6% of the night, above the 13% mark, nothing is scaled down. At 20% weight, that is 13.8 points. Consistency counts 10%, so 88.9 gives 8.9 points.",
-          "Add them up: 41.2 + 17.6 + 13.8 + 8.9 comes to 81.5, shown as 81%. That sits in the Sufficient band (70-84%), just short of Optimal. The weakest part is hours: another 30 minutes in bed would have added about 3 points. The figures come from running Pulse's own scoring code on these inputs.",
-        ],
-      },
-      {
         title: "Limits",
         paragraphs: [
-          "Sleep Performance scores the main sleep only, once Fitbit has processed it. A night without deep and REM totals scores its restorative part as zero, so it reads lower. Without a consistency reading, that part counts as 50%. Sleep stages come from a wrist sensor and are an estimate.",
+          "Sleep Performance scores the main sleep only, once Fitbit has processed it. A night without stages leaves out deep and REM, and a night without heart rate leaves out the dip; the other parts share their weight. Sleep stages come from a wrist sensor and are an estimate.",
         ],
       },
     ],
@@ -221,19 +218,18 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "What goes in",
         rows: [
-          { term: "Your sleep need", detail: "The upper quartile of your last 28\u00a0nights, between 8 and 9.5\u00a0hours." },
-          { term: "Today’s Strain", detail: "Strain above your 28-day average adds to the need." },
-          { term: "Sleep debt", detail: "What you owe from recent nights." },
-          { term: "Naps", detail: "Today’s naps take time off tonight’s need." },
-          { term: "Your last 14 main sleeps", detail: "Your usual wake time and sleep efficiency." },
+          { term: "Your sleep goal", detail: "7.5 hours a night." },
+          { term: "Today’s Strain", detail: "Strain above your 30-day average adds to the need." },
+          { term: "Sleep debt", detail: "What your sleep bank owes from the last 7 days." },
+          { term: "Your recent nights", detail: "Your usual wake time, sleep efficiency and time to fall asleep." },
         ],
       },
       {
         title: "How it is weighted",
         paragraphs: [
-          "Tonight’s need = your sleep need + 3\u00a0minutes for each Strain point above your 28-day average + 20% of your sleep debt − today’s nap time.",
-          "Sleep debt runs over your last 14\u00a0nights with sleep. Each night, debt becomes 55% of (need + the debt so far − sleep), with the previous day’s naps counted as sleep; anything under 10\u00a0minutes clears to zero.",
-          "Bedtimes count back from your median wake time on recent weekday or weekend mornings, to match tomorrow, allowing for your median efficiency (90% until known). A need of 8\u00a0hours, a 07:00 wake and 90% efficiency give a Peak bedtime of 22:07.",
+          "Tonight’s need = 7.5 hours + 2% for each spread today’s Strain sits above your 30-day average + a quarter of your sleep debt.",
+          "The sleep bank adds up the last 7 days’ sleep, naps included, less 7.5 hours each, with recent days counting most: last night in full, each day before it about three quarters of the one after. A negative bank is debt; naps pay it down.",
+          "Bedtimes count back from your usual wake time on recent weekday or weekend mornings, to match tomorrow, adding the time your usual efficiency and time to fall asleep cost, up to an hour each.",
         ],
       },
       {
@@ -245,17 +241,9 @@ export const SCORE_DOCS: ScoreDoc[] = [
         ],
       },
       {
-        title: "A worked example",
-        paragraphs: [
-          "Take someone with a sleep need of 8 hours, which is 480 minutes. Today's Strain is 12.6 against a 28-day average of 9.45, so they are 3.15 points above their norm. Their sleep debt this morning is 60 minutes, they took a 20-minute nap, and tomorrow is a weekday. Over their last 14 main sleeps they have typically woken at 07:00 with 90% efficiency.",
-          "Tonight's need starts from the 480 minutes. Strain adds 3 minutes for each point above average: 3.15 points gives 9.45 minutes. Debt adds 20%, so 60 minutes of debt gives 12. The nap takes off 20. That makes 480 + 9.45 + 12 - 20 = 481.45 minutes, about 8 hours 1 minute.",
-          "Bedtimes then count back from 07:00. Because efficiency is 90%, time in bed is the sleep divided by 0.9. For Peak, 481.45 minutes of sleep needs 534.9 minutes in bed, so lights out at 22:05. Perform (85%) needs 454.7 minutes in bed, giving 23:25, and Get by (70%) needs 374.5 minutes, giving 00:45. These come from running Pulse's own sleep planner on those inputs. A harder day, more debt or a lower efficiency would all move the bedtimes earlier.",
-        ],
-      },
-      {
         title: "Limits",
         paragraphs: [
-          "The planner needs 7 main sleeps before it gives bedtimes. It assumes tomorrow looks like your recent mornings and cannot see alarms or plans. Strain and naps later today change tonight’s need. It is a guide, not a prescription.",
+          "The planner needs a few main sleeps before it gives bedtimes. It assumes tomorrow looks like your recent mornings and cannot see alarms or plans. Strain later today changes tonight’s need. It is a guide, not a prescription.",
         ],
       },
     ],
@@ -268,39 +256,39 @@ export const SCORE_DOCS: ScoreDoc[] = [
     sections: [
       {
         title: "What goes in",
-        paragraphs: ["Nine habits and vitals, averaged over 6\u00a0months, each against a reference: a fit person of your age and sex."],
+        paragraphs: ["Nine habits and vitals, averaged over the 28 days before each Monday, each against a reference for a healthy person of your age and sex."],
         rows: [
-          { term: "VO2 max", detail: "From runs in the last 90\u00a0days, else Fitbit’s daily estimate at half weight. Reference: your age’s 75th percentile." },
-          { term: "Resting heart rate", detail: "Fitbit’s daily value from Health Connect. Reference 60\u00a0bpm." },
-          { term: "Steps", detail: "Reference and cap: 10,000 a day under 60, 8,000 from 60." },
-          { term: "Sleep hours", detail: "Reference 7.5\u00a0hours; 7 to 8\u00a0scores the same." },
-          { term: "Sleep consistency", detail: "Reference 86.3." },
-          { term: "Heart rate zones 1-3", detail: "Daily time at 50-80% of your heart-rate reserve. Reference 150\u00a0minutes a week." },
-          { term: "Heart rate zones 4-5", detail: "Daily time at 80% of your heart-rate reserve and above. Reference 75\u00a0minutes a week." },
-          { term: "Strength activity", detail: "Reference 40\u00a0minutes a week." },
-          { term: "Lean body mass", detail: "Fat-free mass for your height. Needs weight, body fat and height." },
+          { term: "Sleep hours", detail: "Reference 7.5 hours; much shorter or longer costs years." },
+          { term: "Sleep consistency", detail: "Reference 70." },
+          { term: "Steps", detail: "Reference 8,000 a day, 6,000 from 60." },
+          { term: "Heart rate zones 2-3", detail: "Reference 150 minutes a week." },
+          { term: "Heart rate zones 4-5", detail: "Reference 10 minutes a week." },
+          { term: "Strength activity", detail: "Reference 10 minutes a week." },
+          { term: "Resting heart rate", detail: "Reference from a table for your age and sex." },
+          { term: "VO2 max", detail: "Fitbit’s readings. Reference from a table for your age and sex." },
+          { term: "Lean body mass", detail: "100 less your body fat %. Reference: 100 less the typical body fat for your age and sex." },
         ],
       },
       {
         title: "How it is weighted",
         paragraphs: [
-          "Each input maps to a change in mortality risk from a published study. The changes are added, shrunk by 25% for overlap, scaled up when inputs are missing, and turned into years on the rule that mortality risk doubles about every 8\u00a0years. A resting heart rate of 70\u00a0bpm, all else at reference, adds about 0.75\u00a0years.",
-          "Pace of Aging repeats this for your last 30\u00a0days: 1 + (30-day years − 6-month years) ÷ 5.",
+          "Each factor maps to a change in mortality risk against its reference, and that change becomes years: 10 × the natural log of the risk ratio. At the reference a factor adds nothing; better takes years off, worse adds them. The factors present are scaled up to stand for all nine.",
+          "Pace of Aging is your Pulse Age divided by your age, from 0.6x to 1.6x.",
         ],
       },
       {
         title: "What the bands mean",
         rows: [
-          { term: "Younger than your age", detail: "Your inputs beat the reference on balance." },
-          { term: "Older than your age", detail: "They fall short. The reference is fit, so many people start here." },
-          { term: "Pace below 1.0x", detail: "Your last 30\u00a0days look younger than your 6\u00a0months." },
-          { term: "Pace above 1.0x", detail: "They look older. Pace runs from −1.0x to 3.0x." },
+          { term: "Younger than your age", detail: "Your factors beat the reference on balance." },
+          { term: "Older than your age", detail: "They fall short of it." },
+          { term: "Pace below 1.0x", detail: "Your body behaves younger than your age." },
+          { term: "Pace above 1.0x", detail: "It behaves older." },
         ],
       },
       {
         title: "Limits",
         paragraphs: [
-          "Time in zones is counted by Pulse from your heart rate, on the same five zones as Strain. Pulse Age needs 5 of the 9 inputs, is Provisional until 20\u00a0days have data, stays within 15\u00a0years of your age and updates weekly. Pace of Aging is provisional until your data spans 6\u00a0months. Both rest on population studies, not a clinical test of your body.",
+          "Time in zones is counted by Pulse from your heart rate, on the same five zones as Strain, and steps and zones only on days with 12 hours of heart rate. Pulse Age needs 5 of the 9 factors and updates each Monday. It rests on population studies, not a clinical test of your body.",
         ],
       },
     ],
@@ -308,39 +296,36 @@ export const SCORE_DOCS: ScoreDoc[] = [
   {
     slug: "stress",
     name: "Stress Monitor",
-    summary: "How far your heart rate sits above your calm level, from 0 to 3.",
+    summary: "How hard your body is working while you are not exercising, from 0 to 100.",
     href: "/health/stress",
     sections: [
       {
         title: "What goes in",
         rows: [
-          { term: "Minute heart rate", detail: "The average heart rate of each minute." },
-          { term: "Steps", detail: "Only still minutes count: no steps in that minute or the 2 either side." },
-          { term: "Workouts and sleep", detail: "Minutes inside them are left out." },
-          { term: "Your calm baseline", detail: "Your resting daytime heart rate, from earlier days." },
-        ],
-        paragraphs: [
-          "Each day’s calm heart rate is the 10th percentile of its hourly averages between 06:00 and 22:00, using hours with at least 15 still minutes. It feeds the next day’s baseline.",
+          { term: "Heart rate", detail: "Each 6-minute stretch of the day." },
+          { term: "Heart rate variability", detail: "At night Fitbit writes HRV every 5 minutes; the latest reading within 36 minutes counts." },
+          { term: "Workouts and exercise", detail: "Left out: stress is not shown while you exercise." },
+          { term: "Your baselines", detail: "Your awake heart rate over the last 30 days, and your 30-day HRV." },
         ],
       },
       {
         title: "How it is weighted",
         paragraphs: [
-          "Each still minute’s distance above your baseline is measured in your usual spread, never less than 3.76\u00a0bpm, and mapped onto 0 to 3 on an S-shaped curve. At your baseline it reads 0.3, 1.5 spreads above reads 1.5, and 3 spreads above reads 2.7. Today Pulse shows the latest scored minute; past days show the day’s average.",
+          "Each 6-minute stretch’s heart rate is placed among your awake heart rates of the last 30 days: the higher it ranks, the higher the stress. Where an HRV reading counts, 40% of the score comes from it instead, against your 30-day HRV: lower than usual reads as more stress. Today Pulse shows the latest reading; past days show the day’s average.",
         ],
       },
       {
         title: "What the bands mean",
         rows: [
-          { term: "0-0.9", detail: "Low: calm." },
-          { term: "1.0-1.9", detail: "Medium: heart rate above your calm level." },
-          { term: "2.0-3.0", detail: "High: well above your calm level while you are still." },
+          { term: "0-29", detail: "Low: calm." },
+          { term: "30-59", detail: "Medium: more active than your calm level." },
+          { term: "60-100", detail: "High: well above your usual heart rate while you are not exercising." },
         ],
       },
       {
         title: "Limits",
         paragraphs: [
-          "Stress is Provisional until 4\u00a0days have set your baseline; until then it uses a fixed spread of 7.65\u00a0bpm, so 15\u00a0bpm above your calm level reads 2.0. It reads heart rate alone, so caffeine, heat, illness or recovering from exercise raise it too. It is not a measure of how you feel.",
+          "Stress needs 5 days of data and is Provisional until your data spans 30 days. It reads heart rate and HRV, so caffeine, heat, illness or walking about raise it too. It is not a measure of how you feel.",
         ],
       },
     ],
@@ -348,27 +333,26 @@ export const SCORE_DOCS: ScoreDoc[] = [
   {
     slug: "energy-bank",
     name: "Energy Bank",
-    summary: "An estimate of how much energy you have left today, 0 to 100%.",
+    summary: "An estimate of how much energy you have in reserve, 1 to 100%.",
     href: "/",
     sections: [
       {
         title: "What goes in",
         rows: [
-          { term: "Recovery and Sleep Performance", detail: "Set the starting level when you wake." },
-          { term: "Heart-rate load", detail: "Each minute’s heart-rate points, as in Strain." },
-          { term: "Stress", detail: "High-stress minutes drain; calm, still minutes recharge." },
-          { term: "Naps", detail: "Recharge." },
+          { term: "Sleep", detail: "Charges the bank." },
+          { term: "Stress", detail: "Each 6-minute stretch’s stress, as in the Stress Monitor: calm time charges a little, higher stress drains." },
+          { term: "Workouts", detail: "Drain through the stress your heart rate shows." },
+          { term: "Yesterday", detail: "The level carries across midnight; it does not restart each morning." },
         ],
       },
       {
         title: "How it is weighted",
-        paragraphs: ["At wake you start at 60% of Recovery plus 40% of Sleep Performance: Recovery 70% and sleep 80% start you at 74%. Then, minute by minute until bedtime:"],
+        paragraphs: ["Every 6 minutes the bank moves one step:"],
         rows: [
-          { term: "Awake", detail: "−0.04 a minute, about 38 over 16\u00a0hours." },
-          { term: "Heart-rate load", detail: "−0.08 a minute for each heart-rate point, 1 to 5. An hour at 70-79% of your reserve costs 14.4." },
-          { term: "High stress", detail: "−0.08 a minute." },
-          { term: "Low stress, still", detail: "+0.01 a minute." },
-          { term: "Napping", detail: "+0.25 a minute, with no drain." },
+          { term: "Asleep", detail: "A full 7.5-hour night charges about 80 points." },
+          { term: "Awake and calm", detail: "Stress under 20 charges about 15 points over a full waking day." },
+          { term: "Awake and stressed", detail: "Stress of 20 or more drains, faster the higher it is: about 60 points over a full waking day at the base rate." },
+          { term: "Near the ends", detail: "Charging slows near 100 and draining slows near 1." },
         ],
       },
       {
@@ -376,14 +360,14 @@ export const SCORE_DOCS: ScoreDoc[] = [
         rows: [
           { term: "67-100%", detail: "Plenty in reserve." },
           { term: "34-66%", detail: "Pace yourself." },
-          { term: "0-33%", detail: "Running low." },
+          { term: "1-33%", detail: "Running low." },
         ],
-        paragraphs: ["The level stays between 0 and 100%. The three biggest drains are listed by name."],
+        paragraphs: ["The three biggest drains are listed by name."],
       },
       {
         title: "Limits",
         paragraphs: [
-          "Energy Bank needs today’s Recovery and last night’s main sleep; without them it shows no value, and it is Provisional while Recovery is. It is a model with tuned constants and no published validation, set so a typical day ends between 15% and 40%. It cannot see mental effort that leaves heart rate unchanged, food or caffeine. It is an estimate, not a measurement.",
+          "Energy Bank runs from your first day but shows from the eighth, once it has settled; until then it is calibrating. It is a model, not a measurement: it cannot see mental effort that leaves heart rate unchanged, food or caffeine.",
         ],
       },
     ],
@@ -391,7 +375,7 @@ export const SCORE_DOCS: ScoreDoc[] = [
   {
     slug: "health-monitor",
     name: "Health Monitor",
-    summary: "Last night’s five vitals against your own normal ranges.",
+    summary: "Last night’s vitals against your own normal ranges.",
     href: "/health/monitor",
     sections: [
       {
@@ -400,15 +384,15 @@ export const SCORE_DOCS: ScoreDoc[] = [
           { term: "Resting heart rate", detail: "Fitbit’s daily resting heart rate from Health Connect, in bpm." },
           { term: "Heart rate variability", detail: "Fitbit’s nightly HRV, in ms." },
           { term: "Respiratory rate", detail: "Breaths per minute asleep, in rpm." },
-          { term: "SpO2", detail: "Blood oxygen overnight, in %." },
+          { term: "SpO2", detail: "Blood oxygen overnight, in %, when Health Connect has it." },
           { term: "Skin temperature", detail: "Last night against your skin-temperature baseline, in °C." },
         ],
       },
       {
         title: "How it is weighted",
         paragraphs: [
-          "For every vital, a normal range is your baseline ± 2 of your usual night-to-night swings, built from earlier nights only. Pulse’s narrowest ranges are about ±5\u00a0bpm, ±12.5\u00a0ms, ±1.25\u00a0rpm, ±1.25\u00a0points of SpO2 and ±0.75\u00a0°C. SpO2 is one-sided: below 95% is always low, and a high value is never flagged.",
-          "The illness signal compares resting heart rate, HRV, skin temperature and respiratory rate with your 30\u00a0nights before. A vital fires at 2 standard deviations in the unwell direction and adds 22\u00a0points per extra deviation, up to 40. With at least 2 vitals firing, 25\u00a0points is mild and 50 is raised. If you logged alcohol, sauna or travel the day before, Pulse takes that as the likely cause instead.",
+          "For every vital, your normal range is the average of your last 30 nights, last night included, ± one standard deviation. A value inside it is within range; below or above it is low or elevated. SpO2 below 95% is always flagged.",
+          "The illness signal compares resting heart rate, HRV, skin temperature and respiratory rate with your 30 nights before. A vital fires at 2 standard deviations in the unwell direction and adds 22 points per extra deviation, up to 40. With at least 2 vitals firing, 25 points is mild and 50 is raised. If you logged alcohol, sauna or travel the day before, Pulse takes that as the likely cause instead.",
         ],
       },
       {
@@ -423,7 +407,7 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "Limits",
         paragraphs: [
-          "A range needs 4 earlier nights and lapses after 14\u00a0nights without a value; skin temperature needs its own baseline first, so it takes about 8\u00a0nights. The illness signal stays quiet until 14 of your last 30\u00a0nights have resting heart rate or HRV. A flagged vital is a prompt to notice, not a diagnosis.",
+          "A one-standard-deviation range is narrow on purpose: about a third of ordinary nights fall outside it, so one flagged vital on its own is common. The illness signal stays quiet until 14 of your last 30 nights have resting heart rate or HRV. A flagged vital is a prompt to notice, not a diagnosis.",
         ],
       },
     ],
@@ -565,21 +549,20 @@ export const SCORE_DOCS: ScoreDoc[] = [
   {
     slug: "sleep-consistency",
     name: "Sleep consistency",
-    summary: "How closely your sleep and wake times repeat from day to day.",
+    summary: "How closely the times you are asleep repeat from day to day.",
     href: "/sleep",
     sections: [
       {
         title: "What goes in",
         rows: [
-          { term: "Sleep sessions", detail: "Main sleeps and naps, minute by minute." },
-          { term: "Band wear", detail: "A day counts only if the band recorded heart rate for at least half of it." },
+          { term: "Sleep sessions", detail: "Main sleeps and naps, minute by minute, for up to the last 7 days." },
         ],
       },
       {
         title: "How it is weighted",
         paragraphs: [
-          "Pulse splits the last 7 noon-to-noon days into minutes, each asleep or awake, and checks each minute against the same minute the next day. The Sleep Regularity Index (Phillips 2017) is −100 + 200 × the share that match: 100 means an identical schedule, around 0 a random one. Pulse shows it from 0 to 100%, with anything below zero as 0%. A 1-hour nap lowers it by about 3\u00a0points.",
-          "It makes up 10% of Sleep Performance and is one of the inputs to Pulse Age.",
+          "Pulse lays each day’s asleep minutes on the 1,440 minutes of the clock and checks, minute by minute, how many pairs of days agree: both asleep or both awake. The share that agree is the score, from 0 to 100: 100 means the same sleep times every day.",
+          "It is one of the inputs to Pulse Age.",
         ],
       },
       {
@@ -591,17 +574,9 @@ export const SCORE_DOCS: ScoreDoc[] = [
         ],
       },
       {
-        title: "A worked example",
-        paragraphs: [
-          "Take a week where someone sleeps 23:00 to 07:00 every night, except Friday and Saturday, when they go to bed at 01:00 and sleep until 09:00. Pulse splits the seven noon-to-noon days into 1,440 minutes each and marks every minute asleep or awake. It then compares each minute with the same minute 24 hours later, across six day-to-day pairs, 8,640 minutes in all.",
-          "A normal night followed by a late one mismatches for four hours: the person was asleep 23:00 to 01:00 on the first day but awake, and asleep 07:00 to 09:00 on the second but awake the day before. The late Saturday-to-Sunday step costs another four hours. Friday to Saturday matches perfectly, since both nights are late. That is 8 hours, or 480 minutes, of mismatch, so 8,160 of 8,640 minutes match, or 94.4%.",
-          "The index is -100 + 200 × 0.944, which is 88.9. Pulse shows that as 89%, which is Optimal (80-100%). Running Pulse's own regularity function on these sleep times gives the same figure. Two nights two hours late cost 11 points even with identical total sleep, which shows that the score rewards timing, not duration. A single one-hour nap would cost about 3 points more.",
-        ],
-      },
-      {
         title: "Limits",
         paragraphs: [
-          "It needs 2 worn days in a row within the window; otherwise there is no value. Days without the band are skipped rather than counted as awake. Fitbit’s sleep sessions leave out brief wakes, so this reads somewhat higher than a lab measure. On the night the clocks change, times are compared 1\u00a0hour apart.",
+          "It needs at least 2 days with sleep in the window; otherwise there is no value. It rewards timing, not duration: two nights two hours late lower it even with the same total sleep. Fitbit’s sleep sessions leave out brief wakes, so this reads somewhat higher than a lab measure.",
         ],
       },
     ],

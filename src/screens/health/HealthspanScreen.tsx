@@ -37,8 +37,8 @@ function Orb({ vm, compact }: { vm: HealthspanVM; compact?: boolean }) {
   return (
     <View className="items-center gap-3">
       <AgeOrb age={r?.pulseAge ?? null} deltaYears={r?.deltaYears ?? null} provisional={vm.result.provisional} reason={vm.result.reason} size={300} />
-      <Text className={cn(CAPTION, "text-center tabular-nums")}>{r ? `Your age: ${formatValue("decimal1", vm.age)}` : "Healthspan needs 20 days of data."}</Text>
-      {r && vm.result.provisional && <Text className={cn(CAPTION, "text-center")}>Healthspan firms up after 20 days of data.</Text>}
+      <Text className={cn(CAPTION, "text-center tabular-nums")}>{r ? `Your age: ${formatValue("decimal1", vm.age)}` : "Pulse Age needs at least 5 of its 9 inputs over the 4 weeks before a Monday."}</Text>
+      {r && vm.result.provisional && <Text className={cn(CAPTION, "text-center")}>Pulse Age firms up as more of its inputs come in.</Text>}
     </View>
   );
 }
@@ -89,7 +89,7 @@ export function HealthspanScreen() {
               max={3}
               format="decimal1"
               unit="x"
-              describe={r && r.pace !== null ? (r.pace < 1 ? "aging slower than your 6-month average" : r.pace > 1 ? "aging faster than your 6-month average" : "aging at the normal rate") : undefined}
+              describe={r && r.pace !== null ? (r.pace < 1 ? "younger than your age" : r.pace > 1 ? "older than your age" : "aging at the normal rate") : undefined}
               ends={["−1.0x", "1.0x", "3.0x"]}
               leading={SLOW}
               trailing={FAST}

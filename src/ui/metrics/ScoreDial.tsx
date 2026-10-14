@@ -99,9 +99,9 @@ function resolve(p: ScoreDialProps): Resolved {
       const level = p.value === null ? null : stressLevel(p.value);
       return {
         label: p.label ?? "Stress",
-        max: 3,
+        max: 100,
         color: "transparent",
-        text: formatValue("decimal1", p.value),
+        text: formatValue("int", p.value),
         word: level ? { text: STRESS_WORD[level], className: DATA_COLORS[STRESS_COLOR[level]].text } : undefined,
       };
     }
@@ -156,9 +156,9 @@ export function ScoreDial(props: ScoreDialProps) {
 
   const needle = (() => {
     if (!gauge || empty) return null;
-    const [a, w, b] = markerSlices(value, 3, 0.04);
+    const [a, w, b] = markerSlices(value, 100, 4 / 3);
     const mid = gStart + ((a + w / 2) / (a + w + b)) * gSweep;
-    const half = ((w / 3) * gSweep) / 2;
+    const half = ((w / 100) * gSweep) / 2;
     const rin = gInner - 22;
     const pts = [polar(rad, rad, rin, mid - half), polar(rad, rad, rad, mid - half), polar(rad, rad, rad, mid + half), polar(rad, rad, rin, mid + half)];
     return { points: pts.map((p) => `${p.x},${p.y}`).join(" "), tail: (gInner - 22) / rad, head: (gInner - 2) / rad };
@@ -246,8 +246,8 @@ export function ScoreDial(props: ScoreDialProps) {
       {gauge && lg && (
         <View pointerEvents="none" className="absolute inset-x-0" style={{ top: d * 0.79 }}>
           {/* Each label centred under its end of the arc. */}
-          <Text className="absolute -ml-4 w-8 text-center font-numeric text-xs font-medium tabular-nums text-muted-foreground" style={{ left: `${gEndPct}%` }}>0.0</Text>
-          <Text className="absolute -mr-4 w-8 text-center font-numeric text-xs font-medium tabular-nums text-muted-foreground" style={{ right: `${gEndPct}%` }}>3.0</Text>
+          <Text className="absolute -ml-4 w-8 text-center font-numeric text-xs font-medium tabular-nums text-muted-foreground" style={{ left: `${gEndPct}%` }}>0</Text>
+          <Text className="absolute -mr-4 w-8 text-center font-numeric text-xs font-medium tabular-nums text-muted-foreground" style={{ right: `${gEndPct}%` }}>100</Text>
         </View>
       )}
     </View>

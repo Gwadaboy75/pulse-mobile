@@ -63,7 +63,7 @@ function AgeBlock({ m }: { m: HealthHubVM["healthspan"] }) {
       skeleton={skeleton}
       renderReason={() => (
         <SectionShell variant="card" title="Healthspan" href="/health/healthspan">
-          <Text className={EMPTY}>Healthspan needs 20 days of data.</Text>
+          <Text className={EMPTY}>Pulse Age needs at least 5 of its 9 inputs over the 4 weeks before a Monday.</Text>
         </SectionShell>
       )}
     >
@@ -94,7 +94,7 @@ function AgeBlock({ m }: { m: HealthHubVM["healthspan"] }) {
                   max={3}
                   format="decimal1"
                   unit="x"
-                  describe={v.pace === null ? undefined : v.pace < 1 ? "aging slower than your 6-month average" : v.pace > 1 ? "aging faster than your 6-month average" : "aging at the normal rate"}
+                  describe={v.pace === null ? undefined : v.pace < 1 ? "younger than your age" : v.pace > 1 ? "older than your age" : "aging at the normal rate"}
                   ends={["−1.0x", "1.0x", "3.0x"]}
                   leading={SLOW}
                   trailing={FAST}

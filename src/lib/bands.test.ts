@@ -47,11 +47,11 @@ describe("deltaTone", () => {
 });
 
 describe("stress and training load", () => {
-  it("stress levels at 1 and 2", () => {
-    expect(stressLevel(0.9)).toBe("low");
-    expect(stressLevel(1)).toBe("medium");
-    expect(stressLevel(1.9)).toBe("medium");
-    expect(stressLevel(2)).toBe("high");
+  it("stress levels at 30 and 60", () => {
+    expect(stressLevel(29)).toBe("low");
+    expect(stressLevel(30)).toBe("medium");
+    expect(stressLevel(59)).toBe("medium");
+    expect(stressLevel(60)).toBe("high");
   });
   it("ACWR tones", () => {
     expect(acwrTone(0.7)).toBe("neutral");

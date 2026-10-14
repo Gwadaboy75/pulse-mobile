@@ -18,7 +18,7 @@ import { bandPaint, FadeFill, StrokePath } from "./paint";
 import { SpanFills, SpanHeads, type ChartSpan } from "./spans";
 
 export type StressSeries = {
-  /** 0-3 per still minute; moving minutes are null (gaps). */
+  /** 0-100 per reading; workout and exercise readings are null (gaps). */
   points: { t: number; value: number | null }[];
   spans?: ChartSpan[];
   /** Today only: the dashed "now" line. */
@@ -31,8 +31,8 @@ export type StressChartProps = {
   variant: "full" | "spark";
 };
 
-// Low from 0, medium from 1, high from 2: one continuous line whose colour follows the level (Bevel's stress chart).
-const BANDS: Band[] = (["low", "medium", "high"] as const).map((l, i) => ({ from: i, color: DATA_COLORS[STRESS_COLOR[l]].css }));
+// Low from 0, medium from 30, high from 60: one continuous line whose colour follows the level.
+const BANDS: Band[] = (["low", "medium", "high"] as const).map((l, i) => ({ from: [0, 30, 60][i], color: DATA_COLORS[STRESS_COLOR[l]].css }));
 const AXIS_H = 30;
 
 function Chart({ s, variant }: { s: StressSeries; variant: "full" | "spark" }) {
@@ -47,7 +47,7 @@ function Chart({ s, variant }: { s: StressSeries; variant: "full" | "spark" }) {
   const latest = [...s.points].reverse().find((p) => p.value !== null);
   const full = variant === "full";
   const summary =
-    latest?.value != null ? `Stress through the day, latest ${formatValue("decimal1", latest.value)}, ${STRESS_WORD[stressLevel(latest.value)].toLowerCase()}, at ${clock(latest.t, tz)}.` : "Stress through the day.";
+    latest?.value != null ? `Stress through the day, latest ${formatValue("int", latest.value)}, ${STRESS_WORD[stressLevel(latest.value)].toLowerCase()}, at ${clock(latest.t, tz)}.` : "Stress through the day.";
 
   return (
     <ChartFigure summary={summary} height={full ? 200 : 44}>
@@ -60,7 +60,7 @@ function Chart({ s, variant }: { s: StressSeries; variant: "full" | "spark" }) {
         // The web's XAxis domain is [first, now], but Recharts widens a number domain to cover the data
         // (allowDataOverflow off), and the day's points run to midnight: the axis spans the whole day.
         const tx = linearScale([first, Math.max(last, s.points.at(-1)?.t ?? last)], [x0, x1]);
-        const y = linearScale([0, 3], [y1, y0]);
+        const y = linearScale([0, 100], [y1, y0]);
         const pts = s.points.map((p) => ({ x: tx(p.t), y: p.value === null ? null : y(p.value) }));
         const ticks = full ? (s.now ? [...hourTicks(first, last, 6, tz).filter((t) => last - t >= 5 * 3_600_000), s.now] : hourTicks(first, last, 4, tz)) : [];
         // With a "now" every tick shows (interval 0); else the web's interval="equidistantPreserveStart" minTickGap={24}.
@@ -84,8 +84,8 @@ function Chart({ s, variant }: { s: StressSeries; variant: "full" | "spark" }) {
             </PlotCanvas>
             {full && <SpanHeads spans={s.spans} x={tx} x0={x0} x1={x1} y0={y0} iconOnly />}
             {full &&
-              [0, 1, 2, 3].map((v) => (
-                <ChartLabel key={v} x={yTickX(x0, 4)} y={y(v)} anchor="end" w={24}>{formatValue("decimal1", v)}</ChartLabel>
+              [0, 30, 60, 100].map((v) => (
+                <ChartLabel key={v} x={yTickX(x0, 4)} y={y(v)} anchor="end" w={24}>{formatValue("int", v)}</ChartLabel>
               ))}
             {/* The hours, then the time now in bold at the end of the line (dashboard-08), clear of the last hour. */}
             {shown.map((t) => {
@@ -100,7 +100,7 @@ function Chart({ s, variant }: { s: StressSeries; variant: "full" | "spark" }) {
             <ScrubTick index={ai} />
             {a && a.value !== null && (
               <TooltipCard x={tx(a.t)} width={width} title={clock(a.t, tz)}>
-                <TooltipLine color={css(DATA_COLORS[STRESS_COLOR[stressLevel(a.value)]].css)}>{`${formatValue("decimal1", a.value)} ${STRESS_WORD[stressLevel(a.value)]}`}</TooltipLine>
+                <TooltipLine color={css(DATA_COLORS[STRESS_COLOR[stressLevel(a.value)]].css)}>{`${formatValue("int", a.value)} ${STRESS_WORD[stressLevel(a.value)]}`}</TooltipLine>
               </TooltipCard>
             )}
           </>
@@ -110,7 +110,7 @@ function Chart({ s, variant }: { s: StressSeries; variant: "full" | "spark" }) {
   );
 }
 
-/** Intraday stress 0-3 with level-coloured lines (spec §5.10). */
+/** Intraday stress 0-100 with level-coloured lines (spec §5.10). */
 export function StressChart({ data, variant }: StressChartProps) {
   const empty =
     variant === "full" ? (

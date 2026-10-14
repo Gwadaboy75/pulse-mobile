@@ -115,14 +115,14 @@ export default function KitMetrics() {
             </View>
           </Frame>
           <Frame name="lg, loading" center><ScoreDialSkeleton size="lg" variant="recovery" label="Recovery" /></Frame>
-          <Frame name="lg gauge (Stress)" center><ScoreDial variant="gauge" size="lg" value={1.5} caption="Last updated 15:05" /></Frame>
+          <Frame name="lg gauge (Stress)" center><ScoreDial variant="gauge" size="lg" value={50} caption="Last updated 15:05" /></Frame>
           <Frame name="lg gauge, reason" center><ScoreDial variant="gauge" size="lg" value={null} reason="band_not_worn" /></Frame>
           <Frame name="compact (sticky header): recovery, strain, sleep, gauge">
             <View className="flex-row items-center justify-center gap-3">
               <ScoreDial variant="recovery" size="lg" value={85} compact />
               <ScoreDial variant="strain" size="lg" value={62} target={[57, 71]} compact />
               <ScoreDial variant="sleep" size="lg" value={100} compact />
-              <ScoreDial variant="gauge" size="lg" value={2.4} compact />
+              <ScoreDial variant="gauge" size="lg" value={80} compact />
             </View>
           </Frame>
           <Frame name="sm stat: forecast, average, reason, loading">

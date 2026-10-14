@@ -122,7 +122,7 @@ export async function dayDigest(ctx: QueryCtx, day: string) {
       coachLine: strain.coach,
     },
     energyBank: { value: bank.value ? { current: round(bank.value.current), charged: round(bank.value.charged), drained: round(bank.value.drained), asOf: bank.value.until } : null, reason: bank.reason, provisional: bank.provisional },
-    stress: stress.gauge.value ? { ...num({ ...stress.gauge, value: stress.gauge.value.value }, 1), level: stress.gauge.value.level } : num({ ...stress.gauge, value: null }),
+    stress: stress.gauge.value ? { ...num({ ...stress.gauge, value: stress.gauge.value.value }), level: stress.gauge.value.level } : num({ ...stress.gauge, value: null }),
   };
 }
 

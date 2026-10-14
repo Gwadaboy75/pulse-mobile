@@ -108,7 +108,7 @@ export function StressScreen() {
       }
       insight={vm.insight ? <InsightCard body={vm.insight} /> : undefined}
       primary={
-        <SectionShell variant="card" title={dayWord} info={{ title: "Stress throughout the day", body: "Body activation during still minutes, from 0 to 3. Movement, workouts and sleep appear as excluded periods rather than stress scores." }}>
+        <SectionShell variant="card" title={dayWord} info={{ title: "Stress throughout the day", body: "Body activation every 6 minutes, from 0 to 100. Workouts and exercise appear as excluded periods rather than stress scores." }}>
           <StressChart variant="full" data={stressSeries(vm.chart)} />
         </SectionShell>
       }
@@ -120,7 +120,7 @@ export function StressScreen() {
         </SectionShell>,
         <BreatheCard key="breathe" />,
         <SectionShell key="trend" variant="card" title="30-day trend" info={{ title: "Daily stress trend", body: "Average activation across each day's scored still minutes over the last 30 days. Days without enough data remain gaps." }}>
-          <TrendChart label="Stress" data={{ value: vm.trend.points.map((p) => ({ date: p.day, value: p.value })), reason: null, provisional: false }} format="decimal1" colorBy="stress" direction="down" fixedRange="m" />
+          <TrendChart label="Stress" data={{ value: vm.trend.points.map((p) => ({ date: p.day, value: p.value })), reason: null, provisional: false }} format="int" colorBy="stress" direction="down" fixedRange="m" />
         </SectionShell>,
       ]}
     />

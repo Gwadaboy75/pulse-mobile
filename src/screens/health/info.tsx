@@ -1,4 +1,4 @@
-// The Health screens' info-card copy, from pulse's pages (final copy: do not reword). The web's <p> is a <Text> styled as
+// The Health screens' info-card copy, from pulse's pages, reworded for the Pulse engine. The web's <p> is a <Text> styled as
 // the info card's body (the same as src/screens/_lib/info.tsx's, which does not export it).
 import type { ReactNode } from "react";
 import { View } from "react-native";
@@ -14,24 +14,24 @@ export const MONITOR_INFO: InfoContent = {
   title: "About Health Monitor",
   body: (
     <P>
-      Health Monitor compares last night’s vitals with your personal normal range: your baseline plus or minus two standard deviations. Blood
-      oxygen also flags anything below 95%. A change in several vitals at once can be an early sign of illness. Pulse is not a medical device; if you
+      Health Monitor compares last night’s vitals with your personal normal range: the average of your last 30 nights plus or minus one standard
+      deviation. Blood oxygen also flags anything below 95%. A change in several vitals at once can be an early sign of illness. Pulse is not a medical device; if you
       feel unwell, talk to a doctor.
     </P>
   ),
 };
 
 const LEVELS = [
-  { swatch: "bg-stress-low", text: "Low, 0.0 - 0.9: you might be feeling calm, relaxed or sleepy." },
-  { swatch: "bg-stress-medium", text: "Medium, 1.0 - 1.9: neutral, alert or mildly activated." },
-  { swatch: "bg-stress-high", text: "High, 2.0 - 3.0: excited, stressed or highly activated." },
+  { swatch: "bg-stress-low", text: "Low, 0 - 29: you might be feeling calm, relaxed or sleepy." },
+  { swatch: "bg-stress-medium", text: "Medium, 30 - 59: neutral, alert or mildly activated." },
+  { swatch: "bg-stress-high", text: "High, 60 - 100: excited, stressed or highly activated." },
 ];
 
 export const STRESS_INFO: InfoContent = {
   title: "About Stress Monitor",
   body: (
     <>
-      <P>Stress Monitor scores how activated your body is, from 0 to 3, by comparing your heart rate with your daytime resting baseline.</P>
+      <P>Stress Monitor scores how activated your body is, from 0 to 100, every 6 minutes: your heart rate against your awake heart rate over the last 30 days, and at night your HRV against its 30-day baseline.</P>
       <View className="gap-2">
         {LEVELS.map((l) => (
           <View key={l.swatch} className="flex-row items-start gap-3">
@@ -42,7 +42,7 @@ export const STRESS_INFO: InfoContent = {
           </View>
         ))}
       </View>
-      <P>Pulse only scores still minutes. Movement, workouts and sleep are left out, so a walk never counts as stress.</P>
+      <P>Workouts and exercise are left out, so a run never counts as stress. Stress is provisional until your data spans 30 days.</P>
     </>
   ),
 };
@@ -61,8 +61,8 @@ export const HEALTHSPAN_INFO: InfoContent = {
   title: "About Healthspan",
   body: (
     <P>
-      {AGE_LABEL} estimates how old your body behaves, from nine habits and vitals measured over the last 6 months. Pace of Aging compares your last 30
-      days with those 6 months: 1.0x means aging at the normal rate, below 1.0x slower, above 1.0x faster. Both are estimates for personal insight, not a
+      {AGE_LABEL} estimates how old your body behaves, from nine habits and vitals over the 28 days before each Monday. Pace of Aging is your
+      {AGE_LABEL} divided by your age: 1.0x means your body behaves its age, below 1.0x younger, above 1.0x older. Both are estimates for personal insight, not a
       medical assessment.
     </P>
   ),

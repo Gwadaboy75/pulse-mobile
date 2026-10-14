@@ -82,7 +82,7 @@ export function alignDaily(primary: ChartSeriesVM, other: ChartSeriesVM): (numbe
 }
 
 export const DAY_COLOR: Record<DayView, SeriesColor> = { hr: "zones", strain: "strain", stress: "stress", energy: "band", sleep: "single" };
-const DAY_FIXED: Partial<Record<DayView, [number, number]>> = { stress: [0, 3], energy: [0, 100] };
+const DAY_FIXED: Partial<Record<DayView, [number, number]>> = { stress: [0, 100], energy: [0, 100] };
 
 /** A day view: x is minutes from local midnight. */
 export function daySeries(vm: ChartDayVM, label: string, unit: string | undefined, format: FormatKey): Series {

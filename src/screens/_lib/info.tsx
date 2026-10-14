@@ -32,19 +32,20 @@ export const RECOVERY_INFO: InfoContent = {
   body: (
     <>
       <P>
-        Recovery shows how ready your body is to take on strain, from 0 to 100%. Pulse scores it each morning from last night’s heart rate
-        variability, resting heart rate, respiratory rate, sleep performance and skin temperature, each compared with your own baseline.
+        Recovery shows how ready your body is to take on strain, from 1 to 100%. Pulse scores it each morning from last night’s heart rate
+        variability (40%), resting heart rate (30%) and Sleep Score (30%), the first two against your last 60{"\u00a0"}days. Breathing faster than usual,
+        or running warm, lowers it.
       </P>
       <Rows
         rows={[
           ["bg-recovery-green", "Green, 67-100%: your body is primed for strain."],
           ["bg-recovery-yellow", "Yellow, 34-66%: you are maintaining; moderate strain fits."],
-          ["bg-recovery-red", "Red, 0-33%: your body needs rest."],
+          ["bg-recovery-red", "Red, 1-33%: your body needs rest."],
         ]}
       />
       <P>
-        Recovery needs 7{"\u00a0"}nights of HRV before the first score and stays provisional until 14. A day without HRV or processed sleep gets no score
-        rather than a guess.
+        Recovery shows from your second night and stays provisional until your data spans 60{"\u00a0"}days. A night without HRV, heart rate or
+        processed sleep gets no score rather than a guess.
       </P>
       {SOURCE_NOTE}
     </>
@@ -91,13 +92,13 @@ export const SLEEP_INFO: InfoContent = {
   body: (
     <>
       <P>
-        Sleep Performance compares the sleep you got with the sleep you needed, adjusted for consistency, efficiency and restorative sleep. Your
-        need is your personal baseline: the upper quartile of your last 28{"\u00a0"}nights, between 8 and 9.5{"\u00a0"}hours. Strain, sleep debt and naps change
-        tonight’s need in the sleep planner, not this score.
+        Sleep Performance scores last night against your need from six parts: time asleep, deep and REM sleep, how far your heart rate dipped,
+        efficiency and how rarely you woke. Your need is a 7.5-hour goal, plus a little more after a harder day than usual, plus a quarter of
+        your sleep debt.
       </P>
       <P>
-        Sleep consistency is the Sleep Regularity Index: how closely your sleep and wake times match from one day to the next, over the last 7
-        days.
+        Sleep debt comes from your sleep bank: the last 7{"\u00a0"}days’ sleep, naps included, against 7.5{"\u00a0"}hours each, recent nights counting most.
+        Sleep consistency is how closely the times you are asleep agree across those days.
       </P>
       {SOURCE_NOTE}
     </>
@@ -119,14 +120,15 @@ export const ENERGY_INFO: InfoContent = {
   body: (
     <>
       <P>
-        Energy Bank estimates how much energy you have left today, from 0 to 100. It starts each morning from your Recovery and Sleep, drains
-        with exertion and stressful stretches, and recharges during calm, still periods and naps. It is an estimate, not a measurement.
+        Energy Bank estimates how much energy you have in reserve, from 1 to 100. Sleep charges it, calm awake time charges it a little, and
+        stress, including the stress of a workout, drains it. The level carries over from one day to the next, and shows from your eighth day.
+        It is an estimate, not a measurement.
       </P>
       <Rows
         rows={[
           ["bg-recovery-green", "67-100: plenty in reserve."],
           ["bg-recovery-yellow", "34-66: pace yourself."],
-          ["bg-recovery-red", "0-33: running low."],
+          ["bg-recovery-red", "1-33: running low."],
         ]}
       />
     </>

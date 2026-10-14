@@ -31,7 +31,7 @@ export default function KitCharts() {
           <Frame name="recovery by band, normal range shaded, provisional days"><TrendChart label="Recovery" data={fx.ok(fx.recoveryTrend)} unit="%" format="int" colorBy="band" direction="up" deltas={{ w: 4, m: -3, "6m": 2 }} baseline={{ mean: 62, sd: 12 }} /></Frame>
           <Frame name="strain with the Strain Target"><TrendChart label="Strain" data={fx.ok(fx.strainTrend)} unit="%" format="int" colorBy="strain" target={[57, 71]} deltas={{ m: 4 }} /></Frame>
           <Frame name="sleep debt, gaps"><TrendChart label="Sleep debt" data={fx.ok(fx.sleepDebtTrend)} unit="h" format="decimal1" colorBy="sleep" direction="down" deltas={{ m: -0.4 }} /></Frame>
-          <Frame name="stress, fixed 30-day range"><TrendChart label="Stress" data={fx.ok(fx.stressTrend)} format="decimal1" colorBy="stress" fixedRange="m" /></Frame>
+          <Frame name="stress, fixed 30-day range"><TrendChart label="Stress" data={fx.ok(fx.stressTrend)} format="int" colorBy="stress" fixedRange="m" /></Frame>
           <Frame name="6M line with a reference"><TrendChart label="Pulse Age" data={fx.ok(fx.recoveryTrend)} format="int" colorBy="single" fixedRange="6m" reference={{ y: 50, label: "Your age" }} /></Frame>
           <Frame name="empty (no scored days)"><TrendChart label="Recovery" data={fx.ok(fx.emptyTrend)} unit="%" format="int" colorBy="band" /></Frame>
           <Frame name="loading"><TrendChart label="Recovery" data={undefined} format="int" colorBy="band" /></Frame>

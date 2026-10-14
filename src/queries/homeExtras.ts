@@ -61,7 +61,7 @@ function statSpecs(row: DayRow | undefined, isToday: boolean, rows: Map<string, 
     steps: spec((r) => r.metrics?.steps, maybe(m?.steps, dailyReason), undefined, "up", metricHref("steps")),
     spo2: spec((r) => r.metrics?.spo2Pct, maybe(m?.spo2Pct, vitalReason(row, isToday)), "%", "up", metricHref("spo2")),
     skin: spec(skin, maybe(row && skin(row), skinReason), "°C", "toward_zero", metricHref("skin")),
-    stress: spec((r) => r.stress?.average, maybe(row?.stress?.average, dailyReason), undefined, "down", "/health/stress", "decimal1"),
+    stress: spec((r) => r.stress?.average, maybe(row?.stress?.average, dailyReason), undefined, "down", "/health/stress", "int"),
   } as Record<DashboardKey, StatSpec>;
   // The reference app's rows (dashboard-03..09); each opens its Trend View, or its screen where it has none.
   const sleepMain = (r: DayRow) => r.sleep?.main;

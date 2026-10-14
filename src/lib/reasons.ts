@@ -67,7 +67,7 @@ export function reasonCopy(code: string | null | undefined, nightsLeft?: number)
 export const TAG_COPY = {
   provisional: {
     label: "Provisional",
-    explain: "Based on fewer than 14 nights. It firms up as your baseline fills in.",
+    explain: "Based on a short history while your baselines fill in. It firms up as more days arrive.",
   },
   stale_baseline: {
     label: "Baseline stale",

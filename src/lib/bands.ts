@@ -81,12 +81,12 @@ export function dialColor(variant: "recovery" | "strain" | "sleep", value: numbe
   return variant;
 }
 
-// --- Stress 0-3 ---
+// --- Stress 0-100 (the engine's levels: high from 60, medium from 30) ---
 
 export type StressLevel = "low" | "medium" | "high";
 export function stressLevel(value: number): StressLevel {
-  if (value >= 2) return "high";
-  if (value >= 1) return "medium";
+  if (value >= 60) return "high";
+  if (value >= 30) return "medium";
   return "low";
 }
 export const STRESS_WORD: Record<StressLevel, string> = { low: "Low", medium: "Medium", high: "High" };

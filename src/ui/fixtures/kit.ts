@@ -48,7 +48,7 @@ const series = (f: (i: number) => number | null, provisionalFrom = 182): TrendPo
 export const recoveryTrend = series((i) => (i % 23 === 5 ? null : Math.round(30 + noise(i) * 60 + Math.sin(i / 9) * 8)))
 export const strainTrend = series((i) => Math.round(29 + noise(i + 3) * 57))
 export const sleepDebtTrend = series((i) => (i % 31 === 7 ? null : Math.round(noise(i + 9) * 3 * 10) / 10))
-export const stressTrend = series((i) => Math.round(noise(i + 17) * 2.6 * 10) / 10)
+export const stressTrend = series((i) => Math.round(noise(i + 17) * 87))
 export const emptyTrend = series(() => null)
 
 // --- Day strip ---
@@ -175,9 +175,9 @@ export const recoveryBreakdown: StackedSegment[] = [
   { key: "red", label: "Red (0-33%)", count: 1, color: "recovery-red" },
 ]
 export const stressMinutes: StackedSegment[] = [
-  { key: "low", label: "Low (0.0-0.9)", count: 412, color: "stress-low" },
-  { key: "medium", label: "Medium (1.0-1.9)", count: 233, color: "stress-medium" },
-  { key: "high", label: "High (2.0-3.0)", count: 38, color: "stress-high" },
+  { key: "low", label: "Low (0-29)", count: 412, color: "stress-low" },
+  { key: "medium", label: "Medium (30-59)", count: 233, color: "stress-medium" },
+  { key: "high", label: "High (60-100)", count: 38, color: "stress-high" },
 ]
 
 export const night: HypnogramNight = (() => {
@@ -215,8 +215,8 @@ export const stress: StressSeries = {
     const t = DAY0 + 3 * HOUR + i * 5 * MIN
     const h = (t - DAY0) / HOUR
     if (h > 7.4 && h < 8.3) return { t, value: null } // a run: movement minutes are not scored
-    const v = h < 7 ? 0.4 + noise(i) * 0.4 : h > 13.5 && h < 14.5 ? 2.2 + noise(i) * 0.5 : 1.2 + noise(i) * 0.6
-    return { t, value: Math.round(v * 100) / 100 }
+    const v = h < 7 ? 13 + noise(i) * 13 : h > 13.5 && h < 14.5 ? 73 + noise(i) * 17 : 40 + noise(i) * 20
+    return { t, value: Math.round(v) }
   }),
   spans: [
     { kind: "sleep", start: DAY0 + 3 * HOUR, end: DAY0 + 7 * HOUR, label: "Sleep" },

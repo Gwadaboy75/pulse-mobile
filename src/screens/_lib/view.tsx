@@ -55,7 +55,7 @@ import { dayHref, RANGE_DAYS, type TrendRange } from "@/lib/url"
 import type { EnergyBankVM, HrChart, KeyStat, Metric, Span, TimePoint, Trend, ZoneRow } from "@/queries/types"
 import type { ZoneRow as ZoneBarRow } from "@/ui/charts/ZoneBars"
 
-/** A day's stress line: still minutes 0-3, the excluded spans (sleep, workouts) and, today, the latest reading. */
+/** A day's stress line: still minutes 0-100, the excluded spans (sleep, workouts) and, today, the latest reading. */
 export type StressDayChart = { points: TimePoint[]; spans: Span[]; now: number | null }
 
 /**

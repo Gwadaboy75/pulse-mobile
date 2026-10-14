@@ -122,8 +122,8 @@ export function recoveryBand(value: number): RecoveryBand {
 
 export type StressLevel = "low" | "medium" | "high";
 export function stressLevel(value: number): StressLevel {
-  if (value >= 2) return "high";
-  if (value >= 1) return "medium";
+  if (value >= 60) return "high";
+  if (value >= 30) return "medium";
   return "low";
 }
 

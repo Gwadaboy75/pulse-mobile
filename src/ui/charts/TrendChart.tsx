@@ -85,7 +85,7 @@ function colorFor(colorBy: TrendChartProps["colorBy"], v: number) {
 
 function bandsFor(colorBy: TrendChartProps["colorBy"]): Band[] | null {
   if (colorBy === "band") return [0, 34, 67].map((from) => ({ from, color: DATA_COLORS[recoveryColor(from)].css }));
-  if (colorBy === "stress") return [0, 1, 2].map((from) => ({ from, color: DATA_COLORS[STRESS_COLOR[stressLevel(from)]].css }));
+  if (colorBy === "stress") return [0, 30, 60].map((from) => ({ from, color: DATA_COLORS[STRESS_COLOR[stressLevel(from)]].css }));
   return null;
 }
 
@@ -125,7 +125,7 @@ function Trend({ points, p }: { points: TrendPoint[]; p: TrendChartProps }) {
   // Reserve room for the widest tick and a rounded-up top tick, using about 7 px per character.
   const widest = formatValue(p.format, Math.max(0, ...rows.map((r) => r.value ?? 0))).length;
   const axisWidth = widest <= 3 ? 32 : 15 + 7 * widest;
-  const bandTicks = p.colorBy === "band" ? [33, 67, 100] : p.colorBy === "stress" ? [1, 2, 3] : undefined;
+  const bandTicks = p.colorBy === "band" ? [33, 67, 100] : p.colorBy === "stress" ? [30, 60, 100] : undefined;
 
   const partAvg = (key: string) => {
     const xs = rows.map((r) => r.parts?.[key]).filter((v): v is number => v != null);
@@ -149,8 +149,8 @@ function Trend({ points, p }: { points: TrendPoint[]; p: TrendChartProps }) {
             const all = [...values, ...extra];
             const auto = line && (p.colorBy === "single" || p.line);
             const ticksAuto = auto ? evenTicks(Math.min(...all), Math.max(...all), 3) : evenTicks(0, Math.max(...all, 1), 3);
-            const domain: [number, number] = p.colorBy === "band" ? [0, 100] : p.colorBy === "stress" ? [0, 3] : [ticksAuto[0], ticksAuto.at(-1)!];
-            const yTicks = line ? (p.colorBy === "band" ? [0, 50, 100] : p.colorBy === "stress" ? [0, 1.5, 3] : ticksAuto) : (bandTicks ?? ticksAuto);
+            const domain: [number, number] = p.colorBy === "band" ? [0, 100] : p.colorBy === "stress" ? [0, 100] : [ticksAuto[0], ticksAuto.at(-1)!];
+            const yTicks = line ? (p.colorBy === "band" ? [0, 50, 100] : p.colorBy === "stress" ? [0, 50, 100] : ticksAuto) : (bandTicks ?? ticksAuto);
             const y = linearScale(domain, [y1, y0]);
 
             // X: a line runs edge to edge (a point scale); bars sit in category bands.

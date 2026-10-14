@@ -106,7 +106,7 @@ async function latestHr(ctx: QueryCtx) {
 
 // ── Healthspan ──────────────────────────────────────────────────────────────
 
-// Mobile: the terms and references follow WHOOP's Healthspan (white paper, 2025); see src/core/algorithms/healthspan.ts.
+// The terms and references follow the Pulse engine's Pulse Age (src/core/engine/pulseAge.ts).
 const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "target" | "years" | "caption" | "key">> = {
   sleepHours: {
     group: "sleep",
@@ -114,8 +114,8 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "target" | 
     unit: "h",
     domain: [4, 10],
     higherIsBetter: true,
-    explanation: "Short sleep is linked to higher mortality: about 29% higher at 5 hours a night than at 7. Seven hours or more carries the lowest risk, and sleeping longer costs nothing here.",
-    source: "Saint-Maurice 2024",
+    explanation: "Both short and long sleep are linked to higher mortality. Around 7.5 to 9 hours a night carries the lowest risk; 7 hours costs about half a year, 6 hours or less about 2.",
+    source: "Population mortality studies",
   },
   sri: {
     group: "sleep",
@@ -123,8 +123,8 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "target" | 
     unit: "%",
     domain: [0, 100],
     higherIsBetter: true,
-    explanation: "Going to bed and waking at the same times predicts a longer life even more strongly than how long you sleep. Most of the benefit comes by a consistency of about 76. Measured here as the 7-day Sleep Regularity Index, the measure that evidence used; the Sleep screen’s consistency compares the last 24 hours with the 4 days before, as WHOOP does, so the two can differ a little.",
-    source: "Windred 2024",
+    explanation: "Being asleep at the same times each day is linked to a longer life, on top of how long you sleep. The reference is a consistency of 70: below it costs years quickly, above it takes a little off. The same Sleep consistency as on the Sleep screen, averaged over the window.",
+    source: "Population mortality studies",
   },
   zone13: {
     group: "strain",
@@ -132,9 +132,8 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "target" | 
     unit: "min",
     domain: [0, 300],
     higherIsBetter: true,
-    explanation:
-      "Moderate activity is linked to steeply lower mortality: about 20% lower at 75 minutes a week, levelling off past 300. Counted from 40% of your heart-rate reserve (a brisk walk) to the top of Zone 3, inside workouts or in stretches of 10 minutes or more, as WHOOP counts zone time in activities.",
-    source: "Arem 2015",
+    explanation: "Moderate activity is linked to steeply lower mortality, with the reference at 150 minutes a week and the benefit levelling off well past it. Counted by Pulse from your heart rate in Zones 2 and 3, on days with 12 hours of heart rate.",
+    source: "Population mortality studies",
   },
   zone45: {
     group: "strain",
@@ -142,9 +141,8 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "target" | 
     unit: "min",
     domain: [0, 150],
     higherIsBetter: true,
-    explanation:
-      "Vigorous activity adds benefit on top of moderate activity: about 18% lower mortality at 15 minutes a week and 36% at about 55. Counted from 80% of your heart-rate reserve, inside workouts or in stretches of 10 minutes or more.",
-    source: "Ahmadi 2022",
+    explanation: "Vigorous activity adds benefit on top of moderate activity. The reference is 10 minutes a week; a little more helps, and the benefit levels off quickly. Counted from your heart rate in Zones 4 and 5.",
+    source: "Population mortality studies",
   },
   strength: {
     group: "strain",
@@ -152,8 +150,8 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "target" | 
     unit: "min",
     domain: [0, 150],
     higherIsBetter: true,
-    explanation: "Muscle-strengthening work (strength training, weights, calisthenics or HIIT) is linked to lower mortality, with the lowest risk from about 40 minutes a week. More earns no extra credit and costs nothing.",
-    source: "Momma 2022",
+    explanation: "Muscle-strengthening work (strength training, weights, calisthenics or HIIT) is linked to lower mortality. The reference is 10 minutes a week, and the benefit levels off past about 40.",
+    source: "Population mortality studies",
   },
   steps: {
     group: "strain",
@@ -161,8 +159,8 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "target" | 
     unit: "steps",
     domain: [0, 15000],
     higherIsBetter: true,
-    explanation: "More daily steps go with lower mortality, levelling off past about 10,000 a day. Only days with 12 hours of heart rate count, so a band left on the charger isn't read as a lazy day.",
-    source: "Paluch 2022",
+    explanation: "More daily steps go with lower mortality. The reference is 8,000 a day (6,000 from 60), and credit stops at 10,000 (8,000 from 60). Only days with 12 hours of heart rate count, so a band left on the charger isn't read as a lazy day.",
+    source: "Population mortality studies",
   },
   vo2max: {
     group: "fitness",
@@ -170,9 +168,8 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "target" | 
     unit: "ml/kg/min",
     domain: [15, 70],
     higherIsBetter: true,
-    explanation:
-      "Higher cardiorespiratory fitness is one of the strongest predictors of a longer life. Each extra 1 MET (3.5 ml/kg/min) is linked to about 13% lower all-cause mortality. A measured value counts in full; Fitbit's estimate, or Pulse's own from resting heart rate and activity when there is neither, counts half.",
-    source: "Kodama 2009",
+    explanation: "Higher cardiorespiratory fitness is one of the strongest predictors of a longer life. The reference comes from a table for your age and sex; each ml/kg/min above it takes about 0.4 years off, each below adds about as much. From Fitbit's VO2 max readings.",
+    source: "Population mortality studies",
   },
   restingHr: {
     group: "fitness",
@@ -180,8 +177,8 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "target" | 
     unit: "bpm",
     domain: [40, 90],
     higherIsBetter: false,
-    explanation: "Each 10 bpm higher resting heart rate is linked to about 9% higher all-cause mortality.",
-    source: "Zhang 2016",
+    explanation: "A higher resting heart rate is linked to higher mortality. The reference comes from a table for your age and sex; each 10 bpm above it adds about 1.2 years.",
+    source: "Population mortality studies",
   },
   leanMass: {
     group: "fitness",
@@ -189,14 +186,13 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "target" | 
     unit: "%",
     domain: [50, 95],
     higherIsBetter: true,
-    explanation:
-      "The share of your weight that isn't fat. Each 10 points more body fat is linked to about 11% higher all-cause mortality. Credit stops 5 points past the target, and from 60 it neither adds nor takes away years. From your body fat readings; with weight alone, body fat is estimated from your BMI (Deurenberg 1991) and counts half.",
-    source: "Jayedi 2022",
+    explanation: "The share of your weight that isn't fat. The reference is 100 less the typical body fat for your age and sex. Falling short of it costs years, faster the further you are; from 35, beating it takes a little off, more so with age. From your body fat readings.",
+    source: "Population mortality studies",
   },
 };
 const HS_ORDER = ["sleepHours", "sri", "zone13", "zone45", "strength", "steps", "vo2max", "restingHr", "leanMass"];
 
-const VO2_CAPTION = { run: "Measured", daily: "Fitbit estimate: counts half", estimate: "Estimated from resting heart rate and activity: counts half" } as const;
+const VO2_CAPTION = { run: "Measured", daily: "Fitbit estimate", estimate: "Estimated from resting heart rate and activity" } as const;
 
 /** Healthspan `/health/healthspan` for the ISO week containing `day` (spec §7.7). Updated weekly. */
 export async function getHealthspan(day: string, ctx: QueryCtx): Promise<HealthspanVM> {
@@ -273,10 +269,8 @@ function leanCaption(c: HealthspanContribution, b: HealthspanBody | null | undef
   if (b?.leanKg != null && b.fatKg != null) parts.push(`${b.leanKg.toFixed(1)} kg lean, ${b.fatKg.toFixed(1)} kg fat`);
   if (b?.ffmi != null && b.fmi != null) parts.push(`FFMI ${b.ffmi.toFixed(1)}, FMI ${b.fmi.toFixed(1)} kg/m²`);
   const note = c.estimated
-    ? " Body fat estimated from your BMI: counts half."
-    : age >= healthspanConfig.bodyFat.noEffectFromAge
-      ? " From 60, body fat neither adds nor takes away years."
-      : "";
+    ? " Body fat estimated from your BMI."
+    : "";
   return `${parts.join(" · ")}.${note}`;
 }
 type HealthspanBody = Extract<NonNullable<DayRow["healthspan"]>, { reason: null }>["bodyComposition"];
@@ -301,15 +295,15 @@ function healthspanInsight(pace: number | null, deltaYears: number, cs: Healthsp
   const parts = [
     pace == null
       ? `Pace of Aging shows once ${healthspanConfig.paceMinDays} of the last 30 days have data.`
-      : `Your Pace of Aging is ${pace.toFixed(1)}x against your 6-month average.`,
+      : `Your Pace of Aging is ${pace.toFixed(1)}x: your Pulse Age over your age.`,
   ];
   if (best && best.years < 0) parts.push(`Your biggest boost is ${label(best)}, worth ${Math.abs(best.years).toFixed(1)} years.`);
   if (worst && worst.years > 0) parts.push(`${HS_META[worst.key].label} adds the most, ${worst.years.toFixed(1)} years.`);
-  // Mobile: say how much of Pulse Age is measured; a missing input counts as no effect.
+  // Say how much of Pulse Age is measured; the engine scales the inputs present to stand for all nine.
   if (termsUsed != null)
     parts.push(
       termsUsed < HEALTHSPAN_TERM_COUNT
-        ? `Based on ${termsUsed} of ${HEALTHSPAN_TERM_COUNT} inputs; the missing ones neither add nor take away years.`
+        ? `Based on ${termsUsed} of ${HEALTHSPAN_TERM_COUNT} inputs; the ones present are scaled up to stand for all ${HEALTHSPAN_TERM_COUNT}.`
         : `Based on all ${HEALTHSPAN_TERM_COUNT} inputs.`,
     );
   return { title, body: parts.join(" ") };
