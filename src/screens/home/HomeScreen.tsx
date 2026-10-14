@@ -473,12 +473,13 @@ function EnergyCard({ vm, timeZone }: { vm: HomePageVM; timeZone: string }) {
 
 function EnergyBody({ eb, timeZone }: { eb: NonNullable<HomeVM["energyBank"]["value"]>; timeZone: string }) {
   const metric = useMemo(() => ({ value: energySeries(eb), reason: null, provisional: false }), [eb]);
+  const drains = useMemo(() => [...(metric.value.drains ?? [])].sort((a, b) => b.amount - a.amount).slice(0, 3).sort((a, b) => a.t - b.t), [metric]);
   return (
     <View className="flex-1 gap-4">
       <View className="gap-1.5">
         <TickScale variant="meter" label="Energy" metric={{ value: eb.current, reason: null, provisional: false }} min={0} max={100} format="int" unit="%" />
         <Text className={CAPTION}>
-          Started at <Text className="font-numeric tabular-nums">{formatValue("int", eb.startLevel)}%</Text> at <Text className="font-numeric tabular-nums">{clock(eb.startAt, timeZone)}</Text>
+          Woke at <Text className="font-numeric tabular-nums">{clock(eb.startAt, timeZone)}</Text> with <Text className="font-numeric tabular-nums">{formatValue("int", eb.startLevel)}%</Text>
         </Text>
       </View>
       <EnergyBankChart data={metric} />
@@ -486,11 +487,12 @@ function EnergyBody({ eb, timeZone }: { eb: NonNullable<HomeVM["energyBank"]["va
         <MiniStat label="Charged" value={formatValue("signedInt", eb.charged)} className="text-optimal-text" />
         <MiniStat label="Drained" value={formatValue("signedInt", eb.drained)} className="text-warning-text" />
       </View>
-      {eb.drains.length > 0 && (
+      {/* The chart's dots, in time order. */}
+      {drains.length > 0 && (
         <View accessibilityRole="list" className="gap-1">
-          {eb.drains.slice(0, 3).map((dr) => (
-            <Text key={`${dr.label}-${dr.start}`} className="text-xs font-medium leading-4 text-foreground-secondary">
-              {dr.label} at <Text className="font-numeric tabular-nums">{clock(dr.start, timeZone)}</Text> · <Text className="font-numeric tabular-nums">{formatValue("signedInt", -Math.abs(dr.amount))}</Text>
+          {drains.map((dr) => (
+            <Text key={dr.t} className="text-xs font-medium leading-4 text-foreground-secondary">
+              {dr.label} at <Text className="font-numeric tabular-nums">{clock(dr.t, timeZone)}</Text> · <Text className="font-numeric tabular-nums">{formatValue("signedInt", -Math.abs(dr.amount))}</Text>
             </Text>
           ))}
         </View>

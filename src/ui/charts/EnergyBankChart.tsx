@@ -4,7 +4,6 @@ import { Circle } from "@shopify/react-native-skia";
 import { DATA_COLORS, recoveryColor } from "@/lib/bands";
 import { clock, formatValue } from "@/lib/format";
 import type { Metric } from "@/lib/reasons";
-import { mix } from "../color";
 import { bandColor, hourTicks, type Band } from "@/lib/charts";
 import { ReasonPlaceholder } from "../metrics/ReasonPlaceholder";
 import { EmptyState } from "../shells/EmptyState";
@@ -12,7 +11,7 @@ import { MetricState } from "../shells/MetricState";
 import { useOptionalShellCalendar } from "../shells/ShellStatus";
 import { Skeleton } from "../Skeleton";
 import { useTheme } from "../theme";
-import { ChartFigure, ChartLabel, DashedLine, GlowDot, GridLines, Pill, PlotCanvas, ScrubLayer, ScrubTick, TooltipCard, TooltipLine, xTickY, yTickX } from "./ChartFrame";
+import { ChartFigure, ChartLabel, DashedLine, GlowDot, GridLines, PlotCanvas, ScrubLayer, ScrubTick, TooltipCard, TooltipLine, xTickY, yTickX } from "./ChartFrame";
 import { areaPath, linePath, linearScale, nearestIndex, preserveStartEnd, tickTextWidth } from "./geometry";
 import { bandPaint, FadeFill, StrokePath } from "./paint";
 import { SpanFills, SpanHeads } from "./spans";
@@ -20,7 +19,7 @@ import { SpanFills, SpanHeads } from "./spans";
 export type EnergySeries = {
   /** Reserve 0-100 from wake to now (today) or to sleep (past days). */
   points: { t: number; value: number | null }[];
-  /** Drains; the chart annotates the three biggest. `amount` is positive ("−18 Run" for 18). */
+  /** Drains; the chart dots the three biggest (the card lists them below, so no labels cover the line). `amount` is positive ("−18 Run" for 18). */
   drains?: { t: number; amount: number; label: string }[];
   naps?: { start: number; end: number }[];
 };
@@ -91,11 +90,6 @@ function Chart({ e }: { e: EnergySeries }) {
             {ticks.map(({ t, x }) => (
               <ChartLabel key={t} x={x} y={xTickY(y1)}>{clock(t, tz)}</ChartLabel>
             ))}
-            {/* A pill chip above the point, so the drain reads as a marker, not loose text over the line. */}
-            {drains.map((d) => {
-              const v = valueAt(d.t);
-              return v === null ? null : <Pill key={d.t} x={tx(d.t)} y={y(v) - 12} anchor="middle" text={`${formatValue("int", -d.amount)} ${d.label}`} fill={mix(c.warning, c.card, 0.16)} color={c.warning} />;
-            })}
             <ScrubLayer width={width} height={height} onScrub={setX} />
             <ScrubTick index={ai} />
             {a && a.value !== null && (

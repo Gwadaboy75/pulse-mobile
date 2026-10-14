@@ -28,17 +28,16 @@ export function TonightPlan({ plan, timeZone }: { plan: SleepPlanVM; timeZone: s
   return (
     <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} className="flex-1 gap-4">
       {/* The reference app's "(sunset) 11:20 - - - - (alarm) 8:30" [latest-home-top-1]: two time blocks joined by a dashed rule. */}
-      {/* The web's grid is [auto 1fr auto]: each outer column is as wide as the wider of its time block and its label, so
-          "Recommended bedtime" takes room from the dashed rule (about 30 px on a phone). The middle column holds a hidden
-          time-high spacer so the rule sits at the times' height. Short of room, the grid gives the right column its full
-          width first and the left one shrinks toward "RECOMMENDED" (the label wraps): so the left shrinks, the right does not. */}
+      {/* As the reference app: each label sits centred under its time, "Recommended / bedtime" on two lines, so the outer
+          columns stay as wide as the times and the dashed rule keeps its room. The middle column holds a hidden time-high
+          spacer so the rule sits at the times' height. */}
       <View className="my-auto flex-row gap-x-3">
-        <View className="shrink gap-1.5">
+        <View className="shrink items-center gap-1.5">
           <View className="flex-row items-center gap-2">
             <Icon icon={Sunset} size={24} tone="foreground-secondary" strokeWidth={1.5} />
             <Text accessibilityLiveRegion="polite" className={time}>{bed}</Text>
           </View>
-          <Text className={LABEL}>Recommended bedtime</Text>
+          <Text className={`${LABEL} text-center`}>{"Recommended\nbedtime"}</Text>
         </View>
         <View accessibilityElementsHidden className="min-w-0 flex-1 items-center">
           <View className="w-full max-w-28 justify-center">
@@ -50,12 +49,12 @@ export function TonightPlan({ plan, timeZone }: { plan: SleepPlanVM; timeZone: s
             </View>
           </View>
         </View>
-        <View className="items-end gap-1.5">
+        <View className="items-center gap-1.5">
           <View className="flex-row items-center gap-2">
             <Icon icon={AlarmClock} size={24} tone="foreground-secondary" strokeWidth={1.5} />
             <Text className={time}>{clock(plan.wakeAt, timeZone)}</Text>
           </View>
-          <Text className={`${LABEL} text-right`}>Typical wake</Text>
+          <Text className={`${LABEL} text-center`}>{"Typical\nwake"}</Text>
         </View>
       </View>
       {/* At the foot of a stretched card, level with the Energy Bank's Charged / Drained tiles beside it (SYM4). */}
