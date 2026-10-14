@@ -48,3 +48,6 @@ example
 # Gradle output of local Expo modules
 modules/*/android/build/
 modules/*/android/.gradle/
+
+# Claude Code worktrees
+.claude/worktrees/

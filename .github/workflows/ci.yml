@@ -1,0 +1,39 @@
+# Every pull request and every push to main runs the checks AGENTS.md asks for before a commit, plus the bundle check.
+# The job name ("checks") is the required status check in .github/rulesets/main.json.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Read-only token: CI never writes to the repo, and fork PRs get no secrets anyway.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # Reads the pnpm version from package.json "packageManager".
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      # Metro builds the Android bundle: catches babel, metro and app.json breaks without a native build.
+      - name: bundle check
+        run: npx expo export --platform android --output-dir "$RUNNER_TEMP/bundle"
