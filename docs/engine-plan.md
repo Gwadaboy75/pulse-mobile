@@ -1,6 +1,6 @@
 # Pulse engine: plan
 
-Status: in progress (Phases 0 to 7 in code 2026-10-14; not yet tried on the phone). Written so a fresh Claude Code session can start at Phase 0 and
+Status: Phases 0 to 8 in code on branch `engine` (2026-10-14, SCORING_VERSION 24, IMPORT_VERSION 4). Left: try it on the phone (Phase 3 step 4), then fast-forward main and release 0.3.0. Written so a fresh Claude Code session can start at Phase 0 and
 work through the phases in order, one or two per session.
 
 ## What and why
