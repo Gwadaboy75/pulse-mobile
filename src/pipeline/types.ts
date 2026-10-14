@@ -67,8 +67,10 @@ import type { LoadStatus } from "@/core/engine/strain";
  * midnight and shown from its eighth day; stage 1 keeps each day's HRV samples (Stage1Day.engine.hrv).
  * 23 (Phase 6): Pulse Age on the engine's nine hazard factors over the 28 days before each Monday, renormalized over the
  * factors present (at least 5); stage 1 keeps each day's zone seconds on % of max HR (engine.strain.zoneS).
+ * 24 (Phase 7): Health Monitor's normal band is ±1 SD of the last 30 nights, the night shown included; journal impact is
+ * the engine's pooled t-test (a 70 % interval) in place of the bootstrap.
  */
-export const SCORING_VERSION = 23;
+export const SCORING_VERSION = 24;
 
 export type PipelineOptions = {
   timeZone: string;

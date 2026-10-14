@@ -3,11 +3,11 @@
 // the fold, the scorer order and the journal-impact memo are the web's, the reads and writes are Store calls.
 import type { ReportRow, ScoreRow, SeriesKind, Store } from "@/data/store";
 import { addDays } from "@/lib/time";
-import { slice, sliced } from "@/lib/yield";
+import { slice } from "@/lib/yield";
 import { hrvCfg, recoveryHRVLnCfg, respCfg, restingHRCfg, skinTempCfg, update } from "@/core/scoring/baselines";
 import { lnHrv } from "@/core/scoring/recovery";
 import { activityCost } from "@/core/algorithms/activityCost";
-import { journalImpactSteps, type JournalDay, type TagImpact } from "@/core/algorithms/journalImpact";
+import type { JournalDay, TagImpact } from "@/core/algorithms/journalImpact";
 import { buildReport, periodBounds, reportPeriods } from "@/core/algorithms/reports";
 import { activityKind } from "@/queries/common";
 import { BATCH_DAYS, byteOrder, type Data, groupBy, type Progress, type Segment, sha } from "./data";
@@ -33,6 +33,8 @@ import { type JournalImpactRow, type PipelineOptions, SCORING_VERSION, STAGE2_CO
 import { emptyScoreRow } from "./stage1";
 import {
   enginePlan,
+  engineJournalImpact,
+  engineMonitor,
   engineSleepRow,
   engineStrain,
   foldEngineDay,
@@ -117,7 +119,7 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
     await slice();
     const hrvStatusRow = scoreHrvStatus(f, recovery);
     const training = scoreTraining(data, f, d, recovery, sleep, trainingLoad, stress.row, stress.minutes, hrvStatusRow, opts);
-    const healthMonitor = scoreHealthMonitor(f, d, inputs, recovery);
+    const healthMonitor = engineMonitor(f, scoreHealthMonitor(f, d, inputs, recovery));
     const healthspan = scoreEnginePulseAge(f, d, engineSleep, scoreHealthspan(data, f, d, sleep, opts, recovery), opts);
     const fitness = scoreFitness(f, d, opts);
     recordOutcomes(f, d, recovery, sleep, trainingLoad);
@@ -168,9 +170,10 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
     const from = addDays(day, -90);
     const inWindow = entries.filter((e) => e.day >= from && e.day < day);
     const outWindow = f.outcomes.filter((o) => o.day > from && o.day <= day);
-    const key = sha(JSON.stringify([inWindow, outWindow]));
+    // "engine": the Pulse engine's t-test (version 24), so a row memoised under halo's bootstrap is redone.
+    const key = sha(JSON.stringify(["engine", inWindow, outWindow]));
     const prior = storedImpact.get(day);
-    const impacts = prior?.key === key ? prior.impacts : await sliced(journalImpactSteps(inWindow, outWindow, day));
+    const impacts = prior?.key === key ? prior.impacts : engineJournalImpact(inWindow, outWindow, day);
     impactsAsOf.set(day, impacts);
     rows.set(day, { ...out.get(day)!, journal_impact: { key, impacts } });
     if (i % BATCH_DAYS === BATCH_DAYS - 1) onProgress?.("journal", i + 1, days.length);

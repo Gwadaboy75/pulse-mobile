@@ -133,8 +133,10 @@ describe("parity with the web app", () => {
     // recovery, Target Strain moves to the percent scale, and the sleep need reads the new strain. Version 20's value was
     // "f0df0ca35661e535". 22: Stress on 0–100 and the engine's Energy Bank (Phase 5); both columns and both series
     // moved, nothing else. Version 21's value was "416071272e0e6e64". 23: Pulse Age on the engine's nine factors
-    // (Phase 6); only healthspan moved. Version 22's value was "1be75842de2b2bd1".
-    "daily_scores.scoring_version": "e5852ab4c03c2755",
+    // (Phase 6); only healthspan moved. Version 22's value was "1be75842de2b2bd1". 24: Health Monitor's ±1 SD band over
+    // 30 nights and the engine's journal t-test (Phase 7); Health Monitor and the reports moved. Version 23's value was
+    // "e5852ab4c03c2755".
+    "daily_scores.scoring_version": "eca080343200e2aa",
     // Version 15: Activity Strain is the session's Banister TRIMP plus its muscular load through 5.05 · ln(1 + 0.09 · T)
     // (a seeded 45-minute strength session goes from 8.2 to 9.9 on 0–21), each activity stores its `cardioTrimp` and
     // `muscularTrimp`, and its zone seconds count Zone 1 from 40 % of the reserve. Version 14's value was "cb2d75373aaf4d20".
@@ -197,7 +199,7 @@ describe("parity with the web app", () => {
     // The illness signal's SD is floored at half the baselines' σ floor (src/core/scoring/illness.ts illnessSdFloor),
     // which tempers a few days' scores (the seeded illness's 2026-08-03 scores 51 where it scored 69). The web's
     // value was "3a2163c7f92d4dab".
-    "daily_scores.health_monitor": "58c0f6991a5dc0df",
+    "daily_scores.health_monitor": "155474eac1079378",
     // Mobile rebuilds Pulse Age on WHOOP's Healthspan method (src/core/algorithms/healthspan.ts): 6.0 years per ln HR
     // (WHOOP's 10 × an overlap factor of 0.6) with no 9/n rescaling (a missing term counts 0), WHOOP's references and
     // curves (sleep from 7 h, Arem and Ahmadi zone curves, strength flat after 40 min, lean mass as body fat %), zone time
@@ -248,7 +250,7 @@ describe("parity with the web app", () => {
     // was "dac817e185f4f75f". Version 17: Recovery averages follow the new Recovery. Version 16's was "1043e130fde0738d".
     // Version 18: the training balance is the period's last Garmin ratio, banded at 0.8 / 1.5 / 2.0. Version 17's was
     // "60efbad5a80cb17c".
-    reports: "2f0b8d0bb1b0af21",
+    reports: "24e2b988dbd98de5",
   };
   const canon = (v: unknown): unknown =>
     typeof v === "number"
@@ -410,15 +412,18 @@ describe("numbers checked by hand", () => {
     // Version 20: Recovery's resting HR is last night's mean heart rate in sleep (the engine's aggregate), not the daily one.
     expect(col(d, "recovery").inputs.rhr).toBe(Math.round(col(d, "strain").engine!.restingHR!.avg * 10) / 10);
     expect(col(d, "strain")).toMatchObject({ restingHr: m.rhrBpm, restingHrSource: "daily" });
-    // Skin temperature: nightly − Google's baseline; Health Monitor takes Google's ranges.
-    expect(col(d, "recovery").inputs.skinTempDev).toBeCloseTo(m.nightlyTempC! - m.tempBaselineC!, 9);
+    // Skin temperature: nightly − Health Connect's baseline (fix 10). Health Monitor (version 24): each vital's normal band
+    // is ±1 SD of the last 30 nights, this one included, and the status follows it.
+    expect(col(d, "recovery").inputs.skinTempDev).toBeCloseTo(Math.round((m.nightlyTempC! - m.tempBaselineC!) * 100) / 100, 9);
     const hm: HealthMonitorRow = col(d, "health_monitor");
     if (hm.reason !== null) throw new Error("no health monitor");
-    const by = Object.fromEntries(hm.vitals.map((v) => [v.key, v]));
-    expect(by.restingHr).toMatchObject({ rangeSource: "google", range: { low: m.rhrRangeLow, high: m.rhrRangeHigh } });
-    expect(by.hrv).toMatchObject({ rangeSource: "google", range: { low: m.hrvRangeLow, high: m.hrvRangeHigh } });
-    expect(by.skinTempDev).toMatchObject({ rangeSource: "google", range: { low: -2 * m.tempSdC!, high: 2 * m.tempSdC! } });
-    expect(by.resp.rangeSource).toBe("pulse");
+    for (const v of hm.vitals) {
+      expect(v.rangeSource, v.key).toBe("pulse");
+      if (v.value == null || !v.range) continue;
+      const inside = v.value >= v.range.low - 0.01 && v.value <= v.range.high + 0.01;
+      if (v.status === "in_range") expect(inside, v.key).toBe(true);
+      else expect(v.status === "low" ? v.value < v.range.low + 0.01 : v.value > v.range.high - 0.01, v.key).toBe(true);
+    }
   });
 
   it("the first night has no baseline; Recovery shows from the second, provisional until 60 days span its data (fix 17)", () => {

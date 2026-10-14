@@ -5,6 +5,8 @@
 import type { ReasonCode } from "@/lib/reasons";
 import { addDays, daysBetween, fractionalYears, localMinutes } from "@/lib/time";
 import { type Drain, energyBand } from "@/core/algorithms/energyBank";
+import { IMPACT_METRICS, type JournalDay, type OutcomeDay, type TagImpact } from "@/core/algorithms/journalImpact";
+import { arms, effect, MIN_DAYS } from "@/core/engine/journal";
 import { type SleepPlan, sleepPlan } from "@/core/algorithms/sleepPlanner";
 import type { ChargeDriver, ChargeDriverVerdict } from "@/core/scoring/drivers";
 import { band } from "@/core/scoring/recovery";
@@ -12,7 +14,7 @@ import { type Agg, baseline, calibrated, chanMerge, mergeHist, RECOVERY_CALIBRAT
 import { timeline } from "@/core/engine/context";
 import { DEFAULT_SLEEP_GOAL_HOURS, POOLING } from "@/core/engine/days";
 import { awakeSeconds, energyStep, WARMUP_DAYS } from "@/core/engine/energyBank";
-import { mean, roundHalfAway } from "@/core/engine/math";
+import { mean, popStats, roundHalfAway } from "@/core/engine/math";
 import { paceOf, pulseAge, type PulseAgeDay, references } from "@/core/engine/pulseAge";
 import { recovery, type RecoveryResult } from "@/core/engine/recovery";
 import {
@@ -32,7 +34,7 @@ import { loadConfidence, loadStatus, loadStep, STRENGTH_TYPES, targetBase, targe
 import { cdfOf, displayStress, gapFill, HRV_LOOKBACK_S, SLOT_S, type SlotContext, slotContext, slotHr, slotsOf, slotStress, stressLevel } from "@/core/engine/stress";
 import { type Data, touching } from "./data";
 import type { Day, Fold, Inputs, scorePlanner } from "./scores";
-import type { BaselineSummary, CardioLoadRow, EnergyBankRow, HealthspanRow, PipelineOptions, RecoveryRow, SleepPlannerRow, SleepRow, StrainTargetRow, StressRow } from "./types";
+import type { BaselineSummary, CardioLoadRow, EnergyBankRow, HealthMonitorRow, HealthspanRow, PipelineOptions, RecoveryRow, SleepPlannerRow, SleepRow, StrainTargetRow, StressRow } from "./types";
 
 /** Aggregates kept per day for the baselines (oldest first, at most BASELINE_DAYS). */
 type DayAggRow = { restingHRV: Agg | null; averageHRV: Agg | null; restingHR: Agg | null; inactiveHR: Agg | null; resp: Agg | null; temp: Agg | null };
@@ -632,3 +634,52 @@ export function foldPulseAgeDay(f: Fold, d: Day, s: EngineSleep, data: Data) {
 /** Minutes of strength-type workouts that started on day D. */
 const strengthMinutes = (data: Data, d: Day) =>
   (data.exercisesByDay.get(d.day) ?? []).filter((x) => STRENGTH_TYPES.test(x.type)).reduce((a, x) => a + (x.endTs - x.startTs) / 60, 0);
+
+// ── Journal insights (Phase 7) ──────────────────────────────────────────────
+
+/**
+ * Each behaviour's effect on the next day's Recovery, HRV z and Sleep Score over the 90 days before `asOf`
+ * (journal.ts), on halo's TagImpact shape; clear effects first, then by the size of the Recovery effect.
+ */
+export function engineJournalImpact(entries: JournalDay[], outcomes: OutcomeDay[], asOf: string): TagImpact[] {
+  const byDay = new Map(outcomes.map((o) => [o.day, o]));
+  const result: TagImpact[] = [];
+  for (const [tag, { yes, no }] of arms(entries, (d) => byDay.get(d) ?? null, asOf)) {
+    const values = (xs: (OutcomeDay | null)[], m: (typeof IMPACT_METRICS)[number]) => xs.map((o) => o?.[m]).filter((v): v is number => v != null);
+    const effects = Object.fromEntries(IMPACT_METRICS.map((m) => [m, effect(values(yes, m), values(no, m), m === "hrvZ" ? 2 : 0)])) as TagImpact["effects"];
+    const enough = yes.length >= MIN_DAYS && no.length >= MIN_DAYS;
+    result.push({ tag, status: enough ? "ok" : "not_enough_data", nYes: yes.length, nNo: no.length, effects });
+  }
+  const rank = (t: TagImpact) => (t.status !== "ok" ? -2 : t.effects.recovery.delta == null ? -1 : Math.abs(t.effects.recovery.delta));
+  return result.sort((a, b) => rank(b) - rank(a) || (a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0));
+}
+
+// ── Health Monitor (Phase 7) ────────────────────────────────────────────────
+
+/** Nights the Health Monitor's normal band is drawn from, the night shown included. */
+export const MONITOR_WINDOW = 30;
+
+const MONITOR_FIELD = { restingHr: "rhr", hrv: "hrv", resp: "resp", spo2: "spo2", skinTempDev: "skinTempDev" } as const;
+
+/**
+ * Health Monitor's vitals on the engine's rule (reference study, other-calculators.md § Vitals): normal within ±1 SD
+ * (population) of the mean over the window, the night shown included; low below, high above. halo's illness signal stays.
+ */
+export function engineMonitor(f: Fold, row: HealthMonitorRow): HealthMonitorRow {
+  if (row.reason !== null) return row;
+  const nights = f.monitorRows.slice(-MONITOR_WINDOW);
+  const vitals = row.vitals.map((v) => {
+    const xs = nights.map((n) => n[MONITOR_FIELD[v.key]]).filter((x): x is number => x != null && Number.isFinite(x));
+    const s = popStats(xs);
+    const range = s && { low: roundHalfAway(s.mean - s.sd, 2), high: roundHalfAway(s.mean + s.sd, 2) };
+    const status: typeof v.status =
+      v.value == null || !s ? "no_data" : s.sd === 0 ? "in_range" : v.value < s.mean - s.sd ? "low" : v.value > s.mean + s.sd ? "high" : "in_range";
+    return { ...v, range, rangeSource: "pulse" as const, status };
+  });
+  return {
+    ...row,
+    vitals,
+    inRange: vitals.filter((v) => v.status === "in_range").length,
+    flagged: vitals.filter((v) => v.status === "high" || v.status === "low").length,
+  };
+}

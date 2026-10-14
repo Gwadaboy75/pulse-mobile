@@ -1,6 +1,6 @@
 # Pulse engine: plan
 
-Status: in progress (Phases 0 to 3 in code 2026-10-14; Phase 3 not yet tried on the phone). Written so a fresh Claude Code session can start at Phase 0 and
+Status: in progress (Phases 0 to 7 in code 2026-10-14; not yet tried on the phone). Written so a fresh Claude Code session can start at Phase 0 and
 work through the phases in order, one or two per session.
 
 ## What and why
@@ -172,6 +172,24 @@ Health Connect. Muscular Load and Freshness: the cardio-derived part only (Healt
 Health Monitor bands (`other-calculators.md`: normal within ±1 SD of the viewed window), journal insight (OLS slope
 and pooled t-test over 90 days, at least 5 values per group). Anything a screen shows that no phase above replaced:
 list it here before starting.
+
+Done 2026-10-14: Health Monitor's band is ±1 SD of the last 30 nights (the night shown included; the study used the
+trend window on screen, and 30 nights is the Health Monitor's), and journal impact is the pooled t-test with its 70 %
+interval (delta ± t85 · SE) in place of halo's bootstrap.
+
+What screens still show from halo's code, with no counterpart in the reference study, kept as Pulse's own extras on
+the engine's inputs (they read the engine's Recovery, Sleep Score and strain where they read a score):
+
+| Screen value | Code | Reads |
+|---|---|---|
+| HRV Status (7-day average against a band) | `core/algorithms/hrvStatus.ts` | the engine's night HRV |
+| Training: Training Effect, Recovery Time, Training Readiness, Training Status | `core/algorithms/trainingEffect.ts`, `trainingReadiness.ts`, `trainingStatus.ts` | engine Recovery and Sleep Score; halo's 0–3 stress internally |
+| VO2 max category and Fitness Age | `core/algorithms/fitnessLevel.ts` | Fitbit's VO2 max |
+| Recovery forecast | `core/scoring/forecast.ts` | engine Recovery history |
+| Tonight's bedtimes | `core/algorithms/sleepPlanner.ts` | the engine's tonight need |
+| Illness signal in Health Monitor | `core/scoring/illness.ts` | the engine's vitals |
+| Activity Cost, reports, streaks, detected activities | `core/algorithms/activityCost.ts`, `reports.ts`, `streaks.ts`, `autoWorkout.ts` | engine Recovery, strain |
+| Muscular Load and Freshness | not ported | needs per-set strength data Health Connect does not have |
 
 ### Phase 8: clean up and release
 
