@@ -297,6 +297,7 @@ function engineDay(
     averageHRV: r4(a.averageHRV),
     restingHR: r4(a.restingHR),
     inactiveHR: r4(a.inactiveHR),
+    hrv: within(hrv, b.start, b.end).map((s): [number, number] => [s.ts - b.start, s.ms]),
     strain: hr.length || awakeSteps
       ? { value: round(dayStrain(awakeSteps, passive + workoutUnits), 2), steps: awakeSteps, passiveUnits: round(passive, 1), workoutUnits: round(workoutUnits, 1) }
       : null,

@@ -66,6 +66,8 @@ export type Inputs = {
   /** Per-minute series, loaded a batch of days at a time by stage 2 (only the day being scored is ever asked for). */
   stillHr: Pick<Map<string, (number | null)[]>, "get">;
   loadSeries: Pick<Map<string, (number | null)[]>, "get">;
+  /** Version 22: the day's minute heart rate (stage 1's "hr" series), for the engine's Stress and Energy Bank. */
+  hrSeries?: Pick<Map<string, (number | null)[]>, "get">;
   segments: Map<string, Segment[]>;
   tagOn: (day: string, tag: string) => boolean;
 };

@@ -24,12 +24,18 @@ import {
   tonightNeeded,
 } from "@/core/engine/sleep";
 import type { Day, Fold, Inputs, scorePlanner } from "./scores";
-import type { BaselineSummary, CardioLoadRow, PipelineOptions, RecoveryRow, SleepPlannerRow, SleepRow, StrainTargetRow } from "./types";
+import { type Data, touching } from "./data";
+import { chanMerge, mergeHist, STRESS_CALIBRATION_DAYS } from "@/core/engine/baselines";
+import { timeline } from "@/core/engine/context";
+import { awakeSeconds, energyStep, WARMUP_DAYS } from "@/core/engine/energyBank";
+import { cdfOf, displayStress, gapFill, HRV_LOOKBACK_S, SLOT_S, type SlotContext, slotContext, slotHr, slotsOf, slotStress, stressLevel } from "@/core/engine/stress";
+import { type Drain, energyBand } from "@/core/algorithms/energyBank";
+import type { BaselineSummary, CardioLoadRow, EnergyBankRow, PipelineOptions, RecoveryRow, SleepPlannerRow, SleepRow, StrainTargetRow, StressRow } from "./types";
 import { loadConfidence, loadStatus, loadStep, targetBase, targetRange } from "@/core/engine/strain";
 import { band } from "@/core/scoring/recovery";
 
 /** Aggregates kept per day for the baselines (oldest first, at most BASELINE_DAYS). */
-type DayAggRow = { restingHRV: Agg | null; restingHR: Agg | null; inactiveHR: Agg | null; resp: Agg | null; temp: Agg | null };
+type DayAggRow = { restingHRV: Agg | null; averageHRV: Agg | null; restingHR: Agg | null; inactiveHR: Agg | null; resp: Agg | null; temp: Agg | null };
 
 /** The engine's part of the stage-2 fold: plain arrays (the checkpoint clones it), bounded in length. */
 export const newEngineFold = () => ({
@@ -57,6 +63,15 @@ export const newEngineFold = () => ({
   ctls: [] as number[],
   /** Daily Strain of the last 15 days (null without one), Target Strain's history. */
   strainHist: [] as (number | null)[],
+  /** Stress: day numbers with a daily stress (the 30-day calibration), first and count. */
+  stressFirst: null as number | null,
+  stressDays: 0,
+  /** The day before's HRV samples [ts, ms], for slots early in the day (an HRV reading counts for 36 minutes). */
+  hrvPrev: [] as [number, number][],
+  /** Energy Bank: the level at the end of the last full day, how many days it has run, and the last 7 days' sleep. */
+  ebLevel: null as number | null,
+  ebDays: 0,
+  sleepS: [] as number[],
 });
 
 const push = <T>(xs: T[], x: T, max: number) => {
@@ -269,6 +284,7 @@ export function foldEngineDay(f: Fold, d: Day, s: EngineSleep, strain: number | 
   const temp = tempDelta(d);
   push(e.aggs, {
     restingHRV: a?.restingHRV ?? null,
+    averageHRV: a?.averageHRV ?? null,
     restingHR: a?.restingHR ?? null,
     inactiveHR: a?.inactiveHR ?? null,
     resp: d.dm?.respBpm == null ? null : { avg: d.dm.respBpm, sd: 0, count: 1 },
@@ -350,5 +366,183 @@ export function scoreEngineStrainTarget(f: Fold, recoveryValue: number | null): 
     band: band(recoveryValue ?? 50),
     coldStart: hist.length < 14,
     acwrRule: null,
+  };
+}
+
+// ── Stress and Energy Bank (Phase 5) ────────────────────────────────────────
+
+/** One 6-minute slot: its start, context, display stress and raw stress for Energy Bank. */
+type Slot = { ts: number; context: SlotContext; display: number | null; raw: number | null };
+
+/**
+ * Day D's slots on its local-midnight grid (stress.ts): heart rate per slot from the minute series (median or trimmed
+ * mean for Stress, the mean for Energy Bank, gaps filled from neighbours), the latest HRV within 36 minutes (a workout's
+ * mean HRV in a workout slot), against the 30 days' HRV and awake heart rate up to and including D.
+ */
+function slotsOfDay(f: Fold, d: Day, data: Data, inputs: Inputs): { slots: Slot[]; referenceHr: number | null } {
+  const e = f.engine;
+  const a = d.s1.engine;
+  const sessions = touching(data.sessions, d.start - HRV_LOOKBACK_S, d.end);
+  const tl = timeline({
+    sessions,
+    segments: sessions.flatMap((s) => (inputs.segments.get(s.id) ?? []).map((g) => ({ ...g }))),
+    workouts: touching(data.exercises, d.start, d.end),
+  });
+  const recent = [...e.aggs.slice(-29), { averageHRV: a?.averageHRV ?? null, inactiveHR: a?.inactiveHR ?? null }];
+  const hrvBase = chanMerge(recent.flatMap((x) => (x.averageHRV ? [x.averageHRV] : [])));
+  const inactive = recent.flatMap((x) => (x.inactiveHR ? [x.inactiveHR] : []));
+  const hist = mergeHist(inactive.flatMap((x) => (x.hist ? [x.hist] : [])));
+  const cdf = hist.length ? cdfOf(hist) : null;
+  const referenceHr = chanMerge(inactive)?.avg ?? null;
+  const hrv: [number, number][] = [...e.hrvPrev, ...(a?.hrv ?? []).map(([o, ms]): [number, number] => [d.start + o, ms])];
+  const minutes = inputs.hrSeries?.get(d.day) ?? [];
+  const starts = slotsOf(d.start, d.end);
+  const perSlot = starts.map((s) => {
+    const lo = Math.round((s - d.start) / 60);
+    return minutes.slice(lo, lo + SLOT_S / 60).filter((v): v is number => v != null);
+  });
+  const medianHr = gapFill(perSlot.map(slotHr));
+  const meanHr = gapFill(perSlot.map((xs) => mean(xs)));
+  const slots = starts.map((s, i): Slot => {
+    const end = s + SLOT_S;
+    const context = slotContext(tl, s, end);
+    const inSlot = hrv.filter(([t]) => t >= s && t < end).map(([, ms]) => ms);
+    const latest = hrv.findLast(([t]) => t > s - HRV_LOOKBACK_S && t < end)?.[1] ?? null;
+    const reading = context === "workout" ? mean(inSlot) : latest;
+    const ebReading = context === "workout" ? mean(hrv.filter(([t]) => t >= s - HRV_LOOKBACK_S && t < end).map(([, ms]) => ms)) : latest;
+    const raw = slotStress({ hr: medianHr[i], cdf, hrv: reading, hrvBase });
+    return {
+      ts: s,
+      context,
+      display: displayStress(raw, context),
+      raw: slotStress({ hr: meanHr[i], cdf, hrv: ebReading, hrvBase }),
+    };
+  });
+  return { slots, referenceHr };
+}
+
+/** Per-minute values from per-slot ones (each minute takes its slot's), for the stored series. */
+function perMinute(d: Day, slots: Slot[], pick: (s: Slot, i: number) => number | null): (number | null)[] {
+  const n = Math.round((d.end - d.start) / 60);
+  const out = new Array<number | null>(n).fill(null);
+  slots.forEach((s, i) => {
+    const v = pick(s, i);
+    const m0 = Math.round((s.ts - d.start) / 60);
+    for (let m = m0; m < Math.min(n, m0 + SLOT_S / 60); m++) out[m] = v == null ? null : roundHalfAway(v, 1);
+  });
+  return out;
+}
+
+/** The engine's Stress row and series for day D (0–100), and the slots Energy Bank runs on. */
+export function scoreEngineStress(f: Fold, d: Day, data: Data, inputs: Inputs) {
+  const e = f.engine;
+  const { slots, referenceHr } = slotsOfDay(f, d, data, inputs);
+  const shown = slots.filter((s) => s.display != null);
+  const today = daysBetween("1970-01-01", d.day);
+  const average = shown.length ? mean(shown.map((s) => s.display!)) : null;
+  if (average != null) {
+    if (e.stressFirst == null) e.stressFirst = today;
+    e.stressDays++;
+  }
+  const mins = (lvl: "low" | "medium" | "high") => shown.filter((s) => stressLevel(s.display!) === lvl).length * (SLOT_S / 60);
+  let longestHigh: StressRow["longestHigh"] = null;
+  let run: number | null = null;
+  slots.forEach((s, i) => {
+    const high = s.display != null && s.display >= 60;
+    if (high && run == null) run = i;
+    if ((!high || i === slots.length - 1) && run != null) {
+      const endI = high ? i + 1 : i;
+      const minutes = (endI - run) * (SLOT_S / 60);
+      if (!longestHigh || minutes > longestHigh.minutes) longestHigh = { start: slots[run].ts, minutes };
+      run = null;
+    }
+  });
+  const last = shown.at(-1);
+  const row: StressRow = {
+    provisional: average != null && !calibrated(e.stressFirst ?? today, today, e.stressDays, STRESS_CALIBRATION_DAYS),
+    average: average == null ? null : roundHalfAway(average, 1),
+    lowMin: mins("low"),
+    mediumMin: mins("medium"),
+    highMin: mins("high"),
+    latest: last ? { ts: last.ts, value: roundHalfAway(last.display!, 1) } : null,
+    longestHigh,
+    referenceHr: referenceHr == null ? null : roundHalfAway(referenceHr, 1),
+  };
+  e.hrvPrev = (d.s1.engine?.hrv ?? []).map(([o, ms]): [number, number] => [d.start + o, ms]);
+  return { row, series: perMinute(d, slots, (s) => s.display), slots };
+}
+
+/** Seconds of sleep (any session) inside [lo, hi): sessions split at local midnight. */
+const sleepWithin = (data: Data, lo: number, hi: number) =>
+  touching(data.sessions, lo, hi).reduce((a, s) => a + Math.min(hi, s.endTs) - Math.max(lo, s.startTs), 0);
+
+/**
+ * The engine's Energy Bank for day D: the state machine over the day's slots from where yesterday ended (from 0 on the
+ * first day of history), shown from the eighth day it has run (fix 3). The last day runs to its last heart rate and
+ * hands nothing on; every earlier day runs to midnight.
+ */
+export function scoreEngineEnergyBank(f: Fold, d: Day, data: Data, slots: Slot[]): { row: EnergyBankRow; curve: (number | null)[] | null } {
+  const e = f.engine;
+  const full = d.day < data.last;
+  const until = full ? d.end : d.s1.lastHrTs != null ? Math.min(d.end, d.s1.lastHrTs + 60) : d.start;
+  const awakeS = awakeSeconds(e.sleepS);
+  const sleepGoalS = goalHours() * 3600;
+  const fromLevel = e.ebLevel ?? 0;
+  let level = fromLevel;
+  const before: (number | null)[] = [];
+  let charged = 0;
+  let drained = 0;
+  const drains: Drain[] = [];
+  const names = new Map(touching(data.exercises, d.start, d.end).map((x) => [x, x.name ?? "Workout"]));
+  for (const s of slots) {
+    if (s.ts >= until) {
+      before.push(null);
+      continue;
+    }
+    before.push(level);
+    const next = energyStep(level, { context: s.context, rawStress: s.raw, sleepGoalS, awakeS });
+    const delta = next - level;
+    if (delta > 0) charged += delta;
+    else if (delta < 0) {
+      drained -= delta;
+      const w = s.context === "workout" ? [...names].find(([x]) => x.endTs > s.ts && x.startTs < s.ts + SLOT_S) : undefined;
+      const kind: Drain["kind"] = w ? "workout" : s.raw != null && s.raw >= 60 ? "stress" : "activity";
+      const label = w ? w[1] : kind === "stress" ? "Stress" : "Activity";
+      const lastDrain = drains.at(-1);
+      if (lastDrain && lastDrain.label === label && lastDrain.end === s.ts) {
+        lastDrain.end = s.ts + SLOT_S;
+        lastDrain.amount -= delta;
+      } else drains.push({ label, kind, start: s.ts, end: s.ts + SLOT_S, amount: -delta });
+    }
+    level = next;
+  }
+  e.ebDays++;
+  if (full) e.ebLevel = level;
+  push(e.sleepS, sleepWithin(data, d.start, d.end), 7);
+  if (d.s1.hrCount === 0 && !d.main) return { row: { value: null, reason: "band_not_worn", provisional: false }, curve: null };
+  if (e.ebDays <= WARMUP_DAYS) return { row: { value: null, reason: "calibrating", provisional: false }, curve: null };
+  const wake = d.main ? Math.max(d.start, d.main.end) : d.start;
+  const wakeI = Math.min(slots.length - 1, Math.max(0, Math.floor((wake - d.start) / SLOT_S)));
+  const r1 = (x: number) => roundHalfAway(x, 1);
+  return {
+    row: {
+      value: r1(level),
+      reason: null,
+      provisional: false,
+      startLevel: r1(before[wakeI] ?? fromLevel),
+      wake,
+      until,
+      charged: r1(charged),
+      drained: r1(drained),
+      topDrains: drains
+        .sort((x, y) => y.amount - x.amount)
+        .slice(0, 3)
+        .map((x) => ({ ...x, amount: r1(x.amount) })),
+      naps: d.naps.filter((x) => d.main == null || x.start >= d.main.end).map((x) => ({ start: x.start, end: x.end })),
+      from: d.start,
+      fromLevel: r1(Math.max(1, fromLevel)),
+      band: energyBand(level),
+    },
+    curve: perMinute(d, slots, (_, i) => before[i]),
   };
 }

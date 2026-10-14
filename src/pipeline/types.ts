@@ -62,8 +62,11 @@ import type { LoadStatus } from "@/core/engine/strain";
  * 21 (Phase 4): Daily Strain as a percent (awake steps, waking units above zone 1, workouts' units), each workout's
  * units, TRIMP on the 60-day resting-HR baseline, EPOC and heart-rate recovery (Stage1Activity.engine), Cardio Load
  * (training_load.cardio) and Target Strain on the percent scale; the sleep need's strain term reads the new strain.
+ * 22 (Phase 5): Stress on 0–100 from 6-minute slots on the local grid (heart rate against the 30-day awake distribution,
+ * night HRV against its 30-day baseline), and Energy Bank as the engine's charge and drain machine, continuous across
+ * midnight and shown from its eighth day; stage 1 keeps each day's HRV samples (Stage1Day.engine.hrv).
  */
-export const SCORING_VERSION = 21;
+export const SCORING_VERSION = 22;
 
 export type PipelineOptions = {
   timeZone: string;
@@ -137,6 +140,8 @@ export type Stage1Day = {
  */
 export type EngineDayAggs = Pick<DayAggs, "restingHRV" | "averageHRV" | "restingHR" | "inactiveHR"> & {
   strain?: { value: number; steps: number; passiveUnits: number; workoutUnits: number } | null;
+  /** Version 22: the day's HRV samples as [seconds after local midnight, ms], for Stress and Energy Bank in stage 2. */
+  hrv?: [number, number][];
 };
 
 /**

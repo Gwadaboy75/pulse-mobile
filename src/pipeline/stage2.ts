@@ -19,7 +19,6 @@ import {
   type Inputs,
   newFold,
   recordOutcomes,
-  scoreEnergyBank,
   scoreFitness,
   scoreHealthMonitor,
   scoreHealthspan,
@@ -39,7 +38,9 @@ import {
   foldEngineDay,
   scoreCardioLoad,
   scoreEngineRecovery,
+  scoreEngineEnergyBank,
   scoreEngineSleep,
+  scoreEngineStress,
   scoreEngineStrainTarget,
 } from "./engine";
 import { resume, snapshot } from "./checkpoint";
@@ -50,7 +51,8 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
   const { inputs, journal, storedImpact, storedRows } = await readInputs(store, data);
   const stillHr = new Map<string, (number | null)[]>();
   const loadSeries = new Map<string, (number | null)[]>();
-  Object.assign(inputs, { stillHr, loadSeries });
+  const hrSeries = new Map<string, (number | null)[]>();
+  Object.assign(inputs, { stillHr, loadSeries, hrSeries });
 
   // Pulse: start from the fold kept by the last run when no earlier day's inputs changed (checkpoint.ts).
   const cp = resume(store, data, inputs, journal, opts, rerun);
@@ -87,10 +89,12 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
       const batch = days.slice(i, i + BATCH_DAYS);
       stillHr.clear();
       loadSeries.clear();
+      hrSeries.clear();
       for (const d of batch) {
-        const [still, load] = await Promise.all([store.getSeries(d, "still_hr"), store.getSeries(d, "load")]);
+        const [still, load, hr] = await Promise.all([store.getSeries(d, "still_hr"), store.getSeries(d, "load"), store.getSeries(d, "hr")]);
         if (still) stillHr.set(d, still);
         if (load) loadSeries.set(d, load);
+        if (hr) hrSeries.set(d, hr);
       }
     }
     const d = dayOf(data, inputs, day, opts);
@@ -103,9 +107,11 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
     const planner = enginePlan(f, d, engineSleep, scorePlanner(f, d, sleep, tz), engineStrain(d));
     recovery.forecast = forecastOf(f, d, recovery, planner.plan, planner.tonightNeed);
     await slice();
+    // Halo's stress still feeds halo's training scorer; the stored Stress and Energy Bank are the engine's (engine.ts).
     const stress = scoreStress(f, d, inputs);
-    const energy = scoreEnergyBank(data, inputs, f, d, recovery, sleep, stress.minutes);
-    pending.push({ day, stress: stress.series, energy: energy.curve });
+    const engineStress = scoreEngineStress(f, d, data, inputs);
+    const energy = scoreEngineEnergyBank(f, d, data, engineStress.slots);
+    pending.push({ day, stress: engineStress.series, energy: energy.curve });
     await slice();
     const hrvStatusRow = scoreHrvStatus(f, recovery);
     const training = scoreTraining(data, f, d, recovery, sleep, trainingLoad, stress.row, stress.minutes, hrvStatusRow, opts);
@@ -120,7 +126,7 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
       strain_target: strainTarget,
       sleep_planner: planner.row,
       energy_bank: energy.row,
-      stress: stress.row,
+      stress: engineStress.row,
       health_monitor: healthMonitor,
       healthspan,
       fitness,

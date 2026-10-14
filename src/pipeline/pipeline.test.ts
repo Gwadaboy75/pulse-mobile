@@ -131,8 +131,9 @@ describe("parity with the web app", () => {
     // the planner, Strain Target, training, training load, reports). Version 19's value was "769c3cb7fe6c5606". 21: Daily
     // Strain as a percent and Cardio Load (Phase 4): each activity gains its engine units, TRIMP, EPOC and heart-rate
     // recovery, Target Strain moves to the percent scale, and the sleep need reads the new strain. Version 20's value was
-    // "f0df0ca35661e535".
-    "daily_scores.scoring_version": "416071272e0e6e64",
+    // "f0df0ca35661e535". 22: Stress on 0–100 and the engine's Energy Bank (Phase 5); both columns and both series
+    // moved, nothing else. Version 21's value was "416071272e0e6e64".
+    "daily_scores.scoring_version": "1be75842de2b2bd1",
     // Version 15: Activity Strain is the session's Banister TRIMP plus its muscular load through 5.05 · ln(1 + 0.09 · T)
     // (a seeded 45-minute strength session goes from 8.2 to 9.9 on 0–21), each activity stores its `cardioTrimp` and
     // `muscularTrimp`, and its zone seconds count Zone 1 from 40 % of the reserve. Version 14's value was "cb2d75373aaf4d20".
@@ -190,8 +191,8 @@ describe("parity with the web app", () => {
     // and awake minutes pay sleep pressure, TRIMP and stress. Rows gain `from`, `fromLevel` and `band`. The level at wake
     // averages 90 (was 71) and the day's last level 36 (was 28); today's wake 82.0 → 99.8, now 61.0 → 70.3. Version 17's
     // value was "ab6a00f26829217a".
-    "daily_scores.energy_bank": "2acf9c448a125641",
-    "daily_scores.stress": "a8514c3f8bedce98",
+    "daily_scores.energy_bank": "e6d497db013e414c",
+    "daily_scores.stress": "d367480fb07ee9c7",
     // The illness signal's SD is floored at half the baselines' σ floor (src/core/scoring/illness.ts illnessSdFloor),
     // which tempers a few days' scores (the seeded illness's 2026-08-03 scores 51 where it scored 69). The web's
     // value was "3a2163c7f92d4dab".
@@ -233,13 +234,13 @@ describe("parity with the web app", () => {
     // Version 16: the curve follows its start level (above). Version 15's value was "237320b091a7a358".
     // Version 17: likewise. Version 16's value was "081d84cb00f2d1a6". Version 18: the curve runs from midnight (the night's
     // recharge included) on the new rates. Version 17's value was "ea5921ebc2c6e657".
-    "intraday_series.energy_bank": "9c25444e0d210fac",
+    "intraday_series.energy_bank": "8ccf48581238829f",
     "intraday_series.hr": "5ca83bb68dad9033",
     // Version 18: each minute's TRIMP above the waking floor (all of it in a workout), Energy Bank's drain, in place of its
     // Edwards zone weight. Version 17's value was "859d8876596ad379".
     "intraday_series.load": "2947aa20aef2ba71",
     "intraday_series.still_hr": "c0bf14266ee71abd",
-    "intraday_series.stress": "66d650df74998208",
+    "intraday_series.stress": "34660dca062d2b00",
     // Each report's training balance is the period's last ACWR, so it follows training_load. The web's was "7c7cfdf8c1583777".
     // Version 15: its Strain averages and training balance follow the recalibrated Strain. Version 14's was "1354f14bbf246252".
     // Version 16: Sleep Performance, Recovery and sleep-consistency averages follow the new sleep scoring. Version 15's
@@ -458,7 +459,7 @@ describe("numbers checked by hand", () => {
     expect(col(dayAt(150), "training_load").contiguousDays).toBe(151);
   });
 
-  it("Energy Bank carries on overnight: each day starts at midnight where the day before ended, within 5–100", async () => {
+  it("Energy Bank carries on overnight: each day starts at midnight where the day before ended, within 1–100", async () => {
     let carried = 0;
     for (let i = 1; i < allDays.length - 1; i++) {
       const prev = rows.get(allDays[i - 1])!.energy_bank!;
@@ -468,15 +469,20 @@ describe("numbers checked by hand", () => {
       expect(eb.from, allDays[i]).toBe(Date.parse(`${allDays[i]}T00:00:00+05:30`) / 1000);
       // The night's sleep charges it: the level at wake is above the level at midnight.
       expect(eb.startLevel, allDays[i]).toBeGreaterThan(eb.fromLevel!);
-      expect(eb.value).toBeGreaterThanOrEqual(5);
+      expect(eb.value).toBeGreaterThanOrEqual(1);
       expect(eb.value).toBeLessThanOrEqual(100);
       carried++;
     }
     expect(carried).toBeGreaterThan(150);
-    // After the band-off nights it starts again at wake, from Recovery and sleep.
+    // The machine never resets (fix 3 warms it up once): after the band-off nights it carries on from midnight.
     const back = col(dayAt(158), "energy_bank");
     if (back.value == null) throw new Error("no Energy Bank on day 158");
-    expect(back.from).toBe(back.wake);
+    expect(back.from).toBe(Date.parse(`${dayAt(158)}T00:00:00+05:30`) / 1000);
+  });
+
+  it("Energy Bank warms up for 7 days before it shows (fix 3)", () => {
+    for (let i = 0; i < 7; i++) expect(col(dayAt(i), "energy_bank"), dayAt(i)).toMatchObject({ value: null, reason: "calibrating" });
+    expect(col(dayAt(7), "energy_bank").value).toBeTypeOf("number");
   });
 
   it("Energy Bank has a curve on scored days and none on a band-off day", async () => {
