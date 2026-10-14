@@ -34,9 +34,9 @@ export type BreathRecord = {
 export type WorkoutRecord = {
   at: number;
   ms: number;
-  /** The workout's own Strain, 0–21 (its TRIMP alone through the log map). */
+  /** The workout's own Strain, a percent (its units alone). */
   strain: number;
-  /** Day Strain when it started and ended, 0–21. */
+  /** Day Strain when it started and ended, a percent. */
   dayStart: number;
   dayEnd: number;
   avgHr: number | null;

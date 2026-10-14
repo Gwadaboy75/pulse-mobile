@@ -4,6 +4,7 @@
 // views behind the day charts (heart rate, Day Strain as it builds, stress, Energy Bank, the night's stages and heart
 // rate). Built from the same day rows and series as the screens' own queries, so every number matches the card it was
 // opened from.
+import { timeline } from "@/core/engine/context";
 import { addDays, fractionalYears } from "@/lib/time";
 import { type FormatKey, type GoodDirection } from "./_lib";
 import { type DayRow, dayStartOf, daySpans, exercisesBetween, finite, firstDay, loadDays, loadSeries, meanSd, ms, type QueryCtx, todayOf } from "./common";
@@ -133,7 +134,7 @@ export const chartDef = (key: string | undefined): ChartDef | null => CHART_METR
 /** The day views' series names (the legend's and the readout's), units and formats. */
 export const DAY_VIEW: Record<DayView, { label: string; unit?: string; format: FormatKey }> = {
   hr: { label: "Heart rate", unit: "bpm", format: "int" },
-  strain: { label: "Day strain", format: "decimal1" },
+  strain: { label: "Day strain", unit: "%", format: "int" },
   stress: { label: "Stress", format: "decimal1" },
   sleep: { label: "Night heart rate", unit: "bpm", format: "int" },
   energy: { label: "Energy Bank", unit: "%", format: "int" },
@@ -261,17 +262,21 @@ export async function getChartDay(view: DayView, day: string, ctx: QueryCtx): Pr
     // Day Strain minute by minute, from the same samples and math as the day's Strain (dayStrain.ts).
     const start = dayStartOf(ctx, day);
     const end = dayStartOf(ctx, addDays(day, 1));
-    const [rows, hr, exercises] = await Promise.all([loadDays(ctx, day, day), ctx.store.readHr(start, end), ctx.store.allExercises()]);
+    const [rows, exercises, sessions] = await Promise.all([loadDays(ctx, day, day), ctx.store.allExercises(), ctx.store.allSessions()]);
     const row = rows.get(day);
     const s1 = row?.s1 ?? null;
-    // The workouts stage 1 spared from the waking floor (every one touching the day), with the day's own workouts'
-    // muscular load, in stage 1's order (start, then id).
-    const muscular = new Map((row?.activities ?? []).map((a) => [a.id, a.muscularTrimp ?? 0]));
-    const workouts = exercises
-      .filter((e) => e.endTs > start && e.startTs < end)
-      .sort((a, b) => a.startTs - b.startTs || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
-      .map((e) => ({ start: e.startTs, end: e.endTs, muscularTrimp: e.day === day ? (muscular.get(e.id) ?? 0) : 0 }));
-    const curve = strainCurve(hr, s1, start, end, day === today, workouts, ctx.profile.sex);
+    // Stage 1's labelling: the sleeps and workouts touching the day; the day's own workouts count their heart rate in full.
+    const touching = <T extends { startTs: number; endTs: number }>(xs: T[]) => xs.filter((x) => x.endTs > start && x.startTs < end);
+    const near = touching(sessions);
+    const own = exercises.filter((e) => e.day === day).sort((a, b) => a.startTs - b.startTs || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    const [hr, steps, segments] = await Promise.all([
+      ctx.store.readHr(start, Math.max(end, ...own.map((e) => e.endTs))),
+      ctx.store.readSteps(start, end),
+      ctx.store.segmentsFor(near.map((s) => s.id)),
+    ]);
+    const tl = timeline({ sessions: near, segments, workouts: touching(exercises) });
+    const inputs = s1 && { value: s1.engine?.strain?.value ?? null, maxHr: s1.maxHr, lastHrTs: s1.lastHrTs };
+    const curve = strainCurve(hr, steps, tl, inputs, start, end, day === today, own);
     const spans = await daySpans(ctx, row, day, start);
     const target = row?.strainTarget;
     return {

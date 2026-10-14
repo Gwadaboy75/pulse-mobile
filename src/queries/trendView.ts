@@ -17,7 +17,7 @@ import {
   type TrendViewRange,
 } from "@/lib/trend";
 import { addDays, localMinutes } from "@/lib/time";
-import { activityKind, exercisesBetween, finite, firstDay, loadDays, meanSd, todayOf, toStrain, type DayRow, type ExerciseRow, type QueryCtx } from "./common";
+import { activityKind, exercisesBetween, finite, firstDay, loadDays, meanSd, todayOf, dayStrainOf, type DayRow, type ExerciseRow, type QueryCtx } from "./common";
 
 // The Trend View `/trend/[key]` (spec §11 R29): one metric over a W / M / 6M window that steps back through time,
 // against the window before it, with a verdict, a breakdown and an explainer.
@@ -214,17 +214,17 @@ export const TREND_VIEW = {
     ] },
   },
   strain: {
-    group: "strain", label: "Day Strain", card: "Strain", short: "Day Strain", format: "decimal1", direction: "neutral", colorBy: "strain", chart: "bars", agg: "daily",
-    pick: (r) => (finite(r.s1?.effort) ? toStrain(r.s1.effort) : null), partialToday: true, domain: [0, 21],
-    bands: { title: "Strain breakdown (days)", round: 1, list: [
-      { key: "all_out", label: "All Out", min: 18.1, detail: ">18.0" },
-      { key: "strenuous", label: "Strenuous", min: 14.1, detail: "14.1-18.0" },
-      { key: "moderate", label: "Moderate", min: 10.1, detail: "10.1-14.0" },
-      { key: "light", label: "Light", min: -Infinity, detail: "<10.0" },
+    group: "strain", label: "Day Strain", card: "Strain", short: "Day Strain", unit: "%", format: "int", direction: "neutral", colorBy: "strain", chart: "bars", agg: "daily",
+    pick: (r) => dayStrainOf(r.s1), partialToday: true, domain: [0, 100],
+    bands: { title: "Strain breakdown (days)", round: 0, list: [
+      { key: "all_out", label: "All Out", min: 80, detail: ">79%" },
+      { key: "strenuous", label: "Strenuous", min: 61, detail: "61-79%" },
+      { key: "moderate", label: "Moderate", min: 41, detail: "41-60%" },
+      { key: "light", label: "Light", min: -Infinity, detail: "≤40%" },
     ] },
     about: { title: "What is Day Strain?", body: [
-      "Day Strain measures the load on your heart and body across the whole day, on a scale from 0 to 21.",
-      "It builds from the time you spend in higher heart-rate zones, so the climb gets steeper the harder you go.",
+      "Day Strain is the day's load on your heart and body as a percent: 0 to 100 on most days, above 100 on a very big day.",
+      "It builds from the time you spend in higher heart-rate zones and the steps you take while awake, so the climb gets steeper the harder you go.",
     ] },
   },
   zones13: {

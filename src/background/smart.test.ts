@@ -2,7 +2,6 @@
 import { describe, expect, it } from "vitest";
 import type { VitalKey, VitalStatus } from "@/core/algorithms/healthMonitor";
 import type { IllnessResult } from "@/core/scoring/illness";
-import { toStrainScale } from "@/core/scoring/strain";
 import type { ScoreRow } from "@/data/store";
 import { emptyScoreRow } from "@/pipeline/stage1";
 import type { SleepPlannerRow, Stage1Day } from "@/pipeline/types";
@@ -61,41 +60,41 @@ function hm(out: Partial<Record<VitalKey, VitalStatus>> = {}, illness: Partial<I
 const row = (day: string, patch: Partial<ScoreRow> = {}): ScoreRow => ({ ...emptyScoreRow(day), ...patch });
 
 describe("strain target reached", () => {
-  const on = { ...base, settings: { ...OFF, strainTarget: true }, target: { low: 11, high: 14.5 } };
+  const on = { ...base, settings: { ...OFF, strainTarget: true }, target: { low: 46, high: 79 } };
 
   it("goes once Day Strain reaches the low end, inside the range, opening Strain", () => {
-    const [a] = decideSmart({ ...on, strain: 11 });
+    const [a] = decideSmart({ ...on, strain: 46 });
     expect(a).toMatchObject({ kind: "strain_target", title: "Strain target reached", url: DEEP_LINK.strain, day: TODAY, mark: { strainTargetDay: TODAY } });
-    expect(a.body).toBe("Day Strain 11.0 is inside today’s target of 11.0 - 14.5.");
+    expect(a.body).toBe("Day Strain 46% is inside today’s target of 46 - 79%.");
   });
 
   it("says so when the first look already finds it past the range", () => {
-    expect(decideSmart({ ...on, strain: 15.24 })[0].body).toBe("Day Strain 15.2 is past today’s target of 11.0 - 14.5. Prioritise sleep tonight to recover.");
-    expect(strainBody(14.5, { low: 11, high: 14.5 })).toContain("inside");
+    expect(decideSmart({ ...on, strain: 112.4 })[0].body).toBe("Day Strain 112% is past today’s target of 46 - 79%. Prioritise sleep tonight to recover.");
+    expect(strainBody(79, { low: 46, high: 79 })).toContain("inside");
   });
 
   it("is quiet below the target, without a target, and on a day without strain", () => {
-    expect(decideSmart({ ...on, strain: 10.99 })).toEqual([]);
-    expect(decideSmart({ ...on, strain: 12, target: null })).toEqual([]);
+    expect(decideSmart({ ...on, strain: 45.99 })).toEqual([]);
+    expect(decideSmart({ ...on, strain: 50, target: null })).toEqual([]);
     expect(decideSmart({ ...on, strain: null })).toEqual([]);
   });
 
   it("goes at most once a local day", () => {
-    expect(decideSmart({ ...on, strain: 12, markers: { ...EMPTY_MARKERS, strainTargetDay: TODAY } })).toEqual([]);
-    expect(decideSmart({ ...on, strain: 12, markers: { ...EMPTY_MARKERS, strainTargetDay: "2026-10-06" } })).toHaveLength(1);
-    const sent = decideSmart({ ...on, strain: 12 });
-    expect(decideSmart({ ...on, strain: 13, markers: markSent(EMPTY_MARKERS, sent) })).toEqual([]);
+    expect(decideSmart({ ...on, strain: 50, markers: { ...EMPTY_MARKERS, strainTargetDay: TODAY } })).toEqual([]);
+    expect(decideSmart({ ...on, strain: 50, markers: { ...EMPTY_MARKERS, strainTargetDay: "2026-10-06" } })).toHaveLength(1);
+    const sent = decideSmart({ ...on, strain: 50 });
+    expect(decideSmart({ ...on, strain: 55, markers: markSent(EMPTY_MARKERS, sent) })).toEqual([]);
   });
 
   it("respects the setting and never notifies for demo data", () => {
-    expect(decideSmart({ ...on, strain: 12, settings: OFF })).toEqual([]);
-    expect(decideSmart({ ...on, strain: 12, source: "demo" })).toEqual([]);
-    expect(decideSmart({ ...on, strain: 12, source: null })).toEqual([]);
+    expect(decideSmart({ ...on, strain: 50, settings: OFF })).toEqual([]);
+    expect(decideSmart({ ...on, strain: 50, source: "demo" })).toEqual([]);
+    expect(decideSmart({ ...on, strain: 50, source: null })).toEqual([]);
   });
 
-  it("reads strain and target off today's row, on the 0–21 scale", () => {
-    const target = { reason: null, low: 10, high: 14, base: 12, band: "green", coldStart: false, acwrRule: null } as const;
-    expect(strainOf(row(TODAY, { strain: { effort: 60 } as Stage1Day, strain_target: target }))).toEqual({ strain: toStrainScale(60), target: { low: 10, high: 14 } });
+  it("reads strain and target off today's row, as a percent", () => {
+    const target = { reason: null, low: 46, high: 79, base: 48, band: "green", coldStart: false, acwrRule: null } as const;
+    expect(strainOf(row(TODAY, { strain: { effort: 60, engine: { strain: { value: 112.4, steps: 9000, passiveUnits: 20000, workoutUnits: 40000 } } } as unknown as Stage1Day, strain_target: target }))).toEqual({ strain: 112.4, target: { low: 46, high: 79 } });
     expect(strainOf(row(TODAY, { strain_target: { reason: "calibrating" } }))).toEqual({ strain: null, target: null });
     expect(strainOf(null)).toEqual({ strain: null, target: null });
   });
@@ -184,7 +183,7 @@ describe("weekly report ready", () => {
     end: "2026-10-04",
     partial: false,
     days: 7,
-    averages: { recovery: 63.6, strain: 11.24, sleepPerf: 80, sleepHours: 7.2, hrv: 52, rhr: 55 },
+    averages: { recovery: 63.6, strain: 42.4, sleepPerf: 80, sleepHours: 7.2, hrv: 52, rhr: 55 },
   };
   const MONDAY = "2026-10-05";
   const on = { ...base, now: at(MONDAY, 8), settings: { ...OFF, weeklyReport: true }, reports: [W40] };
@@ -192,7 +191,7 @@ describe("weekly report ready", () => {
   it("goes Monday morning for the week that just ended, opening its report", () => {
     const [a] = decideSmart(on);
     expect(a).toMatchObject({ kind: "weekly_report", title: "Weekly report ready", url: "pulse://reports/2026-W40", day: MONDAY, mark: { reportPeriod: "2026-W40" } });
-    expect(a.body).toBe("Sep 28 - Oct 4: Recovery averaged 64%, Day Strain 11.2.");
+    expect(a.body).toBe("Sep 28 - Oct 4: Recovery averaged 64%, Day Strain 42%.");
     expect(reportLink("2026-W40")).toBe("pulse://reports/2026-W40");
   });
 

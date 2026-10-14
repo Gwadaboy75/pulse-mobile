@@ -8,7 +8,7 @@ import type { ReportPageVM } from "@/queries/reports";
 /** How each report stat prints: its format and, for hours, the scale to minutes. Shared with the report screen. */
 export const STAT_FORMAT: Record<string, { format: FormatKey; unit?: string; scale?: number }> = {
   recovery: { format: "int", unit: "%" },
-  strain: { format: "decimal1" },
+  strain: { format: "int", unit: "%" },
   sleepPerf: { format: "int", unit: "%" },
   sleepHours: { format: "duration", scale: 60 },
   consistency: { format: "int", unit: "%" },

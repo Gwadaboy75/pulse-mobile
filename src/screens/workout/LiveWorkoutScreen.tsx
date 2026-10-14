@@ -19,7 +19,7 @@ import { addDays, localDay } from "@/lib/time";
 import { band as coachBand, guidance, LiveCoach, type CoachOutput, type GuidanceTone } from "@/live/coach";
 import { coachCue } from "@/live/haptics";
 import { KeepAwake } from "@/live/KeepAwake";
-import { effortToTrimp, LiveStrain, strainOfTrimp, targetCrossing } from "@/live/liveStrain";
+import { LiveStrain, strainOfBase, targetCrossing } from "@/live/liveStrain";
 import { clockDuration, type WorkoutRecord } from "@/live/sessions";
 import { COACH_HAPTICS_KEY, saveWorkout, useStoredFlag, useWorkoutLog } from "@/live/storage";
 import { useCapture } from "@/live/useCapture";
@@ -109,7 +109,8 @@ const TONE: Record<GuidanceTone, { fill: TokenName; text: TokenName }> = {
   ease: { fill: "warning", text: "warning-text" },
   wait: { fill: "muted-foreground", text: "foreground-secondary" },
 };
-const f1 = (x: number) => x.toFixed(1);
+/** Strain as a whole percent: "42%". */
+const pct = (x: number) => `${Math.round(x)}%`;
 
 const setupQuery = async (ctx: QueryCtx) => ({
   timeZone: ctx.timeZone,
@@ -190,7 +191,7 @@ export function LiveWorkoutScreen() {
   const start = () => {
     if (!setup) return;
     const now = Date.now();
-    const strain = new LiveStrain({ restingHr: setup.restingHr, maxHr: setup.maxHr, baseEffort: setup.baseEffort, sex: setup.sex });
+    const strain = new LiveStrain({ restingHr: setup.restingHr, maxHr: setup.maxHr, base: setup.base, sex: setup.sex });
     const session: Session = {
       start: now,
       setup,
@@ -207,7 +208,7 @@ export function LiveWorkoutScreen() {
   };
 
   const target = (active?.setup ?? setup)?.target ?? null;
-  const dayValue = snap ? snap.day : setup ? strainOfTrimp(effortToTrimp(setup.baseEffort)) : null;
+  const dayValue = snap ? snap.day : setup ? strainOfBase(setup.base) : null;
   const hero = (
     <ScoreDial
       variant="strain"
@@ -309,7 +310,7 @@ function RunningStats({ snap, start, lost, name }: { snap: Snapshot; start: numb
   const cells = [
     { label: "Elapsed", value: clockDuration(snap.now - start), color: undefined, spoken: clockDuration(snap.now - start) },
     { label: "Heart rate", value: snap.bpm === null ? MISSING : String(snap.bpm), color: snap.bpm === null ? undefined : zc, spoken: snap.bpm === null ? "no reading" : `${snap.bpm} beats per minute` },
-    { label: "Workout", value: f1(snap.session), color: c["strain-text"], spoken: `workout strain ${f1(snap.session)}` },
+    { label: "Workout", value: pct(snap.session), color: c["strain-text"], spoken: `workout strain ${Math.round(snap.session)} percent` },
   ];
   const band = snap.out?.band;
   return (
@@ -366,7 +367,7 @@ function TodayCard({ setup, error }: { setup: WorkoutSetup | undefined; error: u
     );
   const t = setup.target;
   const lines = [
-    t ? `Today’s target is ${f1(t[0])} - ${f1(t[1])}.` : "No Strain Target yet today: it needs today’s Recovery. The coach uses your heart-rate band alone.",
+    t ? `Today’s target is ${Math.round(t[0])} - ${pct(t[1])}.` : "No Strain Target yet today: it needs today’s Recovery. The coach uses your heart-rate band alone.",
     setup.recovery !== null ? `Recovery ${Math.round(setup.recovery)}% sets how hard the coach lets you go.` : null,
     setup.synced ? null : "Today’s heart rate hasn’t synced yet, so Day Strain starts from this workout.",
   ].filter(Boolean);
@@ -411,13 +412,13 @@ function WorkoutSummary({ rec }: { rec: WorkoutRecord }) {
   const { c } = useTheme();
   const total = rec.zoneSeconds.reduce((a, b) => a + b, 0);
   const rows: { label: string; value: string; unit?: string; strain?: boolean }[] = [
-    { label: "Workout strain", value: f1(rec.strain), strain: true },
+    { label: "Workout strain", value: pct(rec.strain), strain: true },
     { label: "Time", value: clockDuration(rec.ms) },
     { label: "Heart rate", value: rec.avgHr === null ? MISSING : `${rec.avgHr} avg · ${rec.maxHr ?? MISSING} max`, unit: rec.avgHr === null ? undefined : "bpm" },
-    { label: "Day strain", value: `${f1(rec.dayStart)} → ${f1(rec.dayEnd)}`, strain: true },
+    { label: "Day strain", value: `${pct(rec.dayStart)} → ${pct(rec.dayEnd)}`, strain: true },
   ];
   const t = rec.target;
-  const verdict = !t ? null : rec.dayEnd >= t[1] ? "Past today’s target: prioritise sleep tonight." : rec.dayEnd >= t[0] ? "Inside today’s target." : `${f1(t[0] - rec.dayEnd)} below today’s target.`;
+  const verdict = !t ? null : rec.dayEnd >= t[1] ? "Past today’s target: prioritise sleep tonight." : rec.dayEnd >= t[0] ? "Inside today’s target." : `${pct(t[0] - rec.dayEnd)} below today’s target.`;
   return (
     <SectionShell variant="card" title="Workout summary" info={false}>
       <Divided>
@@ -441,13 +442,13 @@ function WorkoutSummary({ rec }: { rec: WorkoutRecord }) {
 function RecentRow({ rec, timeZone, today }: { rec: WorkoutRecord; timeZone: string; today: string }) {
   const when = `${dayLabel(localDay(Math.floor(rec.at / 1000), timeZone), today)}, ${clock(rec.at, timeZone)}`;
   return (
-    <View accessible accessibilityLabel={`${when}: ${clockDuration(rec.ms)}, workout strain ${f1(rec.strain)}`} className="min-h-14 flex-row items-center gap-3 py-2.5">
+    <View accessible accessibilityLabel={`${when}: ${clockDuration(rec.ms)}, workout strain ${Math.round(rec.strain)} percent`} className="min-h-14 flex-row items-center gap-3 py-2.5">
       <View className="min-w-0 flex-1 gap-0.5">
         <Text className={ROW_TITLE}>{when}</Text>
         <Text className={cn(CAPTION, "tabular-nums")}>{`${clockDuration(rec.ms)}${rec.avgHr !== null ? ` · ${rec.avgHr} bpm avg` : ""}`}</Text>
       </View>
       <View className="items-end">
-        <Text className={cn(NUM, "text-xl leading-6 tabular-nums text-strain-text")}>{f1(rec.strain)}</Text>
+        <Text className={cn(NUM, "text-xl leading-6 tabular-nums text-strain-text")}>{pct(rec.strain)}</Text>
         <Text className={CAPTION}>Strain</Text>
       </View>
     </View>

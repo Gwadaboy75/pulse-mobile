@@ -36,6 +36,8 @@ export const FORMATS = {
   int: (v: number) => fixed(v, 0),
   grouped: (v: number) => minus(grouped.format(Math.round(v))),
   decimal1: (v: number) => fixed(v, 1),
+  /** A whole percent with its sign tight: Strain "42%". */
+  pct: (v: number) => `${fixed(v, 0)}%`,
   decimal2: (v: number) => fixed(v, 2),
   signed1: (v: number) => signed(v, 1),
   signedInt: (v: number) => signed(v, 0),
@@ -192,7 +194,7 @@ export type DialAria = {
   soFar?: boolean;
 };
 
-/** "Recovery 72 percent, green", "Strain 9.4 of 21 so far, target 12.0 to 15.0", "Recovery unavailable: calibrating, 4 nights left". */
+/** "Recovery 72 percent, green", "Strain 42 percent so far, target 40 to 60 percent", "Recovery unavailable: calibrating, 4 nights left". */
 export function dialAriaLabel(a: DialAria) {
   if (a.value === null || a.value === undefined) {
     const why = (a.reasonText ?? "no data").replace(/^(\w)/, (c) => c.toLowerCase()).replace(": ", ", ");
@@ -201,8 +203,8 @@ export function dialAriaLabel(a: DialAria) {
   const v = spoken(a.valueText ?? String(a.value), a.unit);
   const prov = a.provisional ? " provisional," : "";
   if (a.variant === "strain") {
-    const t = a.target ? `, target ${a.target[0].toFixed(1)} to ${a.target[1].toFixed(1)}` : "";
-    return `${a.label}${prov} ${v} of 21${a.soFar ? " so far" : ""}${t}`;
+    const t = a.target ? `, target ${a.target[0].toFixed(0)} to ${a.target[1].toFixed(0)} percent` : "";
+    return `${a.label}${prov} ${v}${a.soFar ? " so far" : ""}${t}`;
   }
   const word = a.bandWord ? `, ${a.bandWord.toLowerCase()}` : "";
   return `${a.label}${prov} ${v}${word}`;

@@ -4,7 +4,7 @@
 import { journalImpact, journalImpactConfig, type ImpactLabel } from "@/core/algorithms/journalImpact";
 import { addDays, localMinutes } from "@/lib/time";
 import { trendHref } from "@/lib/url";
-import { activityKind, type DayRow, exercisesBetween, type ExerciseRow, finite, fromReason, loadDays, meanSd, ms, ok, priorStats, type QueryCtx, sleepMetric, todayOf, toStrain } from "./common";
+import { activityKind, type DayRow, exercisesBetween, type ExerciseRow, finite, fromReason, loadDays, meanSd, ms, ok, priorStats, type QueryCtx, sleepMetric, todayOf, activityStrainOf, dayStrainOf } from "./common";
 import { contributors } from "./recovery";
 import { nightHrOf } from "./sleep";
 import type { KeyStat, Metric, SleepVM } from "./types";
@@ -14,7 +14,7 @@ import type { KeyStat, Metric, SleepVM } from "./types";
 export type BehaviorKey = "sleep86" | "strain7" | "earlyWorkout" | "consistentWake";
 const BEHAVIOR_LABEL: Record<BehaviorKey, string> = {
   sleep86: "86%+ Sleep Performance",
-  strain7: "7+ Strain",
+  strain7: "33%+ Strain",
   earlyWorkout: "Early Workout",
   consistentWake: "Consistent Wake Time",
 };
@@ -65,7 +65,7 @@ function behaviors(rows: Map<string, DayRow>, exs: ExerciseRow[], day: string, t
   for (let d = addDays(day, -journalImpactConfig.windowDays); d < day; d = addDays(d, 1)) {
     const r = rows.get(d);
     const perf = rows.get(addDays(d, 1))?.sleep?.performance;
-    const effort = r?.s1?.effort;
+    const strain = dayStrainOf(r?.s1);
     const worn = (r?.s1?.hrCount ?? 0) > 0;
     const workouts = exs.filter((e) => e.day === d);
     const w = wake(addDays(d, 1));
@@ -74,7 +74,7 @@ function behaviors(rows: Map<string, DayRow>, exs: ExerciseRow[], day: string, t
       day: d,
       holds: {
         ...(finite(perf) && { sleep86: perf >= 86 }),
-        ...(finite(effort) && { strain7: toStrain(effort) >= 7 }),
+        ...(strain != null && { strain7: strain >= 33 }),
         ...((workouts.length || worn) && { earlyWorkout: workouts.some((e) => localMinutes(e.startTs, tz) < 8 * 60) }),
         ...(w !== null && usual.length >= 7 && { consistentWake: Math.abs(w - usual[Math.floor(usual.length / 2)]) <= 30 }),
       },
@@ -181,8 +181,7 @@ export async function getActivityExtras(id: string, ctx: QueryCtx): Promise<{ st
   const [rows, recent] = await Promise.all([loadDays(ctx, addDays(e.day, -30), e.day), exercisesBetween(ctx, addDays(e.day, -30), e.day)]);
   const same = recent.filter((x) => x.id !== id && x.startTs < e.startTs && activityKind(x.type) === kind);
   const strainOf = (x: ExerciseRow) => {
-    const effort = rows.get(x.day)?.activities.find((y) => y.id === x.id)?.effort;
-    return effort == null ? null : toStrain(effort);
+    return activityStrainOf(rows.get(x.day)?.activities.find((y) => y.id === x.id));
   };
   const stepping = kind === "run" || kind === "walk";
   const steps = stepping ? await ctx.store.readSteps(Math.min(e.startTs, ...same.map((x) => x.startTs)), e.endTs) : [];

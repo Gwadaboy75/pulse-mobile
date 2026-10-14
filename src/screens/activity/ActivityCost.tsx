@@ -108,7 +108,7 @@ export function DetectedRow({ item, timeZone }: { item: DetectedItem; timeZone?:
     >
       <View className="h-11 w-[84px] shrink-0 flex-row items-center justify-center gap-1.5 rounded-md border-[1.5px] border-dashed border-strain">
         <Icon icon={item.kind === "cardio" ? Activity : ACTIVITY_ICON[item.kind]} size={16} tone="strain-text" strokeWidth={1.75} />
-        <Text className="font-numeric text-xl font-bold tabular-nums text-strain-text">{formatValue("decimal1", item.strain)}</Text>
+        <Text className="font-numeric text-xl font-bold tabular-nums text-strain-text">{formatValue("pct", item.strain)}</Text>
       </View>
       <View className="min-w-0 flex-1">
         <Text className="text-[15px] font-bold uppercase leading-5 tracking-[0.1em] text-foreground-secondary">Detected</Text>

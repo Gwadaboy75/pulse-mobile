@@ -626,7 +626,8 @@ export function recordOutcomes(f: Fold, d: Day, rec: RecoveryRow, sleep: SleepRo
   f.reportRows.push({
     day,
     recovery: rec.value,
-    strain: s1.effort == null ? null : toStrainScale(s1.effort),
+    // Daily Strain on the Pulse engine, a percent.
+    strain: s1.engine?.strain?.value ?? null,
     sleepPerf: sleep.performance,
     sleepHours: main ? (main.asleepMin + d.naps.reduce((a, n) => a + n.asleepMin, 0)) / 60 : null,
     hrv: rec.inputs.hrv,

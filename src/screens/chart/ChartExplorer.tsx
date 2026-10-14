@@ -237,7 +237,7 @@ export default function ChartExplorer() {
     const compareColors = compare && compareBands ? compare.ys.map((v) => (v === null ? comparePaint : bandColor(v, compareBands))) : null;
     const baseline = dailyVm?.baseline ?? null;
     // The shaded range: the normal range (daily), or the day's Strain Target under Day Strain.
-    const shade = baseline ? { lo: baseline.mean - baseline.sd, hi: baseline.mean + baseline.sd, label: "Shaded: your normal range" } : view === "strain" && dayVm?.band ? { ...dayVm.band, label: `Shaded: Strain Target ${formatValue("decimal1", dayVm.band.lo)}–${formatValue("decimal1", dayVm.band.hi)}` } : null;
+    const shade = baseline ? { lo: baseline.mean - baseline.sd, hi: baseline.mean + baseline.sd, label: "Shaded: your normal range" } : view === "strain" && dayVm?.band ? { ...dayVm.band, label: `Shaded: Strain Target ${formatValue("int", dayVm.band.lo)}–${formatValue("pct", dayVm.band.hi)}` } : null;
     const goalY = mode === "daily" ? trendGoal(goals, def.key) : null;
     // A heart-rate day draws its metric's own value as a labelled line: the day's resting heart rate, or its average.
     const ref = view === "hr" && dayVm ? dayReference(def.key, dayVm.refs) : null;

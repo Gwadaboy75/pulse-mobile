@@ -20,9 +20,9 @@ describe("dayTone", () => {
     expect(dayTone("recovery", 67).text).toBe("text-recovery-green")
     expect(dayTone("recovery", 80).dot).toBeNull()
   })
-  it("dots Strain from 10.0 and Sleep from 85", () => {
-    expect(dayTone("strain", 9.9)).toEqual({ text: "text-strain-text", dot: null })
-    expect(dayTone("strain", 10)).toEqual({ text: "text-strain-text", dot: "bg-strain" })
+  it("dots Strain from 41% and Sleep from 85", () => {
+    expect(dayTone("strain", 40.9)).toEqual({ text: "text-strain-text", dot: null })
+    expect(dayTone("strain", 41)).toEqual({ text: "text-strain-text", dot: "bg-strain" })
     expect(dayTone("sleep", 84.9)).toEqual({ text: "text-sleep", dot: null })
     expect(dayTone("sleep", 85)).toEqual({ text: "text-sleep", dot: "bg-sleep" })
   })

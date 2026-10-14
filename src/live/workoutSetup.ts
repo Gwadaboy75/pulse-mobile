@@ -3,13 +3,14 @@
 import { defaultRestingHR } from "@/core/scoring/strain";
 import { addDays } from "@/lib/time";
 import type { DayRow } from "@/queries/common";
+import type { StrainBase } from "./liveStrain";
 
 export type WorkoutSetup = {
   restingHr: number;
   maxHr: number;
-  /** Today's Effort (0–100) so far; null before any is stored. */
-  baseEffort: number | null;
-  /** Today's Strain Target on 0–21, when there is one. */
+  /** Today's stored Daily Strain inputs (units and awake steps) so far; null before any are stored. */
+  base: StrainBase | null;
+  /** Today's Strain Target, a percent, when there is one. */
   target: [number, number] | null;
   /** Today's Recovery (0–100), which gates the coach's heart-rate band. */
   recovery: number | null;
@@ -37,7 +38,7 @@ export function workoutSetup(
   return {
     restingHr: restingHr ?? defaultRestingHR,
     maxHr: s1?.maxHr ?? fallbackMaxHr,
-    baseEffort: s1 && s1.hrCount > 0 ? s1.effort : null,
+    base: s1?.engine?.strain ? { units: s1.engine.strain.passiveUnits + s1.engine.strain.workoutUnits, steps: s1.engine.strain.steps } : null,
     target: t && t.reason === null ? [t.low, t.high] : null,
     recovery: row?.recovery?.value ?? null,
     synced: !!s1 && s1.hrCount > 0,

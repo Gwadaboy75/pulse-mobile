@@ -24,7 +24,7 @@ import {
   type QueryCtx,
   strainMetric,
   todayOf,
-  toStrain,
+  dayStrainOf,
   type ExerciseRow,
   trendPoints,
 } from "./common";
@@ -79,7 +79,7 @@ export async function getStrain(day: string, ctx: QueryCtx): Promise<StrainVM> {
     ...STRAIN_EXTRAS.map(extra),
   ];
 
-  const pts = trendPoints(rows, day, (r) => (finite(r.s1?.effort) ? toStrain(r.s1.effort) : null));
+  const pts = trendPoints(rows, day, (r) => dayStrainOf(r.s1));
   // Today's calories and workouts are running totals: drawn faded, like a provisional score.
   const soFar = (r: DayRow) => isToday && r.day === day;
   const workoutMin = new Map<string, number>();
@@ -125,18 +125,19 @@ export function calorieSplit(rows: Map<string, DayRow>, day: string, provisional
   });
 }
 
-const fmt1 = (x: number) => x.toFixed(1);
+/** Strain as a whole percent: "42%". */
+const pct = (x: number) => `${Math.round(x)}%`;
 
 /** Strain Coach copy (spec §7.3), by position against today's target. */
 export function coach(strain: Metric<number>, target: { low: number; high: number } | null, row: DayRow | undefined): string | null {
   if (strain.value == null || !target) return null;
   const { low, high } = target;
-  const range = `${fmt1(low)} - ${fmt1(high)}`;
+  const range = `${Math.round(low)} - ${pct(high)}`;
   if (row?.recovery?.value != null && row.recovery.value < 34) return `Your body needs rest today. Keep strain between ${range.replace(" - ", " and ")}.`;
   if (strain.value < low) {
-    // ponytail: about 8 minutes of moderate activity per strain point near the target; a rough guide, not a model.
-    const minutes = Math.max(10, Math.round(((low - strain.value) * 8) / 5) * 5);
-    return `Your target today is ${range}. You are at ${fmt1(strain.value)}, so about ${minutes} minutes of moderate activity would put you in range.`;
+    // ponytail: about 1.7 minutes of moderate activity per strain percent near the target; a rough guide, not a model.
+    const minutes = Math.max(10, Math.round(((low - strain.value) * 1.7) / 5) * 5);
+    return `Your target today is ${range}. You are at ${pct(strain.value)}, so about ${minutes} minutes of moderate activity would put you in range.`;
   }
   if (strain.value <= high) return `You are inside today’s target of ${range}. More strain from here adds load faster than benefit.`;
   return "You are past today’s target. Prioritise sleep tonight to recover.";

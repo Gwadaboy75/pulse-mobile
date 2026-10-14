@@ -3,7 +3,7 @@
 // so every surface says the same thing.
 import { activityCostConfig, barelyMoves } from "@/core/algorithms/activityCost";
 import type { DetectedActivity, DetectedKind } from "@/core/algorithms/autoWorkout";
-import { ACTIVITY_NAME, ms, type QueryCtx, toStrain } from "./common";
+import { ACTIVITY_NAME, ms, type QueryCtx } from "./common";
 import { FORMATS } from "./_lib";
 import type { ActivityCostEntry, ActivityCostVM, ActivityKind, DetectedItem } from "./types";
 
@@ -88,6 +88,7 @@ export const detectedItem = (d: DetectedActivity): DetectedItem => ({
   end: ms(d.end),
   avgHr: d.avgHr,
   maxHr: d.maxHr,
-  strain: d.effort == null ? null : toStrain(d.effort),
+  // A detected window has no engine units, so no strain on the percent scale.
+  strain: null,
   steps: d.steps,
 });

@@ -15,7 +15,8 @@ export type StrainRecoveryPoint = { day: string; strain: number | null; recovery
 const BAND_TEXT = { green: "recovery-green", yellow: "recovery-yellow", red: "recovery-red-text" } as const;
 const BAND_FILL = { green: "recovery-green", yellow: "recovery-yellow", red: "recovery-red" } as const;
 const RIGHT_TICKS = [0, 33, 66, 100];
-const LEFT_TICKS = [0, 7, 14, 21];
+// Strain is a percent on the same thirds as Recovery; a day above 100 % draws at the top, its label the real value.
+const LEFT_TICKS = [0, 33, 66, 100];
 /**
  * How far today's lit column runs below the plot, behind the 40 px two-line day tick, with room under the date.
  * The bottom margin keeps it inside the chart: at 0 it clipped its last 4 px, square corners and all.
@@ -26,7 +27,7 @@ const HEIGHT = 232;
 type Row = StrainRecoveryPoint & { weekday: string; dayOfMonth: string; date: string; today: boolean };
 
 /** Height on the plot, 0 (floor) to 1 (top), so the two axes compare. */
-const heightOf = (r: Row | undefined, k: "strain" | "recovery") => (r?.[k] == null ? null : k === "strain" ? r.strain! / 21 : r.recovery! / 100);
+const heightOf = (r: Row | undefined, k: "strain" | "recovery") => (r?.[k] == null ? null : k === "strain" ? Math.min(1, r.strain! / 100) : r.recovery! / 100);
 
 /**
  * The web's preferred side for each label (labelDy's sign; placeLabels then keeps it off every other label and dot).
@@ -49,7 +50,7 @@ function labelDy(rows: Row[], index: number, k: "strain" | "recovery") {
 }
 
 /**
- * The reference app's Home "Strain & Recovery" week: Strain on the left axis (0-21, blue), Recovery on the right
+ * The reference app's Home "Strain & Recovery" week: Strain on the left axis (0-100 %, blue), Recovery on the right
  * (0-100 %, band colours), hollow dots with value labels, today's column lit. Missing days are gaps, never interpolated.
  */
 export function StrainRecoveryChart({ points, today }: { points: StrainRecoveryPoint[]; today: string }) {
@@ -64,7 +65,7 @@ export function StrainRecoveryChart({ points, today }: { points: StrainRecoveryP
   const strains = points.map((p) => p.strain).filter((v): v is number => v !== null);
   const recs = points.map((p) => p.recovery).filter((v): v is number => v !== null);
   const summary = `Strain and Recovery over the last ${points.length} days: Strain ${
-    strains.length ? `from ${formatValue("decimal1", Math.min(...strains))} to ${formatValue("decimal1", Math.max(...strains))}` : "not recorded"
+    strains.length ? `from ${formatValue("int", Math.min(...strains))} to ${formatValue("int", Math.max(...strains))} percent` : "not recorded"
   }, Recovery ${recs.length ? `from ${Math.round(Math.min(...recs))} to ${Math.round(Math.max(...recs))} percent` : "not recorded"}.`;
 
   return (
@@ -77,7 +78,8 @@ export function StrainRecoveryChart({ points, today }: { points: StrainRecoveryP
         const y1 = height - margin.bottom - 40;
         const { step, centers } = bandCenters(rows.length, x0, x1, 0.18);
         const bw = barWidth(step, 0.18);
-        const ys = linearScale([0, 21], [y1, y0]);
+        const strainScale = linearScale([0, 100], [y1, y0]);
+        const ys = (v: number) => strainScale(Math.min(100, Math.max(0, v)));
         const yr = linearScale([0, 100], [y1, y0]);
         const rec = rows.map((r, i) => ({ x: centers[i], y: r.recovery === null ? null : yr(r.recovery) }));
         const str = rows.map((r, i) => ({ x: centers[i], y: r.strain === null ? null : ys(r.strain) }));
@@ -85,7 +87,7 @@ export function StrainRecoveryChart({ points, today }: { points: StrainRecoveryP
         const side = (i: number, k: "strain" | "recovery") => (labelDy(rows, i, k) < 0 ? ("above" as const) : ("below" as const));
         const labels = rows.flatMap((r, i) => [
           ...(r.recovery === null ? [] : [{ key: `rv${r.day}`, x: centers[i], y: yr(r.recovery), text: `${Math.round(r.recovery)}%`, prefer: side(i, "recovery"), color: css(`var(--${BAND_TEXT[recoveryBand(r.recovery)]})`) }]),
-          ...(r.strain === null ? [] : [{ key: `sv${r.day}`, x: centers[i], y: ys(r.strain), text: formatValue("decimal1", r.strain), prefer: side(i, "strain"), color: c["strain-text"] }]),
+          ...(r.strain === null ? [] : [{ key: `sv${r.day}`, x: centers[i], y: ys(r.strain), text: formatValue("int", r.strain), prefer: side(i, "strain"), color: c["strain-text"] }]),
         ]);
         // Centre offsets equal to the web's baselines (10 above, 20 below the point) for 12 px text; the day ticks start 8 px under the plot.
         const placed = placeLabels(labels, { dots: labels.map((l) => ({ x: l.x, y: l.y, r: 5 })), lines: [...runs(rec), ...runs(str)], top: 0, bottom: y1 + 6, above: -14, below: 16 });

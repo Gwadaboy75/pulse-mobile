@@ -28,7 +28,7 @@ const VM: ReportPageVM = {
   bands: { value: null, reason: "no_data", provisional: false },
   averages: [
     stat("recovery", "Recovery", 64.4, 59.2, { unit: "%" }),
-    stat("strain", "Day strain", 11.2, 12, { direction: "neutral" }),
+    stat("strain", "Day strain", 53, 57, { direction: "neutral" }),
     stat("sleepPerf", "Sleep performance", 82, 82, { unit: "%" }),
     stat("sleepHours", "Hours of sleep", 7.2, 7, { unit: "h" }),
     stat("consistency", "Sleep consistency", 78, 90, { unit: "%" }),
@@ -65,7 +65,7 @@ describe("reportShareText", () => {
         "",
         "Averages vs last week",
         "• Recovery 64% (+5)",
-        "• Day strain 11.2 (−0.8)",
+        "• Day strain 53% (−4)",
         "• Sleep performance 82%",
         "• Heart rate variability 54 ms (+4)",
         "",

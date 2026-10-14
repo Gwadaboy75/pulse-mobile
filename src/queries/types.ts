@@ -1,7 +1,7 @@
 // View models returned by the screen queries, one per screen (Pulse spec §7), ported verbatim from the web app's
 // src/server/queries/types.ts so the ported UI consumes them unchanged.
 // Conventions: instants are epoch **milliseconds** (as the charts and cards take them), days are
-// local `YYYY-MM-DD`, Strain is on the reference app's 0–21 scale, and no number is ever NaN or ±Infinity.
+// local `YYYY-MM-DD`, Strain is a percent (0–100 on most days, above 100 on a very big one), and no number is ever NaN or ±Infinity.
 import type { ChipTone, DashboardKey, FormatKey, GoodDirection, RecoveryBand as Band, StressLevel } from "./_lib";
 import type { Metric, MetricTag, ReasonCode } from "@/lib/reasons";
 import type { EnergyBand } from "@/core/engine/energyBank";
@@ -126,7 +126,7 @@ export type HomeVM = {
   dials: {
     sleep: Metric<number>;
     recovery: Metric<number>;
-    /** 0–21. */
+    /** A percent. */
     strain: Metric<number>;
     strainTarget: [number, number] | null;
     soFar: boolean;
@@ -157,7 +157,7 @@ export type HomeVM = {
   insights: { key: "strain" | "recovery" | "sleep"; title: string; body: string; href: string }[];
   /** The 7 days ending on `day`: was a check-in logged. */
   journalWeek: { day: string; done: boolean }[];
-  /** The 7 days ending on `day`, oldest first: Strain 0-21 and Recovery %. */
+  /** The 7 days ending on `day`, oldest first: Strain % and Recovery %. */
   strainRecovery: { day: string; strain: number | null; recovery: number | null }[];
 };
 
@@ -204,7 +204,7 @@ export type DetectedItem = {
   end: number;
   avgHr: number;
   maxHr: number;
-  /** 0–21, display only. */
+  /** A percent, display only. */
   strain: number | null;
   steps: number | null;
 };
@@ -576,7 +576,7 @@ export type YourDataVM = {
 
 // ── Calendar (DateSwitcher month panel) ─────────────────────────────────────
 
-/** One day's three headline scores; null when the day has none. Strain is on the 0–21 scale. */
+/** One day's three headline scores; null when the day has none. Strain is a percent. */
 export type CalendarDayVM = { day: string; recovery: number | null; strain: number | null; sleep: number | null };
 /** Every day of `month` ("YYYY-MM"), first to last. */
 export type CalendarMonthVM = { month: string; days: CalendarDayVM[] };

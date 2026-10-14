@@ -26,6 +26,8 @@ export const FORMATS = {
   int: (v: number) => fixed(v, 0),
   grouped: (v: number) => minus(grouped.format(Math.round(v))),
   decimal1: (v: number) => fixed(v, 1),
+  /** A whole percent with its sign tight: Strain "42%". */
+  pct: (v: number) => `${fixed(v, 0)}%`,
   decimal2: (v: number) => fixed(v, 2),
   signed1: (v: number) => signed(v, 1),
   signedInt: (v: number) => signed(v, 0),

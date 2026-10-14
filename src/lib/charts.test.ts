@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { clockTicks, hourTicks, hypnogramSeries, markerSlices, ringRadii, bandStops, targetSlices } from "./charts";
+import { clockTicks, hourTicks, hypnogramSeries, markerSlices, ringRadii, ringShare, bandStops, targetSlices } from "./charts";
+import { dialAriaLabel, formatValue } from "./format";
 
 describe("bandStops", () => {
   const bands = [
@@ -72,9 +73,16 @@ describe("hourTicks", () => {
 });
 
 describe("ScoreDial slices", () => {
-  it("strain target band covers lo to hi on 0-21", () => {
-    expect(targetSlices(12, 15)).toEqual([12, 3, 6]);
-    expect(targetSlices(19, 25)).toEqual([19, 2, 0]);
+  it("strain target band covers lo to hi on the percent track, full at 100", () => {
+    expect(targetSlices(46, 79)).toEqual([46, 33, 21]);
+    expect(targetSlices(90, 120)).toEqual([90, 10, 0]);
+  });
+  it("a Strain of 112 fills the ring and keeps its label", () => {
+    expect(ringShare(112, 100)).toBe(1);
+    expect(ringShare(42, 100)).toBe(0.42);
+    expect(ringShare(-3, 100)).toBe(0);
+    expect(formatValue("pct", 112)).toBe("112%");
+    expect(dialAriaLabel({ variant: "strain", label: "Strain", value: 112, valueText: "112", unit: "%" })).toBe("Strain 112 percent");
   });
   it("marker slices centre on the value and stay in the domain", () => {
     expect(markerSlices(13.5, 21, 0.2).map((v) => +v.toFixed(2))).toEqual([13.4, 0.2, 7.4]);

@@ -154,7 +154,7 @@ function Hero({ vm }: { vm: ActivityVM & Awaited<ReturnType<typeof getActivityEx
   return (
     <View className="w-full gap-2">
       <View className="flex-row flex-wrap items-end gap-x-10 gap-y-4">
-        <HeroStat label="Activity strain" value={formatValue("decimal1", s)} average={vm.strainAverage} format="decimal1" valueClass={s === null ? "text-muted-foreground" : "text-strain-text"} raw={s} />
+        <HeroStat label="Activity strain" value={formatValue("pct", s)} average={vm.strainAverage} format="pct" valueClass={s === null ? "text-muted-foreground" : "text-strain-text"} raw={s} />
         {vm.steps && <HeroStat label="Activity steps" value={formatValue("grouped", vm.steps.value)} average={vm.steps.average} format="grouped" raw={vm.steps.value} />}
       </View>
       {/* The band-off notice under the hero already says why; so it is not repeated here. */}
@@ -163,7 +163,7 @@ function Hero({ vm }: { vm: ActivityVM & Awaited<ReturnType<typeof getActivityEx
   )
 }
 
-function HeroStat({ label, value, raw, average, format, valueClass }: { label: string; value: string; raw: number | null; average: number | null; format: "decimal1" | "grouped"; valueClass?: string }) {
+function HeroStat({ label, value, raw, average, format, valueClass }: { label: string; value: string; raw: number | null; average: number | null; format: "pct" | "grouped"; valueClass?: string }) {
   const dir = raw !== null && average !== null ? deltaTone("neutral", raw, average).dir : null
   return (
     <View>

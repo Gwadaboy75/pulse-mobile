@@ -46,7 +46,7 @@ import {
   dayStartOf,
   finite,
   recoveryBand,
-  toStrain,
+  dayStrainOf,
 } from "./common";
 import type { CardStatKey, EnergyBankVM, HomeVM, KeyStat, Metric, VitalKey } from "./types";
 
@@ -124,18 +124,19 @@ export async function getHome(day: string, ctx: QueryCtx, opts: HomeOptions = {}
     strainRecovery: Array.from({ length: 7 }, (_, k) => {
       const d = addDays(day, k - 6);
       const r = rows.get(d);
-      const e = r?.s1?.effort;
+      const e = dayStrainOf(r?.s1);
       const rec = r?.recovery?.value;
       // Today has no Strain score until effort accrues: a 0.0 would plot as a dive to the floor, so it is a gap (SYM4).
       const scored = finite(e) && (d !== today || e > 0);
-      return { day: d, strain: scored ? toStrain(e) : null, recovery: finite(rec) ? rec : null };
+      return { day: d, strain: scored ? e : null, recovery: finite(rec) ? rec : null };
     }),
   };
 }
 
 /** The reference app's banners switch from outlook to review at 17:00 (inferred, spec §12 I15). */
 export const REVIEW_FROM_MIN = 17 * 60;
-const f1 = (x: number) => x.toFixed(1);
+/** Strain as a whole percent: "42%". */
+const pct = (x: number) => `${Math.round(x)}%`;
 
 type DayScores = { recovery: Metric<number>; strain: Metric<number>; target: [number, number] | null };
 
@@ -143,7 +144,7 @@ type DayScores = { recovery: Metric<number>; strain: Metric<number>; target: [nu
 export function outlookOf(ctx: QueryCtx, row: DayRow | undefined, s: DayScores, isToday: boolean): HomeVM["outlook"] {
   const review = !isToday || localMinutes(ctx.now, ctx.timeZone) >= REVIEW_FROM_MIN;
   const rec = s.recovery.value;
-  const target = s.target ? `${f1(s.target[0])} - ${f1(s.target[1])}` : null;
+  const target = s.target ? `${Math.round(s.target[0])} - ${pct(s.target[1])}` : null;
   const parts: string[] = [];
   if (!review) {
     if (rec != null) parts.push(`Your Recovery is ${Math.round(rec)}%, ${recoveryBand(rec)}.`);
@@ -154,7 +155,7 @@ export function outlookOf(ctx: QueryCtx, row: DayRow | undefined, s: DayScores, 
   } else {
     const n = row?.activities.length ?? 0;
     const acts = n ? `, with ${n} ${n === 1 ? "activity" : "activities"}` : "";
-    if (s.strain.value != null) parts.push(`Day Strain ${isToday ? "is" : "was"} ${f1(s.strain.value)}${target ? ` against a target of ${target}` : ""}${acts}.`);
+    if (s.strain.value != null) parts.push(`Day Strain ${isToday ? "is" : "was"} ${pct(s.strain.value)}${target ? ` against a target of ${target}` : ""}${acts}.`);
     if (rec != null) parts.push(`Recovery ${isToday ? "is" : "was"} ${Math.round(rec)}%.`);
     const st = row?.stress;
     if (st && st.average != null) parts.push(`You spent ${hmm(st.highMin)} in high stress.`);

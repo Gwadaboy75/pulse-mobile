@@ -94,7 +94,7 @@ export function ActivityCard({ name, kind, strain, start, end, href, timeZone, d
   const glyph = ACTIVITY_ICON[kind];
   const s = clock(start, timeZone);
   const e = clock(end, timeZone);
-  const value = formatValue("decimal1", strain.value);
+  const value = formatValue("pct", strain.value);
   const distance = distanceText(distanceKm, paceS);
   const noStrain = strain.value === null;
   // The full reason when it is the only caption; beside a distance, the short form keeps the row on one line.

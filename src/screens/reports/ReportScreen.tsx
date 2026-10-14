@@ -38,7 +38,7 @@ import { reportShareText, STAT_FORMAT } from "./share";
 const WEEK = /^\d{4}-W\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
 
-const DIAL_FORMAT = { sleep: "int", recovery: "int", strain: "decimal1" } as const;
+const DIAL_FORMAT = { sleep: "int", recovery: "int", strain: "int" } as const;
 const BALANCE_TONE = { balanced: "text-optimal-text", overreaching: "text-warning-text", undertrained: "text-muted-foreground" };
 
 function periodLabel(kind: "week" | "month", start: string, end: string) {
@@ -237,7 +237,7 @@ export default function ReportScreen() {
                       activeBg="bg-accent"
                       key={b.label}
                       accessibilityRole="link"
-                      accessibilityLabel={`${b.label}: ${formatDay(b.day, DAY.long)}, Recovery ${Math.round(b.recovery)} percent${b.strain === null ? "" : `, strain ${formatValue("decimal1", b.strain)}`}`}
+                      accessibilityLabel={`${b.label}: ${formatDay(b.day, DAY.long)}, Recovery ${Math.round(b.recovery)} percent${b.strain === null ? "" : `, strain ${formatValue("int", b.strain)} percent`}`}
                       onPress={() => push(dayHref("/", b.day, today))}
                       className="-mx-2 min-h-16 flex-row items-center gap-3 rounded-lg px-2 py-2"
                     >
@@ -248,7 +248,7 @@ export default function ReportScreen() {
                       <View accessibilityElementsHidden className="flex-row items-center gap-4">
                         <ScoreDial variant="recovery" size="sm" value={b.recovery} />
                         <View className="w-12 items-end">
-                          <Text className="font-numeric text-xl font-bold leading-6 tabular-nums text-strain-text">{formatValue("decimal1", b.strain)}</Text>
+                          <Text className="font-numeric text-xl font-bold leading-6 tabular-nums text-strain-text">{formatValue("pct", b.strain)}</Text>
                           <Text className={CAPTION}>Strain</Text>
                         </View>
                       </View>

@@ -62,21 +62,21 @@ export default function KitMetrics() {
             <View className={ROW}>
               <ScoreDial variant="sleep" size="md" value={74} href="/dev/kit" />
               <ScoreDial variant="recovery" size="md" value={85} href="/dev/kit" />
-              <ScoreDial variant="strain" size="md" value={9.4} target={[12, 15]} extraTags={["so_far"]} href="/dev/kit" />
+              <ScoreDial variant="strain" size="md" value={45} target={[57, 71]} extraTags={["so_far"]} href="/dev/kit" />
             </View>
           </Frame>
           <Frame name="md, Home row at 320 px" narrow>
             <View className="flex-row items-start justify-center gap-1">
               <ScoreDial variant="sleep" size="md" value={100} href="/dev/kit" />
               <ScoreDial variant="recovery" size="md" value={100} href="/dev/kit" />
-              <ScoreDial variant="strain" size="md" value={21} target={[12, 15]} extraTags={["so_far"]} href="/dev/kit" />
+              <ScoreDial variant="strain" size="md" value={112} target={[57, 71]} extraTags={["so_far"]} href="/dev/kit" />
             </View>
           </Frame>
           <Frame name="md, extremes: 0%, 7%, 0.0">
             <View className={ROW}>
               <ScoreDial variant="sleep" size="md" value={0} />
               <ScoreDial variant="recovery" size="md" value={7} />
-              <ScoreDial variant="strain" size="md" value={0} target={[12, 15]} />
+              <ScoreDial variant="strain" size="md" value={0} target={[57, 71]} />
             </View>
           </Frame>
           <Frame name="md, reasons (one ReasonPlaceholder line under the row)">
@@ -100,10 +100,10 @@ export default function KitMetrics() {
           <Frame name="lg recovery, yellow, baseline stale" center><ScoreDial variant="recovery" size="lg" value={58} tags={["stale_baseline"]} /></Frame>
           <Frame name="lg recovery, red, two tags (widest stack)" center><ScoreDial variant="recovery" size="lg" value={8} provisional tags={["stale_baseline"]} /></Frame>
           <Frame name="lg recovery, 100%" center><ScoreDial variant="recovery" size="lg" value={100} /></Frame>
-          <Frame name="lg strain, target, So far" center><ScoreDial variant="strain" size="lg" value={13.1} target={[12, 15]} extraTags={["so_far"]} /></Frame>
-          <Frame name="lg strain, 0.0 at the start of the day" center><ScoreDial variant="strain" size="lg" value={0} target={[12, 15]} extraTags={["so_far"]} /></Frame>
-          <Frame name="lg strain, 21.0 past the target" center><ScoreDial variant="strain" size="lg" value={21} target={[12, 15]} /></Frame>
-          <Frame name="lg strain, no target" center><ScoreDial variant="strain" size="lg" value={4.2} /></Frame>
+          <Frame name="lg strain, target, So far" center><ScoreDial variant="strain" size="lg" value={62} target={[57, 71]} extraTags={["so_far"]} /></Frame>
+          <Frame name="lg strain, 0 at the start of the day" center><ScoreDial variant="strain" size="lg" value={0} target={[57, 71]} extraTags={["so_far"]} /></Frame>
+          <Frame name="lg strain, 112 past the target (ring full)" center><ScoreDial variant="strain" size="lg" value={112} target={[57, 71]} /></Frame>
+          <Frame name="lg strain, no target" center><ScoreDial variant="strain" size="lg" value={20} /></Frame>
           <Frame name="lg sleep, status bar and Updated (tallest stack)" center><ScoreDial variant="sleep" size="lg" value={84} status="sufficient" tags={["updated"]} /></Frame>
           <Frame name="lg sleep, 100%, optimal" center><ScoreDial variant="sleep" size="lg" value={100} status="optimal" /></Frame>
           <Frame name="lg sleep, 7%, poor, provisional" center><ScoreDial variant="sleep" size="lg" value={7} status="poor" provisional /></Frame>
@@ -120,7 +120,7 @@ export default function KitMetrics() {
           <Frame name="compact (sticky header): recovery, strain, sleep, gauge">
             <View className="flex-row items-center justify-center gap-3">
               <ScoreDial variant="recovery" size="lg" value={85} compact />
-              <ScoreDial variant="strain" size="lg" value={13.1} target={[12, 15]} compact />
+              <ScoreDial variant="strain" size="lg" value={62} target={[57, 71]} compact />
               <ScoreDial variant="sleep" size="lg" value={100} compact />
               <ScoreDial variant="gauge" size="lg" value={2.4} compact />
             </View>
@@ -129,7 +129,7 @@ export default function KitMetrics() {
             <View className="flex-row flex-wrap items-start justify-center gap-4">
               <ScoreDial variant="stat" size="sm" value={71} max={100} color="recovery-green" unit="%" label="Tomorrow" extraTags={["estimate"]} />
               <ScoreDial variant="stat" size="sm" value={100} max={100} color="recovery-green" unit="%" label="Best" />
-              <ScoreDial variant="stat" size="sm" value={11.2} max={21} color="strain" format="decimal1" label="Avg strain" />
+              <ScoreDial variant="stat" size="sm" value={53} max={100} color="strain" unit="%" format="int" label="Avg strain" />
               <ScoreDial variant="stat" size="sm" value={null} reason="calibrating" label="Forecast" />
               <ScoreDialSkeleton size="sm" />
             </View>
@@ -138,7 +138,7 @@ export default function KitMetrics() {
         <Entry name="MiniRing" file="src/ui/metrics/MiniRing.tsx" use="The 22 px rings in Home's collapsed header." props={["variant: sleep | recovery | strain", "value: number | null", "fill (false draws the track only)"]}>
           <Frame name="Values: 0, mid, max">
             <View className="flex-row flex-wrap items-center justify-center gap-3">
-              {(["sleep", "recovery", "strain"] as const).map((v) => [0, v === "strain" ? 10.5 : 50, v === "strain" ? 21 : 100].map((n) => <MiniRing key={`${v}${n}`} variant={v} value={n} />))}
+              {(["sleep", "recovery", "strain"] as const).map((v) => [0, 50, v === "strain" ? 112 : 100].map((n) => <MiniRing key={`${v}${n}`} variant={v} value={n} />))}
             </View>
           </Frame>
           <Frame name="No value, and track only (before the reveal)" center>
@@ -299,12 +299,12 @@ export default function KitMetrics() {
             <View className="gap-1.5">
               <ActivityCard {...fx.timeline.run} href="/dev/kit" timeZone={fx.TZ} />
               <ActivityCard {...fx.timeline.strength} href="/dev/kit" timeZone={fx.TZ} />
-              <ActivityCard name="Cycling" kind="ride" strain={fx.ok(21)} start={fx.DAY0 + 6 * HOUR} end={fx.DAY0 + 9 * HOUR + 42 * 60_000} href="/dev/kit" timeZone={fx.TZ} />
+              <ActivityCard name="Cycling" kind="ride" strain={fx.ok(100)} start={fx.DAY0 + 6 * HOUR} end={fx.DAY0 + 9 * HOUR + 42 * 60_000} href="/dev/kit" timeZone={fx.TZ} />
               <ActivityCard name="Workout" kind="workout" strain={fx.ok(0)} start={fx.DAY0 + 20 * HOUR} end={fx.DAY0 + 20 * HOUR + 4 * 60_000} href="/dev/kit" timeZone={fx.TZ} />
             </View>
           </Frame>
           <Frame name="loading"><ActivityCard.Skeleton /></Frame>
-          <Frame name="long name at 320 px" narrow><ActivityCard name="High-intensity interval training" kind="workout" strain={fx.ok(14.6)} start={fx.DAY0 + 17 * HOUR} end={fx.DAY0 + 18 * HOUR} href="/dev/kit" timeZone={fx.TZ} distanceKm={12.04} paceS={298} /></Frame>
+          <Frame name="long name at 320 px" narrow><ActivityCard name="High-intensity interval training" kind="workout" strain={fx.ok(70)} start={fx.DAY0 + 17 * HOUR} end={fx.DAY0 + 18 * HOUR} href="/dev/kit" timeZone={fx.TZ} distanceKm={12.04} paceS={298} /></Frame>
         </Entry>
         <Entry name="SleepCard" file="src/ui/metrics/SleepCard.tsx" use="Sleeps and naps on Home's day timeline; links to /sleep?d=." props={["kind: sleep | nap", "minutes", "start, end, timeZone", "href"]}>
           <Frame name="sleep and nap">
@@ -341,7 +341,7 @@ export default function KitMetrics() {
 
       <Group title="Trend View parts">
         <Entry name="BreakdownBar" file="src/ui/metrics/BreakdownBar.tsx" use="A Trend View breakdown: one segmented bar and a row per band." props={["title", "unit: days | duration", "items: { key, label, detail?, value }[]"]}>
-          <Frame name="strain bands (days)"><BreakdownBar title="Strain breakdown (days)" unit="days" items={[{ key: "all_out", label: "All out", detail: "18+", value: 1 }, { key: "strenuous", label: "Strenuous", detail: "14-17", value: 4 }, { key: "moderate", label: "Moderate", detail: "10-13", value: 12 }, { key: "light", label: "Light", detail: "0-9", value: 0 }]} /></Frame>
+          <Frame name="strain bands (days)"><BreakdownBar title="Strain breakdown (days)" unit="days" items={[{ key: "all_out", label: "All out", detail: ">79%", value: 1 }, { key: "strenuous", label: "Strenuous", detail: "61-79%", value: 4 }, { key: "moderate", label: "Moderate", detail: "41-60%", value: 12 }, { key: "light", label: "Light", detail: "≤40%", value: 0 }]} /></Frame>
           <Frame name="HR zones (duration)"><BreakdownBar title="Time in zones (h:mm)" unit="duration" items={[{ key: "z1", label: "Zone 1", value: 117 }, { key: "z2", label: "Zone 2", value: 64 }, { key: "z3", label: "Zone 3", value: 21 }]} /></Frame>
         </Entry>
         <Entry name="TrendLegend" file="src/ui/metrics/TrendLegend.tsx" use="The legend over a Trend View chart: typical-range swatch, square swatches for a stack, rings for a pair." props={["chart: stack | pair", "series", "typical"]}>

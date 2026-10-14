@@ -46,7 +46,6 @@ describe("Trend View chart layout", () => {
     expect(bars.domain[0]).toBe(0);
     expect(bars.domain[1]).toBeGreaterThanOrEqual(46 * 1.15);
     expect(buildModel(props({ chart: "bars", domain: [0, 100] }), fmt).yTicks).toEqual([0, 25, 50, 75, 100]);
-    expect(buildModel(props({ chart: "bars", domain: [0, 21] }), fmt).yTicks).toEqual([0, 5, 10, 15, 21]);
   });
 
   it("the margins, axes and height follow the chart kind", () => {

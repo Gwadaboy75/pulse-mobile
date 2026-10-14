@@ -41,7 +41,7 @@ export default function KitHome() {
         title="Home"
         layout="home"
         onRefresh={fakeSync}
-        rings={{ sleep: { value: 74, href: "/dev/kit" }, recovery: { value: 85, href: "/dev/kit" }, strain: { value: 14.2, href: "/dev/kit" } }}
+        rings={{ sleep: { value: 74, href: "/dev/kit" }, recovery: { value: 85, href: "/dev/kit" }, strain: { value: 68, href: "/dev/kit" } }}
         slots={{
           top: (
             <View className="gap-6">
@@ -51,7 +51,7 @@ export default function KitHome() {
               <View className="flex-row items-start justify-center gap-2">
                 <ScoreDial variant="sleep" size="md" value={74} href="/dev/kit" />
                 <ScoreDial variant="recovery" size="md" value={85} href="/dev/kit" />
-                <ScoreDial variant="strain" size="md" value={14.2} target={[12, 15]} extraTags={["so_far"]} href="/dev/kit" />
+                <ScoreDial variant="strain" size="md" value={68} target={[57, 71]} extraTags={["so_far"]} href="/dev/kit" />
               </View>
               <HeaderSentinel className="-mt-6 h-0" />
             </View>

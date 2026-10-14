@@ -46,7 +46,7 @@ const series = (f: (i: number) => number | null, provisionalFrom = 182): TrendPo
   days.map((date, i) => ({ date, value: f(i), provisional: i < 14 || i >= provisionalFrom }))
 
 export const recoveryTrend = series((i) => (i % 23 === 5 ? null : Math.round(30 + noise(i) * 60 + Math.sin(i / 9) * 8)))
-export const strainTrend = series((i) => Math.round((6 + noise(i + 3) * 12) * 10) / 10)
+export const strainTrend = series((i) => Math.round(29 + noise(i + 3) * 57))
 export const sleepDebtTrend = series((i) => (i % 31 === 7 ? null : Math.round(noise(i + 9) * 3 * 10) / 10))
 export const stressTrend = series((i) => Math.round(noise(i + 17) * 2.6 * 10) / 10)
 export const emptyTrend = series(() => null)
@@ -230,7 +230,7 @@ export const stress: StressSeries = {
 export const timeline = {
   sleep: { kind: "sleep" as const, minutes: 389, start: DAY0 + 51 * MIN, end: DAY0 + 7 * HOUR + 38 * MIN, href: "/sleep" },
   nap: { kind: "nap" as const, minutes: 26, start: DAY0 + 13 * HOUR + 5 * MIN, end: DAY0 + 13 * HOUR + 31 * MIN, href: "/sleep" },
-  run: { name: "Running", kind: "run" as const, strain: ok(10.3), start: DAY0 + 11 * HOUR + 16 * MIN, end: DAY0 + 12 * HOUR + 14 * MIN, distanceKm: 10.47, paceS: 332, href: "/activity/run-1" },
+  run: { name: "Running", kind: "run" as const, strain: ok(49), start: DAY0 + 11 * HOUR + 16 * MIN, end: DAY0 + 12 * HOUR + 14 * MIN, distanceKm: 10.47, paceS: 332, href: "/activity/run-1" },
   strength: { name: "Strength training", kind: "strength" as const, strain: why<number>("insufficient_hr_data"), start: DAY0 + 18 * HOUR, end: DAY0 + 18 * HOUR + 45 * MIN, href: "/activity/str-1" },
 }
 
@@ -270,6 +270,6 @@ export const strainRecoveryWeek: StrainRecoveryPoint[] = days.slice(-7).map((day
 /** Calibrating: Strain only, zig-zagging off the floor, so labels must clear peaks and valleys of their own line. */
 export const strainOnlyWeek: StrainRecoveryPoint[] = days.slice(-7).map((day, i) => ({
   day,
-  strain: [null, null, 0, 9.1, 0, 10, 8.9][i],
+  strain: [null, null, 0, 43, 0, 48, 42][i],
   recovery: null,
 }))

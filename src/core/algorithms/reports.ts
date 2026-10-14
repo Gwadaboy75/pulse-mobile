@@ -11,7 +11,7 @@ export interface ReportDay {
   day: string;
   /** 0–100 */
   recovery: number | null;
-  /** 0–21 */
+  /** Daily Strain, a percent. */
   strain: number | null;
   /** 0–100 */
   sleepPerf: number | null;
@@ -153,7 +153,7 @@ export function buildReport(period: string, rows: ReportDay[], impacts: TagImpac
 /** One day of the assessment: the plan's habits (src/core/algorithms/weeklyPlan.ts) and the day's scores. */
 export interface AssessmentDay extends PlanDay {
   recovery: number | null;
-  /** 0–21 */
+  /** Daily Strain, a percent. */
   strain: number | null;
   sleepPerf: number | null;
   hrv: number | null;
@@ -165,13 +165,13 @@ export type AssessKey = (typeof ASSESS_KEYS)[number];
 
 /**
  * Per metric: the good direction and the typical spread a move is scaled by (*tunable*). Recovery, sleep, HRV and
- * resting HR are noop's (12, 12, 8 ms, 4 bpm); Strain is noop's 12 on its 0–100 Effort, ×21/100; the rest are ours,
+ * resting HR are noop's (12, 12, 8 ms, 4 bpm); Strain is noop's 12 on its percent; the rest are ours,
  * about a band's width each: half an hour of sleep, 8 consistency points, 60 and 30 zone minutes a week, a session,
  * 1,500 steps.
  */
 export const ASSESS: Record<AssessKey, { better: "up" | "down" | "neutral"; spread: number }> = {
   recovery: { better: "up", spread: 12 },
-  strain: { better: "neutral", spread: 2.5 },
+  strain: { better: "neutral", spread: 12 },
   sleepPerf: { better: "up", spread: 12 },
   hrv: { better: "up", spread: 8 },
   rhr: { better: "down", spread: 4 },
@@ -327,7 +327,7 @@ function riseLine(s: AssessmentStat, word: string): string {
   const verb = up ? "rose" : "fell";
   const by: Record<AssessKey, string> = {
     recovery: plural(Math.round(d), "point"),
-    strain: d.toFixed(1),
+    strain: plural(Math.round(d), "point"),
     sleepPerf: plural(Math.round(d), "point"),
     hrv: `${Math.round(d)} ms`,
     rhr: `${Math.round(d)} bpm`,

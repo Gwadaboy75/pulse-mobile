@@ -10,7 +10,7 @@ import { arcPath, polar } from "../charts/geometry";
 import { cn } from "../cn";
 import { Icon } from "../Icon";
 import { REASON_ICON } from "../icons";
-import { markerSlices } from "@/lib/charts";
+import { markerSlices, ringShare } from "@/lib/charts";
 import { SkeletonText } from "../Skeleton";
 import { Text } from "../Text";
 import { useTheme } from "../theme";
@@ -33,7 +33,7 @@ export type ScoreDialProps = {
   tags?: MetricTag[];
   /** Extra tags such as "so_far" (today's strain) or "estimate" (forecast). */
   extraTags?: TagKind[];
-  /** Strain Target range on the 0-21 track. */
+  /** Strain Target range on the percent track (the arc is full at 100). */
   target?: readonly [number, number] | null;
   /** Overrides the default label ("Recovery", "Strain"…). Required for `stat`. */
   label?: string;
@@ -91,7 +91,8 @@ function resolve(p: ScoreDialProps): Resolved {
       };
     }
     case "strain":
-      return { label: p.label ?? "Strain", max: 21, color: DATA_COLORS[dialColor("strain", p.value ?? 0)].css, text: formatValue("decimal1", p.value) };
+      // Strain is a percent: the ring is full at 100 and stays full above it; the label keeps the real value.
+      return { label: p.label ?? "Strain", max: 100, color: DATA_COLORS[dialColor("strain", p.value ?? 0)].css, unit: "%", text: formatValue("int", p.value) };
     case "sleep":
       return { label: p.label ?? (lg ? "Sleep performance" : "Sleep"), max: 100, color: DATA_COLORS[dialColor("sleep", p.value ?? 0)].css, unit: "%", text: formatValue("int", p.value) };
     case "gauge": {
@@ -124,7 +125,7 @@ export function ScoreDial(props: ScoreDialProps) {
   const reason = empty ? reasonCopy(props.reason, props.nightsLeft) : null;
   const gauge = variant === "gauge";
   const target = variant === "strain" ? props.target : null;
-  const sweepAt = (v: number, max: number) => ARC_FROM + (ARC_SWEEP * Math.min(Math.max(v, 0), max)) / max;
+  const sweepAt = (v: number, max: number) => ARC_FROM + ARC_SWEEP * ringShare(v, max);
   // The track sits 0.25 px inside each edge of the arc, so no dark fringe shows along the fill.
   const trackR = rad - 2.25 - (s.ring - 0.5) / 2;
   const fillR = rad - INSET - s.ring / 2;
@@ -188,14 +189,14 @@ export function ScoreDial(props: ScoreDialProps) {
         ) : (
           <>
             <Path d={arcPath(rad, rad, trackR, ARC_FROM, ARC_FROM + ARC_SWEEP)} stroke={c["dial-track"]} strokeWidth={s.ring - 0.5} fill="none" />
-            {target && <Path d={arcPath(rad, rad, trackR, sweepAt(target[0], 21), sweepAt(target[1], 21))} stroke={c["dial-target"]} strokeWidth={s.ring - 0.5} fill="none" />}
+            {target && <Path d={arcPath(rad, rad, trackR, sweepAt(target[0], 100), sweepAt(target[1], 100))} stroke={c["dial-target"]} strokeWidth={s.ring - 0.5} fill="none" />}
             {/* Fill layer: draws above the target band, so the band is covered once strain passes it. */}
             {!loading && !empty && value > 0 && <Path d={arcPath(rad, rad, fillR, ARC_FROM, sweepAt(value, r.max))} stroke={css(r.color)} strokeWidth={s.ring} fill="none" />}
             {/* Strain Target tick: one white tick across the ring, above the fill. */}
             {target &&
               (() => {
-                const [a, w] = markerSlices((target[0] + target[1]) / 2, 21, 0.2);
-                return <Path d={arcPath(rad, rad, fillR, sweepAt(a, 21), sweepAt(a + w, 21))} stroke={c.foreground} strokeWidth={s.ring} fill="none" />;
+                const [a, w] = markerSlices((target[0] + target[1]) / 2, 100, 1);
+                return <Path d={arcPath(rad, rad, fillR, sweepAt(a, 100), sweepAt(a + w, 100))} stroke={c.foreground} strokeWidth={s.ring} fill="none" />;
               })()}
           </>
         )}

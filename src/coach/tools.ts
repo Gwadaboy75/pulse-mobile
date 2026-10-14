@@ -115,10 +115,10 @@ export async function dayDigest(ctx: QueryCtx, day: string) {
       stages: sleep.stages?.value?.rows.map((r) => ({ stage: r.label, minutes: Math.round(r.minutes), pct: Math.round(r.pct) })) ?? null,
     },
     strain: {
-      ...num(strain.strain, 1),
-      scale: "0-21",
+      ...num(strain.strain),
+      scale: "percent, 0-100 (above 100 on a very big day)",
       soFar: strain.soFar,
-      target: strain.target.value ? [round(strain.target.value.low, 1), round(strain.target.value.high, 1)] : null,
+      target: strain.target.value ? [round(strain.target.value.low), round(strain.target.value.high)] : null,
       coachLine: strain.coach,
     },
     energyBank: { value: bank.value ? { current: round(bank.value.current), charged: round(bank.value.charged), drained: round(bank.value.drained), asOf: bank.value.until } : null, reason: bank.reason, provisional: bank.provisional },

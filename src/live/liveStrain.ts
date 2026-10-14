@@ -1,81 +1,73 @@
 // Live Strain for Live Workout (`/workout-live`): the day's Strain building beat by beat from the band's Bluetooth
-// heart rate, on the app's own Strain math (src/core/scoring/strain.ts: Banister TRIMP on heart-rate reserve, each
-// reading credited with the gap to the next up to 2 minutes, the same log map onto 0–21, no waking floor inside a
-// workout). Today's stored Effort is turned back into its TRIMP, so the live number carries on from the Strain on Home
-// instead of starting from zero. The accumulator follows noop's analytics/LiveSessionEngine.kt (© 2026 NoopApp,
+// heart rate, on the Pulse engine (src/core/engine/strain.ts): each reading's units (its zone weight on max HR × the
+// seconds to the next reading, at most 2 minutes) add to the day's units, and Daily Strain is the percent of the day's
+// awake steps and units. Today's stored units and steps are the base, so the live number carries on from the Strain on
+// Home instead of starting from zero. The accumulator follows noop's analytics/LiveSessionEngine.kt (© 2026 NoopApp,
 // PolyForm Noncommercial 1.0.0): one instance per session, time passed in with every sample so a session replays
 // deterministically in tests, and impossible samples rejected before they count.
 //
 // Display-only: nothing here is written to the Store. The workout counts for real when Fitbit syncs it to Health
 // Connect, so a beat never counts twice.
-import {
-  banisterRate,
-  defaultRestingHR,
-  effortOfTrimp,
-  JUMP_WINDOW_S,
-  MAX_JUMP_BPM,
-  MAX_PLAUSIBLE_BPM,
-  maxSampleGapMin,
-  MIN_PLAUSIBLE_BPM,
-  pctHRR,
-  toStrainScale,
-  trimpForStrain,
-  trimpOfEffort,
-} from "@/core/scoring/strain";
+import { dayStrain, weight, workoutStrain, type Zones, zonesOf } from "@/core/engine/strain";
+import { defaultRestingHR, JUMP_WINDOW_S, MAX_JUMP_BPM, MAX_PLAUSIBLE_BPM, maxSampleGapMin, MIN_PLAUSIBLE_BPM } from "@/core/scoring/strain";
 import { zoneNumber, zones } from "@/core/scoring/zones";
 
 export { MAX_JUMP_BPM, MAX_PLAUSIBLE_BPM, MIN_PLAUSIBLE_BPM };
 /** A jump larger than MAX_JUMP_BPM within this of the last accepted reading is an artifact (noop: 45 bpm in 12 s). */
 export const JUMP_WINDOW_MS = JUMP_WINDOW_S * 1000;
-/** The window the current rate (TRIMP a minute) is read over, for "minutes to target". */
+/** The window the current rate (units a minute) is read over, for "minutes to target". */
 export const RATE_WINDOW_MS = 3 * 60_000;
-/** Below this TRIMP a minute (about 13 % of the reserve) the rate is too low to reach a target. */
-export const MIN_TARGET_RATE = 0.1;
+/** Below this many units a minute (under zone 1 throughout) the rate is too low to reach a target. */
+export const MIN_TARGET_RATE = 60;
 
-/** The TRIMP a stored Effort (0–100) stands for: the Strain map run backwards. Null or ≤ 0 is none. */
-export const effortToTrimp = (effort: number | null | undefined): number => trimpOfEffort(effort);
+/** Today's stored Daily Strain inputs: the units (waking plus workouts) and the steps taken awake. */
+export type StrainBase = { units: number; steps: number };
 
-export { trimpForStrain };
+/** Daily Strain (a percent) of a base; 0 without one. */
+export const strainOfBase = (b: StrainBase | null): number => (b ? dayStrain(b.steps, b.units) : 0);
 
-/** TRIMP → Day Strain 0–21, the stored Effort's own rounding (2 dp of Effort) included. */
-export const strainOfTrimp = (trimp: number): number => toStrainScale(effortOfTrimp(trimp));
+/** The units at which the day's Strain reaches `strain` with `steps` awake; Infinity when units alone can't get there. */
+export function unitsForStrain(strain: number, steps: number): number {
+  const x = (strain - 16 * Math.atan(steps / 7000)) / 66;
+  if (x <= 0) return 0;
+  return x >= Math.PI / 2 ? Infinity : 20000 * Math.tan(x);
+}
 
 export type LiveStrainConfig = {
   restingHr: number;
   maxHr: number;
-  /** Banister's weighting differs by sex (strain.ts); male when absent. */
+  /** The profile's sex; the engine's units do not depend on it. */
   sex?: string;
-  /** Today's stored Effort (0–100) before the workout; null when there is none yet. */
-  baseEffort: number | null;
+  /** Today's stored Daily Strain inputs before the workout; null when there are none yet. */
+  base: StrainBase | null;
 };
 
 export class LiveStrain {
   readonly restingHr: number;
   readonly maxHr: number;
-  readonly reserve: number;
   readonly sex: string;
   private readonly zoneSet: ReturnType<typeof zones>;
-  /** TRIMP of the day before the workout. */
-  readonly baseTrimp: number;
-  /** The workout's TRIMP so far. */
-  trimp = 0;
+  private readonly engineZones: Zones;
+  /** The day's units and awake steps before the workout. */
+  readonly base: StrainBase;
+  /** The workout's units so far. */
+  units = 0;
   /** Credited seconds below Zone 1 ([0]) and in Zones 1–5. */
   readonly zoneSeconds = [0, 0, 0, 0, 0, 0];
   maxBpm: number | null = null;
   private last: { t: number; bpm: number } | null = null;
   private hrSum = 0;
   private hrMin = 0;
-  /** Credited TRIMP with the time it was credited, for the recent rate. */
-  private credits: { t: number; trimp: number; min: number }[] = [];
+  /** Credited units with the time they were credited, for the recent rate. */
+  private credits: { t: number; units: number; min: number }[] = [];
 
   constructor(c: LiveStrainConfig) {
     this.restingHr = c.restingHr > 0 ? c.restingHr : defaultRestingHR;
     this.maxHr = c.maxHr;
-    // A reserve under 1 bpm (bad profile data) is treated as 1, as zones() does.
-    this.reserve = Math.max(1, c.maxHr - this.restingHr);
     this.sex = c.sex ?? "male";
     this.zoneSet = zones(this.restingHr, c.maxHr);
-    this.baseTrimp = effortToTrimp(c.baseEffort);
+    this.engineZones = zonesOf(c.maxHr);
+    this.base = c.base ?? { units: 0, steps: 0 };
   }
 
   /** Whether a reading at `t` (epoch ms) counts: in range and not an impossible jump from the last one. */
@@ -86,8 +78,8 @@ export class LiveStrain {
   }
 
   /**
-   * One reading. The reading before it is credited with the gap up to this one (at most 2 minutes, the stored
-   * Strain's rule inside a workout) at its own Banister rate; this one waits for the next. False when it was rejected.
+   * One reading. The reading before it is credited with the gap up to this one (at most 2 minutes) at its own zone
+   * weight; this one waits for the next. False when it was rejected.
    */
   add(t: number, bpm: number): boolean {
     const l = this.last;
@@ -95,12 +87,12 @@ export class LiveStrain {
     if (!this.plausible(t, bpm)) return false;
     if (l) {
       const min = Math.min((t - l.t) / 60_000, maxSampleGapMin);
-      const credit = banisterRate(pctHRR(l.bpm, this.restingHr, this.reserve) / 100, this.sex) * min;
-      this.trimp += credit;
+      const credit = weight(l.bpm, this.engineZones) * min * 60;
+      this.units += credit;
       this.zoneSeconds[this.zoneOf(l.bpm)] += min * 60;
       this.hrSum += l.bpm * min;
       this.hrMin += min;
-      this.credits.push({ t, trimp: credit, min });
+      this.credits.push({ t, units: credit, min });
       if (this.credits[0].t < t - RATE_WINDOW_MS) this.credits = this.credits.filter((c) => c.t >= t - RATE_WINDOW_MS);
     }
     this.last = { t, bpm };
@@ -113,19 +105,19 @@ export class LiveStrain {
     return zoneNumber(this.zoneSet, bpm);
   }
 
-  /** The workout's own Strain, 0–21. */
+  /** The workout's own Strain, a percent. */
   get sessionStrain(): number {
-    return strainOfTrimp(this.trimp);
+    return workoutStrain(this.units);
   }
 
-  /** Day Strain before the workout, 0–21. */
+  /** Day Strain before the workout, a percent. */
   get dayStartStrain(): number {
-    return strainOfTrimp(this.baseTrimp);
+    return strainOfBase(this.base);
   }
 
-  /** Day Strain now, 0–21: the day's TRIMP before the workout plus the workout's. */
+  /** Day Strain now, a percent: the day's units before the workout plus the workout's, with the day's awake steps. */
   get dayStrain(): number {
-    return strainOfTrimp(this.baseTrimp + this.trimp);
+    return dayStrain(this.base.steps, this.base.units + this.units);
   }
 
   /** Time-weighted mean bpm of the credited readings; null before two. */
@@ -133,23 +125,23 @@ export class LiveStrain {
     return this.hrMin > 0 ? Math.round(this.hrSum / this.hrMin) : null;
   }
 
-  /** TRIMP a minute over the last RATE_WINDOW_MS of credited time before `now`; null with under a minute of it. */
+  /** Units a minute over the last RATE_WINDOW_MS of credited time before `now`; null with under a minute of it. */
   rate(now: number, windowMs = RATE_WINDOW_MS): number | null {
     const recent = this.credits.filter((c) => c.t >= now - windowMs);
     const min = recent.reduce((a, c) => a + c.min, 0);
     if (min < 1) return null;
-    return recent.reduce((a, c) => a + c.trimp, 0) / min;
+    return recent.reduce((a, c) => a + c.units, 0) / min;
   }
 
   /**
-   * Minutes at the current rate until Day Strain reaches `strain` (0–21): 0 when it already has; null when the rate
-   * is unknown or too low to get there (under MIN_TARGET_RATE TRIMP a minute).
+   * Minutes at the current rate until Day Strain reaches `strain` (a percent): 0 when it already has; null when the
+   * rate is unknown or too low to get there (under MIN_TARGET_RATE units a minute), or units alone can't reach it.
    */
   minutesTo(strain: number, now: number): number | null {
-    const need = trimpForStrain(strain) - (this.baseTrimp + this.trimp);
+    const need = unitsForStrain(strain, this.base.steps) - (this.base.units + this.units);
     if (need <= 0) return 0;
     const r = this.rate(now);
-    if (r === null || r < MIN_TARGET_RATE) return null;
+    if (r === null || r < MIN_TARGET_RATE || !Number.isFinite(need)) return null;
     return need / r;
   }
 }

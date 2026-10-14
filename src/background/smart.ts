@@ -4,7 +4,6 @@
 // notif/ScheduledReportNotifier.kt and alarm/WindDownScheduler.kt (© 2026 NoopApp, PolyForm Noncommercial 1.0.0); the
 // copy and the inputs (strain_target, health_monitor, the reports, sleep_planner) are Pulse's own.
 import { isoWeek, type Report } from "@/core/algorithms/reports";
-import { toStrainScale } from "@/core/scoring/strain";
 import type { ScoreRow } from "@/data/store";
 import { rangeLabel } from "@/lib/format";
 import { addDays, localDay, localMidnight, localMinutes, wall } from "@/lib/time";
@@ -40,11 +39,11 @@ export function monitorBefore(rows: readonly ScoreRow[], today: string): Monitor
   return null;
 }
 
-/** Today's Day Strain (0–21) and target range from its row; null on a day without enough HR, or without a target. */
+/** Today's Day Strain (a percent) and target range from its row; null on a day without enough HR, or without a target. */
 export function strainOf(row: ScoreRow | null | undefined): { strain: number | null; target: { low: number; high: number } | null } {
   const t = row?.strain_target;
   return {
-    strain: row?.strain?.effort != null ? toStrainScale(row.strain.effort) : null,
+    strain: row?.strain?.engine?.strain?.value ?? null,
     target: t && t.reason === null ? { low: t.low, high: t.high } : null,
   };
 }
@@ -59,9 +58,9 @@ export type SmartInput = {
   timeZone: string;
   source: AlertSource;
   settings: { strainTarget: boolean; healthMonitor: boolean; weeklyReport: boolean };
-  /** Today's Day Strain, 0–21; null on a day without enough HR. */
+  /** Today's Day Strain, a percent; null on a day without enough HR. */
   strain: number | null;
-  /** Today's target, 0–21; null without one (Recovery not scored yet). */
+  /** Today's target, a percent; null without one (Recovery not scored yet). */
   target: { low: number; high: number } | null;
   /** Today's Health Monitor; null until last night's vitals are in. */
   monitor: MonitorState | null;
@@ -79,16 +78,17 @@ export const WEEKLY_REPORT_DAYS = 2;
 
 export const reportLink = (period: string) => `pulse://reports/${period}`;
 
-const fmt1 = (x: number) => x.toFixed(1);
+/** Strain as a whole percent: "42%". */
+const pct = (x: number) => `${Math.round(x)}%`;
 /** Monday = 0. */
 const isoDow = (day: string) => (new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7;
 
 /** Where the day's strain sits in its target, in the Strain Coach's range wording. */
 export function strainBody(strain: number, target: { low: number; high: number }): string {
-  const range = `${fmt1(target.low)} - ${fmt1(target.high)}`;
+  const range = `${Math.round(target.low)} - ${pct(target.high)}`;
   return strain <= target.high
-    ? `Day Strain ${fmt1(strain)} is inside today’s target of ${range}.`
-    : `Day Strain ${fmt1(strain)} is past today’s target of ${range}. Prioritise sleep tonight to recover.`;
+    ? `Day Strain ${pct(strain)} is inside today’s target of ${range}.`
+    : `Day Strain ${pct(strain)} is past today’s target of ${range}. Prioritise sleep tonight to recover.`;
 }
 
 /** Home's monitor card as a notification: the illness signal, or the vitals out of range by name. */
@@ -106,12 +106,12 @@ export function monitorCopy(s: MonitorState): { title: string; body: string } {
   };
 }
 
-/** "Sep 28 - Oct 4: Recovery averaged 64%, Day Strain 11.2." with what the week has. */
+/** "Sep 28 - Oct 4: Recovery averaged 64%, Day Strain 42%." with what the week has. */
 export function reportBody(r: WeekReport): string {
   const range = rangeLabel(r.start, r.end);
   const parts = [
     r.averages.recovery != null ? `Recovery averaged ${Math.round(r.averages.recovery)}%` : null,
-    r.averages.strain != null ? `Day Strain ${fmt1(r.averages.strain)}` : null,
+    r.averages.strain != null ? `Day Strain ${pct(r.averages.strain)}` : null,
   ].filter((p): p is string => p !== null);
   return parts.length ? `${range}: ${parts.join(", ")}.` : `Your week of ${range} is in.`;
 }

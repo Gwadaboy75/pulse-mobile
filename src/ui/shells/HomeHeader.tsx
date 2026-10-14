@@ -34,7 +34,7 @@ function ringLabel(key: MiniRingVariant, label: string, value: number | null) {
   if (value === null) return `${label}: no score. Open ${label}`;
   if (key === "recovery") return `Recovery ${formatValue("int", value)} percent, ${BAND_WORD[recoveryBand(value)].toLowerCase()}. Open Recovery`;
   if (key === "sleep") return `Sleep performance ${formatValue("int", value)} percent. Open Sleep`;
-  return `Strain ${formatValue("decimal1", value)} of 21. Open Strain`;
+  return `Strain ${formatValue("int", value)} percent. Open Strain`;
 }
 
 /** The reference app's streak flame: the emoji-like two-tone fire, a red-orange body lit toward its tip with an orange-yellow core (the --flame-* tokens). */

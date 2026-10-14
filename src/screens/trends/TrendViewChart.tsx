@@ -232,7 +232,10 @@ function geometry(m: Model, chart: TrendViewChartProps["chart"], segments: Trend
   const y0 = m.margin.top;
   const y1 = height - m.margin.bottom - m.xAxisHeight;
   // The clock axis runs backwards: bed time at the top.
-  const y = chart === "range" ? linearScale(m.domain, [y0, y1]) : linearScale(m.domain, [y1, y0]);
+  const scale = chart === "range" ? linearScale(m.domain, [y0, y1]) : linearScale(m.domain, [y1, y0]);
+  // Values past a fixed domain (a Strain above 100 %) draw at its edge; their labels keep the real value.
+  const [dLo, dHi] = [Math.min(...m.domain), Math.max(...m.domain)];
+  const y = (v: number) => scale(Math.min(dHi, Math.max(dLo, v)));
   const { step, centers: xs } = bandCenters(rows.length, x0, x1, 0.1);
   const pointsOf = (pick: (i: number) => number | null | undefined) => rows.map((_, i) => ({ x: xs[i], y: pick(i) == null ? null : y(pick(i)!) }));
   const daily = pointsOf((i) => rows[i].value);

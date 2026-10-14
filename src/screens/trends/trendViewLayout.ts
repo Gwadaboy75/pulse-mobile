@@ -119,7 +119,7 @@ export function buildModel(p: TrendViewChartProps, fmt: (v: number) => string): 
   ];
   const domain: [number, number] =
     p.chart === "range" ? rangeDomain : (p.domain ?? (p.chart === "line" || p.chart === "pair" || (six && !weekly) ? lineDomain() : [0, Math.max(1, ...values, ...segVals) * 1.15]));
-  const niced = p.domain && p.domain[1] === 100 ? [0, 25, 50, 75, 100] : p.domain && p.domain[1] === 21 ? [0, 5, 10, 15, 21] : niceTicks(domain, p.format === "duration");
+  const niced = p.domain && p.domain[1] === 100 ? [0, 25, 50, 75, 100] : niceTicks(domain, p.format === "duration");
   const yTicks = p.chart === "range" ? Array.from({ length: Math.round((domain[1] - domain[0]) / 240) + 1 }, (_, i) => domain[0] + i * 240) : niced;
 
   const summary = values.length

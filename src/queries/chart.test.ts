@@ -9,7 +9,7 @@ import { addDays } from "@/lib/time";
 import { runPipeline } from "@/pipeline";
 import { compareDomain, dailySeries, daySeries, runningStats, windowFor, yDomain } from "@/screens/chart/model";
 import { CHART_GROUPS, CHART_METRICS, chartDef, DAY_VIEW, getChartDay, getChartSeries } from "./chart";
-import { loadDays, toStrain } from "./common";
+import { dayStrainOf, loadDays } from "./common";
 import type { QueryCtx } from "./ctx";
 import { getStrain } from "./strain";
 import { getTrends } from "./trends";
@@ -112,13 +112,13 @@ describe("getChartDay", () => {
     for (const dd of [day, addDays(TODAY, -3), TODAY]) {
       const vm = await getChartDay("strain", dd, ctx);
       const row = (await loadDays(ctx, dd, dd)).get(dd)!;
-      expect(row.s1?.effort, dd).not.toBeNull();
+      expect(dayStrainOf(row.s1), dd).not.toBeNull();
       expect(vm.xs.length, dd).toBeGreaterThan(60);
       expect(vm.xs.length).toBe(vm.ys.length);
       // The number on the Strain screen and in the explorer's daily strain series, to the bit.
       const shown = (await getStrain(dd, ctx)).strain.value;
       expect(vm.ys.at(-1), dd).toBe(shown);
-      expect(vm.ys.at(-1)).toBe(toStrain(row.s1!.effort!));
+      expect(vm.ys.at(-1)).toBe(dayStrainOf(row.s1));
       const daily = await getChartSeries("strain", ctx);
       expect(daily.values[daily.days.indexOf(dd)]).toBe(vm.ys.at(-1));
       // Never falls, minutes ascending inside the day, on the Strain scale.
@@ -128,7 +128,7 @@ describe("getChartDay", () => {
       }
       expect(vm.xs[0]).toBeGreaterThanOrEqual(0);
       expect(vm.xs.at(-1)!).toBeLessThanOrEqual(1440);
-      for (const y of vm.ys) expect(y!).toBeLessThanOrEqual(21);
+      for (const y of vm.ys) expect(y!).toBeLessThanOrEqual(130);
       // The window's numbers over the whole day: from nothing to the day's Strain.
       const s = daySeries(vm, DAY_VIEW.strain.label, DAY_VIEW.strain.unit, DAY_VIEW.strain.format);
       expect(s.cumulative).toBe(true);

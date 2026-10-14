@@ -1,7 +1,7 @@
 // Activities `/activities`. Ported from Pulse's src/server/queries/activities.ts.
 import { addDays } from "@/lib/time";
 import { detectedItem, getActivityCost } from "./activityCost";
-import { activityItem, loadDays, type QueryCtx, todayOf, toStrain } from "./common";
+import { activityItem, loadDays, type QueryCtx, todayOf, dayStrainOf } from "./common";
 import type { ActivitiesVM } from "./types";
 
 /** Days per page of `/activities`; "Show older" adds another page. */
@@ -33,7 +33,7 @@ export async function getActivities(days = ACTIVITY_PAGE_DAYS, ctx: QueryCtx): P
         items,
         minutes,
         steps: row?.metrics?.steps ?? null,
-        dayStrain: row?.s1?.effort != null ? toStrain(row.s1.effort) : null,
+        dayStrain: dayStrainOf(row?.s1),
         detected: (row?.detected ?? []).map(detectedItem).sort((a, b) => b.start - a.start),
       };
     });

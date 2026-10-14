@@ -149,7 +149,7 @@ function ChevronButton({ dir, disabled, onPress }: { dir: "prev" | "next"; disab
 
 const VALUE_TEXT: Record<CalendarContext, (v: number) => string> = {
   recovery: (v) => `Recovery ${Math.round(v)}%`,
-  strain: (v) => `Strain ${formatValue("decimal1", v)}`,
+  strain: (v) => `Strain ${formatValue("pct", v)}`,
   sleep: (v) => `Sleep ${Math.round(v)}%`,
 };
 

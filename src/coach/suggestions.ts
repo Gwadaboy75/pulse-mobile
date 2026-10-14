@@ -2,7 +2,7 @@
 // and why it is missing, HRV against the 30 days before today, last night's sleep, Strain against today's target).
 import { suggestionsFor } from "@/core/algorithms/coachSuggestions";
 import { addDays } from "@/lib/time";
-import { loadDays, priorStats, todayOf, toStrain, type QueryCtx } from "@/queries/common";
+import { loadDays, priorStats, todayOf, dayStrainOf, type QueryCtx } from "@/queries/common";
 
 export async function coachSuggestions(ctx: QueryCtx) {
   const today = todayOf(ctx);
@@ -16,7 +16,7 @@ export async function coachSuggestions(ctx: QueryCtx) {
     hrv: row?.metrics?.hrvMs ?? null,
     hrvBaseline: priorStats(rows, today, (r) => r.metrics?.hrvMs).mean,
     asleepMinutes: row?.sleep?.main?.asleepMin ?? null,
-    strain: row?.s1?.effort == null ? null : toStrain(row.s1.effort),
+    strain: dayStrainOf(row?.s1),
     targetHigh: target?.reason === null ? target.high : null,
   });
 }

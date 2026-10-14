@@ -110,10 +110,10 @@ export function StrainScreen() {
   )
 }
 
-/** "Strain Target 12.0 - 15.0": a range, so it is drawn beside the KeyStatRows rather than as one (no arrow). */
+/** "Strain Target 40 - 60%": a range, so it is drawn beside the KeyStatRows rather than as one (no arrow). */
 function TargetRow({ vm }: { vm: StrainVM }) {
   const t = vm.target
-  const text = t.value ? `${formatValue("decimal1", t.value.low)} - ${formatValue("decimal1", t.value.high)}` : "--"
+  const text = t.value ? `${formatValue("int", t.value.low)} - ${formatValue("pct", t.value.high)}` : "--"
   const reason = t.value ? null : reasonCopy(t.reason, t.nightsLeft).short
   return (
     <View accessible accessibilityLabel={reason ? `Strain Target: ${reason}` : `Strain Target ${text.replace(" - ", " to ")}`} className="min-h-[52px] flex-row items-center gap-3 py-2">

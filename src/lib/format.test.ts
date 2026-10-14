@@ -42,8 +42,8 @@ describe("format", () => {
     expect(dialAriaLabel({ variant: "recovery", label: "Recovery", value: 72, valueText: "72", unit: "%", bandWord: "Green" })).toBe(
       "Recovery 72 percent, green",
     );
-    expect(dialAriaLabel({ variant: "strain", label: "Strain", value: 9.4, valueText: "9.4", target: [12, 15], soFar: true })).toBe(
-      "Strain 9.4 of 21 so far, target 12.0 to 15.0",
+    expect(dialAriaLabel({ variant: "strain", label: "Strain", value: 42, valueText: "42", unit: "%", target: [46, 79], soFar: true })).toBe(
+      "Strain 42 percent so far, target 46 to 79 percent",
     );
     expect(dialAriaLabel({ variant: "recovery", label: "Recovery", value: null, reasonText: "Calibrating: 4 nights left" })).toBe(
       "Recovery unavailable: calibrating, 4 nights left",

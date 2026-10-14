@@ -2,8 +2,7 @@
 import { fitnessLevel } from "@/core/algorithms/fitnessLevel";
 import { HEALTHSPAN_TERM_COUNT, healthspanConfig, type HealthspanContribution } from "@/core/algorithms/healthspan";
 import { minuteMeanHr } from "@/core/algorithms/stress";
-import { minAcuteDays, minChronic } from "@/core/scoring/readiness";
-import { standardConfig } from "@/core/scoring/trainingLoad";
+import type { LoadStatus } from "@/core/engine/strain";
 import { addDays, daysBetween, fractionalYears, localMidnight, wall } from "@/lib/time";
 import { acwrTone, dayLabel, formatDay, weekOf } from "./_lib";
 import {
@@ -540,6 +539,17 @@ function stressInsight(st: NonNullable<DayRow["stress"]>, tz: string) {
 // ── Fitness ─────────────────────────────────────────────────────────────────
 
 const ACWR_STATUS = { neutral: "detraining", optimal: "optimal", warning: "pushing", alert: "high_risk" } as const satisfies Record<ChipTone, string>;
+type LoadChip = NonNullable<FitnessVM["trainingLoad"]["value"]>["status"];
+const STATUS_TONE: Record<LoadChip, ChipTone> = { detraining: "neutral", optimal: "optimal", pushing: "warning", high_risk: "alert" };
+/** The engine's load statuses on the screen's four chips. */
+const CARDIO_STATUS: Record<Exclude<LoadStatus, "calibrating">, LoadChip> = {
+  detraining: "detraining",
+  maintaining: "optimal",
+  peaking: "optimal",
+  productive: "optimal",
+  fatigued: "pushing",
+  overtraining: "high_risk",
+};
 export const acwrStatus = (acwr: number) => {
   const tone = acwrTone(acwr);
   return { status: ACWR_STATUS[tone], tone };
@@ -570,15 +580,16 @@ export async function getFitness(ctx: QueryCtx): Promise<FitnessVM> {
     est && estDay
       ? ok({ fitnessAge: est.fitnessAge, age: estAge, vo2max: est.vo2max, method: est.method, activityIndex: est.activityIndex, restingHr: est.restingHr, day: estDay })
       : none("no_data");
-  const tl = row?.trainingLoad;
-  const effortDays = [...rows.values()].filter((r) => r.s1?.effort != null).length;
+  // Cardio Load on the Pulse engine (training_load.cardio): the ratio and its status, mapped onto the screen's chips.
+  const cardio = row?.trainingLoad?.cardio;
   const trainingLoad: Metric<NonNullable<FitnessVM["trainingLoad"]["value"]>> =
-    // Garmin's ratio needs 7 days for a first acute load and 14 acute loads for the chronic one: 20 days in all.
-    tl?.acwr != null ? ok({ acwr: tl.acwr, ...acwrStatus(tl.acwr) }) : none("calibrating", Math.max(1, minAcuteDays + minChronic - 1 - effortDays));
+    cardio && cardio.status !== "calibrating" && cardio.ratio != null
+      ? ok({ acwr: cardio.ratio, status: CARDIO_STATUS[cardio.status], tone: STATUS_TONE[CARDIO_STATUS[cardio.status]] })
+      : none("calibrating");
   const load = Array.from({ length: 90 }, (_, k) => {
     const d = addDays(last, k - 89);
-    const t = rows.get(d)?.trainingLoad;
-    return { day: d, ctl: t?.ctl ?? null, atl: t?.atl ?? null, tsb: t?.tsb ?? null };
+    const t = rows.get(d)?.trainingLoad?.cardio;
+    return { day: d, ctl: t?.ctl ?? null, atl: t?.atl ?? null, tsb: t ? t.ctl - t.atl : null };
   });
   // Measured and Fitbit values; with none in the window, Pulse's own estimate.
   const measured = trendPoints(rows, last, (r) => r.metrics?.vo2maxRun ?? r.metrics?.vo2maxDaily);
@@ -590,7 +601,7 @@ export async function getFitness(ctx: QueryCtx): Promise<FitnessVM> {
     },
     trainingLoad,
     load,
-    loadReason: load.some((p) => p.ctl != null) ? null : { reason: "calibrating", nightsLeft: Math.max(1, standardConfig.minimumDays - (tl?.contiguousDays ?? 0)) },
+    loadReason: load.some((p) => p.ctl != null) ? null : { reason: "calibrating" },
   };
 }
 

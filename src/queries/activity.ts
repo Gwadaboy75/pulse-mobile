@@ -18,7 +18,8 @@ import {
   ok,
   type QueryCtx,
   todayOf,
-  toStrain,
+  activityStrainOf,
+  dayStrainOf,
 } from "./common";
 import { getActivityCost } from "./activityCost";
 import { hrChartOf, zoneNote, zoneRows } from "./strain";
@@ -66,7 +67,8 @@ export async function getActivity(id: string, ctx: QueryCtx): Promise<ActivityVM
     tile("calories", "Calories", e.calories, "kcal", same.map((x) => x.calories), "no_data"),
   ];
 
-  const hrr60 = a?.hrr?.after1Minute;
+  // Heart-rate recovery on the Pulse engine: the largest drop within 2 minutes after the workout (null below zone 4).
+  const hrr60 = a?.engine?.hrr?.drop;
   const hrr: ActivityVM["hrr"] =
     hrr60 == null
       ? none("insufficient_hr_data")
@@ -79,10 +81,10 @@ export async function getActivity(id: string, ctx: QueryCtx): Promise<ActivityVM
     kind,
     start: ms(e.startTs),
     end: ms(e.endTs),
-    strain: a?.effort != null ? ok(toStrain(a.effort)) : none(reason),
+    strain: activityStrainOf(a) != null ? ok(activityStrainOf(a)!) : none(reason),
     loadSplit: a?.effort != null ? loadSplit(a.cardioTrimp ?? null, a.muscularTrimp ?? 0) : null,
     trainingEffect: trainingEffectVM(row?.training, id),
-    dayStrain: row?.s1?.effort != null ? toStrain(row.s1.effort) : null,
+    dayStrain: dayStrainOf(row?.s1),
     stats,
     insight: a && a.hrCount > 0 ? zoneInsight(a.zoneSeconds) : null,
     hr: hrChartOf(ctx, row, e.day, e.day === todayOf(ctx), series, recent.filter((y) => y.id === id), e.startTs - 600, e.endTs + 600),

@@ -229,7 +229,8 @@ export class LiveCoach {
 export type GuidanceTone = "push" | "steady" | "ease" | "wait";
 export type Guidance = { tone: GuidanceTone; title: string; body: string };
 
-const f1 = (x: number) => x.toFixed(1);
+/** Strain as a whole percent: "42%". */
+const pct = (x: number) => `${Math.round(x)}%`;
 const minutesWords = (m: number) => (m < 1.5 ? "about a minute" : `about ${Math.round(m)} minutes`);
 
 /**
@@ -246,7 +247,7 @@ export function guidance(o: {
   const { strain, target, coach, minutesToLow } = o;
   const floor = Math.round(coach.band.floorBpm);
   const ceiling = Math.round(coach.band.ceilingBpm);
-  const range = target ? `${f1(target[0])} - ${f1(target[1])}` : null;
+  const range = target ? `${Math.round(target[0])} - ${pct(target[1])}` : null;
 
   if (target && strain >= target[1])
     return { tone: "ease", title: "Ease off", body: `You’ve reached today’s target of ${range}. More strain from here adds load faster than benefit: cool down and stop.` };
@@ -255,11 +256,11 @@ export function guidance(o: {
 
   if (target && strain >= target[0]) {
     if (coach.position === "above") return { tone: "ease", title: "In range: ease off", body: `You’re inside today’s target of ${range}. Bring your heart rate under ${ceiling} bpm to finish steady.` };
-    return { tone: "steady", title: "In your target range", body: `Day Strain ${f1(strain)} is inside today’s ${range}. You can stop here, or keep it easy.` };
+    return { tone: "steady", title: "In your target range", body: `Day Strain ${pct(strain)} is inside today’s ${range}. You can stop here, or keep it easy.` };
   }
 
-  const eta = target && minutesToLow !== null && minutesToLow > 0 ? ` ${minutesWords(minutesToLow)} at this effort reaches ${f1(target[0])}.` : "";
-  if (coach.position === "below") return { tone: "push", title: "Push", body: `Pick up the pace: get above ${floor} bpm.${target ? ` You’re ${f1(target[0] - strain)} below today’s target.` : ""}` };
+  const eta = target && minutesToLow !== null && minutesToLow > 0 ? ` ${minutesWords(minutesToLow)} at this effort reaches ${pct(target[0])}.` : "";
+  if (coach.position === "below") return { tone: "push", title: "Push", body: `Pick up the pace: get above ${floor} bpm.${target ? ` You’re ${pct(target[0] - strain)} below today’s target.` : ""}` };
   if (coach.position === "above") return { tone: "ease", title: "Ease off", body: `You’re above today’s band (${ceiling} bpm). Your Recovery favours a steadier effort.${eta}` };
   return { tone: "steady", title: "On track", body: `Hold this effort: ${floor}–${ceiling} bpm.${eta}` };
 }

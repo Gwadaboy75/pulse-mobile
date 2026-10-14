@@ -8,7 +8,7 @@ import { PLAN_DEFAULTS, type PlanTargets } from "@/core/algorithms/weeklyPlan";
 import type { ReportRow } from "@/data/store";
 import { DEFAULT_JOURNAL_TAGS } from "@/data/seed";
 import { FORMATS, hmm } from "./_lib";
-import { type DayRow, exercisesBetween, finite, loadDays, none, ok, type QueryCtx, toStrain } from "./common";
+import { type DayRow, exercisesBetween, finite, loadDays, none, ok, type QueryCtx, dayStrainOf } from "./common";
 import { latestReport } from "./home";
 import type { DriverItem, KeyStat, Metric, ReportVM, StackedSegment } from "./types";
 import { planDays } from "./weeklyPlan";
@@ -81,17 +81,14 @@ export async function getReport(period: string, ctx: QueryCtx, targets: PlanTarg
   let withTarget = 0;
   for (const row of rows.values()) {
     const t = row.strainTarget;
-    if (t?.reason === null && row.s1?.effort != null) {
+    const s = dayStrainOf(row.s1);
+    if (t?.reason === null && s != null) {
       withTarget++;
-      const s = toStrain(row.s1.effort);
       if (s >= t.low && s <= t.high) inTarget++;
     }
   }
   const tb = r.trainingBalance ? BALANCE[r.trainingBalance.status as keyof typeof BALANCE] : null;
-  const strainOf = (day: string) => {
-    const e = rows.get(day)?.s1?.effort;
-    return e == null ? null : toStrain(e);
-  };
+  const strainOf = (day: string) => dayStrainOf(rows.get(day)?.s1);
 
   const impacts: DriverItem[] = r.topImpacts.map((t) => ({
     key: t.tag,
@@ -122,7 +119,7 @@ export async function getReport(period: string, ctx: QueryCtx, targets: PlanTarg
     bands: scored ? ok(bands) : none("no_data"),
     averages: [
       stat("recovery", "Recovery", a.recovery, pa?.recovery, "%", "up"),
-      stat("strain", "Day strain", a.strain, pa?.strain, undefined, "neutral"),
+      stat("strain", "Day strain", a.strain, pa?.strain, "%", "neutral"),
       stat("sleepPerf", "Sleep performance", a.sleepPerf, pa?.sleepPerf, "%", "up"),
       stat("sleepHours", "Hours of sleep", a.sleepHours, pa?.sleepHours, "h", "up"),
       stat("consistency", "Sleep consistency", r.sleepConsistency, prevReport?.sleepConsistency, "%", "up"),
@@ -166,7 +163,7 @@ const NBSP = "\u00a0";
 /** How each assessment metric is named and how its change prints. */
 const CHANGE: Record<AssessKey, { label: string; text: (d: number) => string }> = {
   recovery: { label: "Recovery", text: (d) => `${FORMATS.signedInt(d)}%` },
-  strain: { label: "Day strain", text: (d) => FORMATS.signed1(d) },
+  strain: { label: "Day strain", text: (d) => `${FORMATS.signedInt(d)}%` },
   sleepPerf: { label: "Sleep performance", text: (d) => `${FORMATS.signedInt(d)}%` },
   hrv: { label: "Heart rate variability", text: (d) => `${FORMATS.signedInt(d)}${NBSP}ms` },
   rhr: { label: "Resting heart rate", text: (d) => `${FORMATS.signedInt(d)}${NBSP}bpm` },
@@ -188,7 +185,7 @@ function assessmentDays(rows: Map<string, DayRow>, exs: Parameters<typeof planDa
     const day: AssessmentDay = {
       ...plan.get(row.day)!,
       recovery: finite(row.recovery?.value) ? row.recovery.value : null,
-      strain: row.s1?.effort == null ? null : toStrain(row.s1.effort),
+      strain: dayStrainOf(row.s1),
       sleepPerf: finite(row.sleep?.performance) ? row.sleep.performance : null,
       hrv: finite(row.recovery?.inputs.hrv) ? row.recovery.inputs.hrv : null,
       // As the stored report's days take it (src/pipeline/scores.ts recordOutcomes).

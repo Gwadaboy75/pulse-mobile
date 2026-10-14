@@ -138,7 +138,7 @@ export function Evidence({ name, output }: { name: string; output: unknown }) {
       <View className="gap-2">
         <EvidenceCard title={`Workouts · ${d.start} to ${d.end}`}>
           {d.workouts.length ? (
-            d.workouts.slice(0, 5).map((v) => <KeyStatRow key={v.id} variant="row" label={v.name} metric={metric(v.strain)} format="decimal1" direction="none" caption={`${v.day} · ${v.minutes} min · Strain`} href={`/activity/${encodeURIComponent(v.id)}`} />)
+            d.workouts.slice(0, 5).map((v) => <KeyStatRow key={v.id} variant="row" label={v.name} metric={metric(v.strain)} unit="%" format="int" direction="none" caption={`${v.day} · ${v.minutes} min · Strain`} href={`/activity/${encodeURIComponent(v.id)}`} />)
           ) : (
             <Text className={NOTE}>No workouts recorded in this period.</Text>
           )}
@@ -156,7 +156,7 @@ export function Evidence({ name, output }: { name: string; output: unknown }) {
     return (
       <View className="gap-2">
         <EvidenceCard title={`${a.name} · ${a.day}`}>
-          <KeyStatRow variant="row" label="Activity strain" metric={metric(a.strain)} format="decimal1" direction="none" />
+          <KeyStatRow variant="row" label="Activity strain" metric={metric(a.strain)} unit="%" format="int" direction="none" />
           {a.stats.slice(0, 3).map((v) => (
             <KeyStatRow key={v.label} variant="row" label={v.label} metric={metric(v)} unit={v.unit ?? undefined} format="decimal1" average={v.baseline} direction="none" />
           ))}

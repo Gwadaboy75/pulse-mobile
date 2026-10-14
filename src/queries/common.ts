@@ -2,7 +2,7 @@
 // Ported from Pulse's src/server/queries/common.ts; every Postgres read is a Store read.
 import type { DetectedActivity } from "@/core/algorithms/autoWorkout";
 import { STRENGTH_TYPES } from "@/core/algorithms/healthspan";
-import { tanakaHRmax, toStrainScale } from "@/core/scoring/strain";
+import { tanakaHRmax } from "@/core/scoring/strain";
 import type { Exercise, Metrics } from "@/data/types";
 import type { Metric, MetricTag, ReasonCode } from "@/lib/reasons";
 import { addDays, localMidnight, wholeYears } from "@/lib/time";
@@ -171,7 +171,10 @@ export const maybe = (v: number | null | undefined, reason: ReasonCode, provisio
 /** Why strain-type (HR) data is missing. */
 export const hrReason = (s1: Stage1Day | null): ReasonCode => (!s1 || s1.hrCount === 0 ? "band_not_worn" : "insufficient_hr_data");
 
-export const toStrain = toStrainScale;
+/** Daily Strain, a percent (the Pulse engine, stage 1's `engine.strain`); null on a day without one. */
+export const dayStrainOf = (s1: Stage1Day | null | undefined): number | null => s1?.engine?.strain?.value ?? null;
+/** A workout's strain, a percent; null without one. */
+export const activityStrainOf = (a: Stage1Activity | null | undefined): number | null => a?.engine?.strain ?? null;
 export const ms = (s: number) => s * 1000;
 
 export function meanSd(xs: (number | null | undefined)[]) {
@@ -245,7 +248,8 @@ export async function exercisesBetween(ctx: QueryCtx, from: string, to: string):
 export function activityItem(e: ExerciseRow, row: DayRow | undefined): Extract<TimelineItem, { kind: "activity" }> {
   const kind = activityKind(e.type);
   const a = row?.activities.find((x) => x.id === e.id);
-  const strain = a?.effort != null ? ok(toStrain(a.effort)) : none<number>(a && a.hrCount > 0 ? "insufficient_hr_data" : "band_not_worn");
+  const st = activityStrainOf(a);
+  const strain = st != null ? ok(st) : none<number>(a && a.hrCount > 0 ? "insufficient_hr_data" : "band_not_worn");
   return { kind: "activity", id: e.id, day: e.day, name: ACTIVITY_NAME[kind], activityKind: kind, strain, start: ms(e.startTs), end: ms(e.endTs), ...distanceOf(e) };
 }
 
@@ -348,7 +352,8 @@ export function sleepMetric(row: DayRow | undefined, isToday: boolean): Metric<n
 
 export function strainMetric(row: DayRow | undefined): Metric<number> {
   const s1 = row?.s1;
-  return s1?.effort != null ? ok(toStrain(s1.effort)) : none(hrReason(s1 ?? null));
+  const v = dayStrainOf(s1);
+  return v != null ? ok(v) : none(hrReason(s1 ?? null));
 }
 
 export function stressNow(row: DayRow | undefined, isToday: boolean): Metric<{ value: number; level: "low" | "medium" | "high"; at: number | null; dayAverage: boolean }> {

@@ -7,7 +7,7 @@ import { EXTRA_METRICS, type ExtraKey, type ExtraMetric } from "@/lib/extraMetri
 import type { ReasonCode } from "@/lib/reasons";
 import { addDays } from "@/lib/time";
 import { metricHref, trendHref } from "@/lib/url";
-import { activityKind, type DayRow, exercisesBetween, finite, hrReason, loadDays, maybe, priorStats, recoveryMetric, sleepMetric, toStrain, vitalReason } from "./common";
+import { activityKind, type DayRow, exercisesBetween, finite, hrReason, loadDays, maybe, priorStats, recoveryMetric, sleepMetric, dayStrainOf, vitalReason } from "./common";
 import type { QueryCtx } from "./ctx";
 import { getStress } from "./health";
 import { worn, zoneSum } from "./trendView";
@@ -92,7 +92,7 @@ function statSpecs(row: DayRow | undefined, isToday: boolean, rows: Map<string, 
     ),
     restorative: scored(restorative, night, "min", "up", trendHref("restorative")),
     debt: scored((r) => (sleepMain(r) ? r.sleep!.debtMin : null), night, "min", "down", "/sleep"),
-    strain: scored((r) => (finite(r.s1?.effort) ? toStrain(r.s1.effort) : null), dailyReason, undefined, "neutral", trendHref("strain"), "decimal1"),
+    strain: scored((r) => dayStrainOf(r.s1), dailyReason, "%", "neutral", trendHref("strain"), "int"),
     zones13: scored(weekly(rows, zoneSum(0, 3)), dailyReason, "min", "up", trendHref("zones13")),
     zones45: scored(weekly(rows, zoneSum(3, 5)), dailyReason, "min", "up", trendHref("zones45")),
     zones_all: scored(weekly(rows, zoneSum(0, 5)), dailyReason, "min", "up", "/strain"),

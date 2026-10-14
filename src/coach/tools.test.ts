@@ -93,7 +93,7 @@ describe("coach tools", () => {
     expect(day.isToday).toBe(false);
     expect(day.recovery.value).toBe(Math.round(stored!.recovery!.value!));
     expect(day.recovery.contributors.length).toBeGreaterThan(0);
-    expect(day.strain.scale).toBe("0-21");
+    expect(day.strain.scale).toBe("percent, 0-100 (above 100 on a very big day)");
     expect(typeof day.guidance).toBe("object");
     // A future day resolves to today; a day before the data starts resolves to the first day.
     expect((await call(coachTools(ctx).get_day, { day: "2030-01-01" })).day).toBe(TODAY);

@@ -2,7 +2,7 @@
 // the range before it. Ported from Pulse's src/server/queries/trends.ts.
 import { addDays } from "@/lib/time";
 import { EXTRA_METRICS, type ExtraKey, type FormatKey, type GoodDirection, metricHref, RANGE_DAYS, RANGES, type TrendRange } from "./_lib";
-import { type DayRow, finite, loadDays, none, ok, type QueryCtx, todayOf, toStrain } from "./common";
+import { type DayRow, finite, loadDays, none, ok, type QueryCtx, todayOf, dayStrainOf } from "./common";
 import type { DayPoint, Metric } from "./types";
 
 export type TrendMetricKey =
@@ -71,7 +71,7 @@ const columnOf = (key: string, unit: string | undefined, format: FormatKey) =>
 
 const CORE: readonly TrendMetric[] = [
   { key: "recovery", group: "Recovery & sleep", label: "Recovery", unit: "%", format: "int", colorBy: "band", direction: "up", href: "/recovery", column: "recovery_pct", pick: (r) => r.recovery?.value, provisional: (r) => !!r.recovery?.provisional },
-  { key: "strain", group: "Activity", label: "Strain", format: "decimal1", colorBy: "strain", direction: "neutral", href: "/strain", column: "strain", pick: (r) => (finite(r.s1?.effort) ? toStrain(r.s1.effort) : null), partialToday: true },
+  { key: "strain", group: "Activity", label: "Strain", unit: "%", format: "int", colorBy: "strain", direction: "neutral", href: "/strain", column: "strain_pct", pick: (r) => dayStrainOf(r.s1), partialToday: true },
   { key: "sleep", group: "Recovery & sleep", label: "Sleep performance", unit: "%", format: "int", colorBy: "sleep", direction: "up", href: "/sleep", column: "sleep_performance_pct", pick: (r) => r.sleep?.performance },
   { key: "hours", group: "Recovery & sleep", label: "Hours of sleep", format: "duration", colorBy: "sleep", direction: "up", href: "/sleep", column: "sleep_minutes", pick: (r) => r.sleep?.main?.asleepMin },
   { key: "consistency", group: "Recovery & sleep", label: "Sleep consistency", unit: "%", format: "int", colorBy: "sleep", direction: "up", href: "/sleep", column: "sleep_consistency_pct", pick: (r) => r.sleep?.consistency },

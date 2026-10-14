@@ -56,15 +56,15 @@ export const STRAIN_INFO: InfoContent = {
   body: (
     <>
       <P>
-        Strain measures the cardiovascular load of your day on a 0 to 21 scale, from the time you spend at higher heart rates. The scale is
-        non-linear: each point is harder to earn than the last.
+        Strain is the load of your day as a percent: 0 to 100 on most days, above 100 on a very big day. It builds from the time you spend
+        in higher heart-rate zones and the steps you take while awake, and each point is harder to earn than the last.
       </P>
       <Rows
         rows={[
-          [null, "Light: up to 10.0"],
-          [null, "Moderate: 10.1 - 14.0"],
-          [null, "Strenuous: 14.1 - 18.0"],
-          [null, "All Out: 18.1 - 21"],
+          [null, "Light: up to 40%"],
+          [null, "Moderate: 41 - 60%"],
+          [null, "Strenuous: 61 - 79%"],
+          [null, "All Out: 80% and above"],
         ]}
       />
       <P>
@@ -137,7 +137,7 @@ export const STRAIN_RECOVERY_INFO: InfoContent = {
   title: "Strain & recovery",
   body: (
     <>
-      <P>Your last 7{"\u00a0"}days side by side: Day Strain in blue on the left scale, from 0 to 21, and Recovery on the right scale, from 0 to 100%.</P>
+      <P>Your last 7{"\u00a0"}days side by side: Day Strain in blue on the left scale, from 0 to 100%, and Recovery on the right scale, from 0 to 100%.</P>
       <P>High strain on one day often shows up as lower Recovery the next morning. Days without a score are left as gaps.</P>
     </>
   ),

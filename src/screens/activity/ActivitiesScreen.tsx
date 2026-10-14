@@ -116,7 +116,7 @@ function Summary({ items, days }: { items: Group["items"]; days: number }) {
       <Card className="flex-row gap-3 px-4">
         {stat(items.length, items.length === 1 ? "Activity" : "Activities")}
         {stat(hmm(minutes), "Time")}
-        {stat(<Text className={avg === null ? "text-muted-foreground" : "text-strain-text"}>{formatValue("decimal1", avg)}</Text>, "Avg strain")}
+        {stat(<Text className={avg === null ? "text-muted-foreground" : "text-strain-text"}>{formatValue("pct", avg)}</Text>, "Avg strain")}
       </Card>
     </View>
   )
@@ -134,7 +134,7 @@ function Day({ g, today, timeZone }: { g: Group; today: string; timeZone: string
           {g.steps !== null && g.dayStrain !== null && " · "}
           {g.dayStrain !== null && (
             <>
-              Day strain <Text className="font-bold text-strain-text">{formatValue("decimal1", g.dayStrain)}</Text>
+              Day strain <Text className="font-bold text-strain-text">{formatValue("pct", g.dayStrain)}</Text>
             </>
           )}
         </Text>

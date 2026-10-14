@@ -78,8 +78,11 @@ export function paddedDomain(values: (number | null)[]): [number, number] {
 
 // --- ScoreDial slices (Pie data, not angles) ---
 
-/** Strain Target band on the 0-21 track: [before, band, after]. */
-export function targetSlices(lo: number, hi: number, max = 21) {
+/** A ring's share of a full turn: value / max clamped to [0, 1] (a Strain of 112 % fills the ring). */
+export const ringShare = (value: number, max: number) => Math.min(1, Math.max(0, value / max));
+
+/** Strain Target band on the percent track (full at 100): [before, band, after]. */
+export function targetSlices(lo: number, hi: number, max = 100) {
   const a = Math.min(Math.max(lo, 0), max);
   const b = Math.min(Math.max(hi, a), max);
   return [a, b - a, max - b];

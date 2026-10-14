@@ -69,48 +69,49 @@ export const SCORE_DOCS: ScoreDoc[] = [
   {
     slug: "strain",
     name: "Strain",
-    summary: "The cardiovascular load of your day, on a scale from 0 to 21.",
+    summary: "The load of your day as a percent: 0 to 100 on most days, above 100 on a very big one.",
     href: "/strain",
     sections: [
       {
         title: "What goes in",
         rows: [
-          { term: "Heart rate", detail: "Every reading from local midnight to midnight, sleep included. Each reading covers the gap to the next one, up to 2\u00a0minutes." },
-          { term: "Resting heart rate", detail: "Fitbit’s daily value from Health Connect, else last night’s sleeping resting heart rate, else 60\u00a0bpm." },
-          { term: "Max heart rate", detail: "The value in Settings; else 208 − 0.7 × your age." },
+          { term: "Heart rate while awake", detail: "Minute averages outside sleep and recorded workouts. Each covers the gap to the next one, up to 30\u00a0minutes; minutes below Zone 1 are left out." },
+          { term: "Workouts", detail: "Every heart-rate reading during a recorded workout, each covering the gap to the next one." },
+          { term: "Steps", detail: "The steps you take while awake, outside workouts." },
+          { term: "Max heart rate", detail: "The value in Settings; else 208 − 0.7 × your age. Zone 1 starts at 50% of it, then 60, 70, 80 and 90%." },
         ],
       },
       {
         title: "How it is weighted",
         paragraphs: [
-          "Each minute earns points by how hard your heart works, as a share of your heart-rate reserve: the gap between your resting and max heart rate.",
+          "Each second of heart rate earns units by its zone, rising smoothly across the zone: the harder your heart works, the faster units add up.",
         ],
         rows: [
-          { term: "Below 50%", detail: "0\u00a0points a minute" },
-          { term: "50-59%", detail: "1\u00a0point a minute" },
-          { term: "60-69%", detail: "2\u00a0points a minute" },
-          { term: "70-79%", detail: "3\u00a0points a minute" },
-          { term: "80-89%", detail: "4\u00a0points a minute" },
-          { term: "90% and up", detail: "5\u00a0points a minute" },
+          { term: "Below Zone 1", detail: "0 to 1 unit a second (workouts only)" },
+          { term: "Zone 1", detail: "2 units a second" },
+          { term: "Zone 2", detail: "3 to 4 units a second" },
+          { term: "Zone 3", detail: "4 to 7 units a second" },
+          { term: "Zone 4", detail: "7 to 12 units a second" },
+          { term: "Zone 5", detail: "12 to 20 units a second" },
         ],
       },
       {
         title: "What the bands mean",
         paragraphs: [
-          "The day’s points go on a log scale: Strain = 21 × ln(points + 1) ÷ ln(7,201), where 7,201 is a whole day at 5\u00a0points a minute, plus one. An hour at 70-79% with nothing else gives about 12.3. Doubling your points adds only about 1.6, so each point of Strain is harder to earn than the last.",
+          "Strain = 16 × atan(steps ÷ 7,000) + 66 × atan(units ÷ 20,000). Both parts flatten as they grow, so each point of Strain is harder to earn than the last. An hour in the middle of Zone 3 gives about 19,800 units, worth 52; add 8,000 steps and the day comes to 65. The most a day can reach is about 129.",
         ],
         rows: [
-          { term: "0-9.9", detail: "Light" },
-          { term: "10.0-13.9", detail: "Moderate" },
-          { term: "14.0-17.9", detail: "Strenuous" },
-          { term: "18.0-21.0", detail: "All out" },
+          { term: "Up to 40%", detail: "Light" },
+          { term: "41-60%", detail: "Moderate" },
+          { term: "61-79%", detail: "Strenuous" },
+          { term: "80% and up", detail: "All out" },
         ],
       },
       {
         title: "Limits",
         paragraphs: [
-          "Strain needs at least 600 heart-rate readings, or 20 spread over at least 10\u00a0minutes; otherwise the day shows Not enough data. Today’s Strain is a running total until midnight. Each activity also gets its own Strain from the heart rate during it.",
-          "Heart rate misses effort that barely raises it, such as heavy lifting with long rests. The zone chart and Strain use the same five zones on your heart-rate reserve (max minus resting heart rate): Zone 1 starts at resting + 50% of the reserve, then 60, 70, 80 and 90%. Below Zone 1 is not counted as a zone.",
+          "Strain needs heart rate or steps for the day; otherwise the day shows Not enough data. Today’s Strain is a running total until midnight. Each activity also gets its own Strain from its units alone: 66 × atan(units ÷ 20,000).",
+          "Heart rate misses effort that barely raises it, such as heavy lifting with long rests. The ring fills at 100% and stays full above it; the number shows the real value.",
         ],
       },
     ],
@@ -118,26 +119,20 @@ export const SCORE_DOCS: ScoreDoc[] = [
   {
     slug: "strain-target",
     name: "Strain Target",
-    summary: "A Strain range for today, set by your Recovery and recent load.",
+    summary: "A Strain range for today, set by your Recovery and your recent Strain.",
     href: "/strain",
     sections: [
       {
         title: "What goes in",
         rows: [
-          { term: "Today’s Recovery", detail: "Picks the band. Without a Recovery score there is no target." },
-          { term: "Your last 28\u00a0days of Strain", detail: "The average of the days with Strain, today not included, is your base." },
-          { term: "Training load (ACWR)", detail: "Your last 7\u00a0days of Strain against your last 28, up to yesterday." },
+          { term: "Today’s Recovery", detail: "Moves and widens the range. Without a Recovery score Pulse reads it as 50%." },
+          { term: "Your last 14\u00a0days of Strain", detail: "Folded into a base, the newest days counting most; a day without Strain counts as 0." },
         ],
       },
       {
         title: "How it is weighted",
-        rows: [
-          { term: "Green Recovery", detail: "Base × 1.0 to base × 1.25" },
-          { term: "Yellow Recovery", detail: "Base × 0.8 to base × 1.0" },
-          { term: "Red Recovery", detail: "Base × 0.5 to base × 0.75" },
-        ],
         paragraphs: [
-          "If your training load is above 1.3, the top of the range is capped at your base, since load is already climbing fast. Below 0.8, both ends rise by 10%. The range is then kept between 4 and 19 and at least 2 wide; a range that is too narrow widens downwards. A base of 12 on a green day gives 12.0 - 15.0.",
+          "The base starts at the oldest day and each day after moves it a quarter of the way to that day's Strain. Recovery then scales the base: at 50% it stays, at 100% it rises 30%, at 0% it drops 30%. The range runs from that centre minus 5 to 10 points, to the centre plus 10 to 30 points, wider with a higher Recovery. The low end stays between 20 and 120, the high end between 40 and 120.",
         ],
       },
       {
@@ -151,16 +146,14 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "A worked example",
         paragraphs: [
-          "Take 27 days of past Strain, oldest first: 10, 12, 0, 13, 11, 9, 14, then 11, 12, 0, 12, 10, 13, 12, then 10, 13, 0, 11, 12, 14, 9, then 12, 15, 13, 0, 16, 14. Today's own Strain is left out. The zeros are rest days with the band on, so they count.",
-          "Their average is 10.30, so the base is 10.3. Training load, the last 7 days against the last 28, comes to 1.10. That sits between 0.8 and 1.3, so it neither caps nor lifts the range.",
-          "Today's Recovery is 72%, which is green (67 and above). Green is base × 1.0 to base × 1.25, so the target is 10.3 to 12.9. With the same history and a Recovery of 50%, yellow applies (base × 0.8 to base × 1.0) and the target drops to 8.2 to 10.3.",
-          "Both ranges sit inside the 4 to 19 limits and are more than 2 wide, so nothing is clamped. Aiming for 11 to 12 on the green day builds fitness without outrunning Recovery.",
+          "Take 14 days of past Strain, oldest first: 45, 50, 20, 55, 48, 40, 60, 47, 52, 25, 50, 45, 55, 50. Today's own Strain is left out. Folded day by day, the base comes to 47.9.",
+          "Today's Recovery is 72%, so the centre is 47.9 × 1.13 = 54.2. The range runs from 54.2 − 8.6 to 54.2 + 24.4: a target of 46 - 79%. With the same history and a Recovery of 30%, the centre drops to 42.2 and the target to 36 - 58%.",
         ],
       },
       {
         title: "Limits",
         paragraphs: [
-          "With fewer than 14\u00a0days of Strain in the last 28, Pulse uses a starting range for your band, marked as an estimate: green 14.0 - 18.0, yellow 10.0 - 14.0, red 6.0 - 10.0. The target does not know your training plan, races or injuries. It is a guide, not a prescription.",
+          "With fewer than 14\u00a0days of Strain the base folds what there is, so the first weeks read as an estimate. The target does not know your training plan, races or injuries. It is a guide, not a prescription.",
         ],
       },
     ],
@@ -511,8 +504,8 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "A worked example",
         paragraphs: [
-          "Take 28 days of Strain on the 0-21 scale, oldest first: 10, 12, 0, 13, 11, 9, 14, then 11, 12, 0, 12, 10, 13, 12, then 10, 13, 0, 11, 12, 14, 9, and finally 12, 15, 13, 0, 16, 14, 15. The zeros are rest days with the band on, so they count.",
-          "The last 7 days average 12.14 Strain. That is the acute load. All 28 days average 10.46, the chronic load. Training load, the acute to chronic workload ratio (ACWR), is 12.14 / 10.46 = 1.16.",
+          "Take 28 days of Strain, oldest first: 40, 48, 0, 52, 44, 36, 56, then 44, 48, 0, 48, 40, 52, 48, then 40, 52, 0, 44, 48, 56, 36, and finally 48, 60, 52, 0, 64, 56, 60. The zeros are rest days with the band on, so they count.",
+          "The last 7 days average 48.57 Strain. That is the acute load. All 28 days average 41.86, the chronic load. Training load, the acute to chronic workload ratio (ACWR), is 48.57 / 41.86 = 1.16.",
           "Pulse reads that against its bands: below 0.80 is Undertrained, 0.80 to 1.29 is Balanced, 1.30 to 1.49 is Pushing and 1.50 and up is High risk. At 1.16 this person is Balanced: the last week is a little heavier than usual, which is normal progression.",
           "The same week with a ratio of 1.45 would read Pushing, even though the daily numbers might not feel different. That is the point of the ratio: it compares you with yourself, not with anyone else's load.",
         ],
@@ -622,17 +615,17 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "What goes in",
         paragraphs: [
-          "Your daily Strain, on Pulse’s internal 0-100 effort scale rather than 0 to 21. A day with the band worn but too little heart rate counts as 0.",
+          "Cardio Load: each day's training impulse (TRIMP), summed over its recorded workouts from their heart rate against your 60-day resting baseline. A day without a workout counts as 0.",
         ],
       },
       {
         title: "How it is weighted",
         rows: [
-          { term: "Fitness", detail: "A rolling average of daily load that fades with a 42-day time constant." },
-          { term: "Fatigue", detail: "The same with a 7-day time constant, so it reacts faster." },
+          { term: "Fitness", detail: "Each day keeps 41/43 of yesterday's value and adds 2/43 of the day's load: about a three-week average." },
+          { term: "Fatigue", detail: "Each day keeps 3/4 of yesterday's value and adds 1/4 of the day's load: about a week." },
           { term: "Form", detail: "Fitness minus Fatigue." },
         ],
-        paragraphs: ["Both averages start from your mean load over the first 7\u00a0days."],
+        paragraphs: ["Both start from zero."],
       },
       {
         title: "What the bands mean",
@@ -644,16 +637,15 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "A worked example",
         paragraphs: [
-          "Take someone with 14 days of band data. Their daily Strain, converted to Pulse's internal 0-100 effort scale, runs 30, 45, 0, 50, 40, 35, 55, then 45, 60, 0, 50, 55, 40, 65. The zeros are rest days with the band worn, so they count. A day without the band would have restarted the run.",
-          "Fitness and Fatigue both start from the mean of the first 7 days, which is 36.4. After that, each day moves the average by a fixed share of the gap between that day's load and the current average. For Fitness (42-day time constant) the share is 1 - e^(-1/42), about 2.4%. For Fatigue (7-day) it is 1 - e^(-1/7), about 13.3%, so it reacts far faster.",
-          "Walking through the second week, Fitness drifts up from 36.4 to 37.8, while Fatigue swings between 35.2 and 43.0 and ends at 43.0 after the 65 on day 14. Form is Fitness minus Fatigue: 37.8 - 43.0 = -5.2.",
-          "A negative Form means recent load is heavier than the longer-term average, so this person is carrying fatigue from a hard second week. The averages only settle after about 42 days, so read the first few weeks as a rough guide.",
+          "Take 14 days of daily load: 30, 45, 0, 50, 40, 35, 55, then 45, 60, 0, 50, 55, 40, 65. The zeros are rest days.",
+          "Fatigue moves a quarter of the way to each day's load, so it ends at 47.0 after the 65 on day 14. Fitness moves 2/43 of the way, so it has only reached 20.4. Form is Fitness minus Fatigue: 20.4 - 47.0 = -26.6.",
+          "A negative Form means recent load is heavier than the longer-term average. Fitness only settles after several weeks, so read the first few weeks as a rough guide.",
         ],
       },
       {
         title: "Limits",
         paragraphs: [
-          "It needs 14\u00a0days in a row with Strain data, and a day without the band starts the run again. It settles after about 42\u00a0days. Heart rate is its only input, so load that barely raises heart rate is missed.",
+          "Heart rate is its only input, so load that barely raises heart rate is missed. Until you have trained regularly for a few weeks the status shows as calibrating.",
         ],
       },
     ],
@@ -661,20 +653,20 @@ export const SCORE_DOCS: ScoreDoc[] = [
   {
     slug: "hr-recovery",
     name: "Heart rate recovery",
-    summary: "How far your heart rate drops in the minute after a workout.",
+    summary: "How far your heart rate drops within 2 minutes as a workout ends.",
     href: null,
     sections: [
       {
         title: "What goes in",
         rows: [
-          { term: "End heart rate", detail: "The highest reading in the last 30\u00a0seconds of the activity." },
-          { term: "One minute later", detail: "The median reading 45-75 seconds after the end, from at least 3\u00a0readings." },
+          { term: "Heart rate", detail: "Every reading from the start of the workout to 2\u00a0minutes after it ends." },
+          { term: "Zones", detail: "Your zones on max heart rate: zone 4 starts at 80%." },
         ],
       },
       {
         title: "How it is weighted",
         paragraphs: [
-          "Heart rate recovery = end heart rate − heart rate one minute later, in bpm. It is measured only after a hard enough finish: at least 2\u00a0minutes in a row at 70% or more of your max heart rate within the last 5\u00a0minutes.",
+          "Heart rate recovery = the largest drop between two readings at most 2\u00a0minutes apart, where the first is taken before the workout ends, in bpm. It is measured only when the workout reached zone 4.",
         ],
       },
       {
@@ -688,16 +680,15 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "A worked example",
         paragraphs: [
-          "Take a 36-year-old finishing a steady run of about 17 minutes. Pulse's default max heart rate for that age is about 183 bpm, so the 70% line is 128 bpm. For the last 5 minutes of the run the watch records between 160 and 174 bpm, well above the line for far longer than the 2 minutes required, so the workout is eligible.",
-          "Next Pulse takes the highest reading in the final 30 seconds. Here that is 174 bpm. It then collects every reading from 45 to 75 seconds after the workout ended. Six readings fall in that window: 146, 146, 148, 149, 149 and 150 bpm. The median of an even count is the average of the middle two, 148.5, rounded half up to 149.",
-          "Heart rate recovery is 174 minus 149, so 25 bpm. That is 20 or more, which Pulse calls Good. These numbers come from running Pulse's own heart rate recovery function on that set of readings.",
-          "Change one thing and the answer moves. If the same runner had kept walking for the first minute and the median had been 160, the drop would be 14 bpm, which is Typical. If the watch had logged only two readings in the window, Pulse would show Not enough heart-rate data instead of guessing.",
+          "Take a 36-year-old finishing a steady run. Pulse's default max heart rate for that age is about 183 bpm, so zone 4 starts at 147 bpm. The run reaches 174 bpm, so the workout counts.",
+          "Pulse looks at every pair of readings at most 2 minutes apart whose first reading falls before the end. The highest early reading is 174 bpm in the final sprint; the lowest within 2 minutes of it is 149 bpm.",
+          "Heart rate recovery is 174 minus 149, so 25 bpm. That is 20 or more, which Pulse calls Good. If the runner had kept jogging and the lowest reading had been 160, the drop would be 14 bpm, which is Typical. A workout that never reaches zone 4 shows Not enough heart-rate data instead of a guess.",
         ],
       },
       {
         title: "Limits",
         paragraphs: [
-          "It needs dense heart rate around the end of the activity, which Fitbit does not always record; otherwise it shows Not enough heart-rate data. Moving about in that first minute, or stopping the activity late, lowers the drop. Compare it across similar workouts, not between different sports.",
+          "It needs dense heart rate around the end of the activity, which Fitbit does not always record; otherwise it shows Not enough heart-rate data. Moving about in those 2 minutes, or stopping the activity late, lowers the drop. Compare it across similar workouts, not between different sports.",
         ],
       },
     ],

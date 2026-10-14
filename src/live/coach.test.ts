@@ -101,36 +101,36 @@ describe("LiveCoach (guardian behaviour)", () => {
 describe("guidance", () => {
   const b = band(cfg(60));
   const coach = (position: CoachOutput["position"], status: CoachOutput["status"] = "active") => ({ status, position, band: b });
-  const target: [number, number] = [10, 14];
+  const target: [number, number] = [46, 79];
 
   it("eases off past the target whatever the heart rate", () => {
-    expect(guidance({ strain: 14.2, target, coach: coach("below"), minutesToLow: null })).toMatchObject({ tone: "ease", title: "Ease off" });
-    expect(guidance({ strain: 15, target, coach: coach("inBand", "stale"), minutesToLow: null }).tone).toBe("ease");
+    expect(guidance({ strain: 80, target, coach: coach("below"), minutesToLow: null })).toMatchObject({ tone: "ease", title: "Ease off" });
+    expect(guidance({ strain: 85, target, coach: coach("inBand", "stale"), minutesToLow: null }).tone).toBe("ease");
   });
 
   it("waits while warming up or stale", () => {
-    expect(guidance({ strain: 3, target, coach: coach("below", "warmup"), minutesToLow: 20 })).toMatchObject({ tone: "wait", title: "Warming up" });
-    expect(guidance({ strain: 3, target, coach: coach("below", "stale"), minutesToLow: 20 }).title).toBe("Waiting for heart rate");
+    expect(guidance({ strain: 15, target, coach: coach("below", "warmup"), minutesToLow: 20 })).toMatchObject({ tone: "wait", title: "Warming up" });
+    expect(guidance({ strain: 15, target, coach: coach("below", "stale"), minutesToLow: 20 }).title).toBe("Waiting for heart rate");
   });
 
   it("holds or eases inside the range", () => {
-    expect(guidance({ strain: 11, target, coach: coach("inBand"), minutesToLow: 0 })).toMatchObject({ tone: "steady", title: "In your target range" });
-    expect(guidance({ strain: 11, target, coach: coach("above"), minutesToLow: 0 })).toMatchObject({ tone: "ease", title: "In range: ease off" });
+    expect(guidance({ strain: 50, target, coach: coach("inBand"), minutesToLow: 0 })).toMatchObject({ tone: "steady", title: "In your target range" });
+    expect(guidance({ strain: 50, target, coach: coach("above"), minutesToLow: 0 })).toMatchObject({ tone: "ease", title: "In range: ease off" });
   });
 
   it("pushes below the range and the band, says how long at this effort otherwise", () => {
-    const push = guidance({ strain: 6.4, target, coach: coach("below"), minutesToLow: null });
+    const push = guidance({ strain: 30, target, coach: coach("below"), minutesToLow: null });
     expect(push).toMatchObject({ tone: "push", title: "Push" });
     expect(push.body).toContain(`above ${Math.round(b.floorBpm)} bpm`);
-    expect(push.body).toContain("3.6 below");
-    const on = guidance({ strain: 6.4, target, coach: coach("inBand"), minutesToLow: 18.4 });
+    expect(push.body).toContain("16% below");
+    const on = guidance({ strain: 30, target, coach: coach("inBand"), minutesToLow: 18.4 });
     expect(on).toMatchObject({ tone: "steady", title: "On track" });
-    expect(on.body).toContain("about 18 minutes at this effort reaches 10.0");
-    expect(guidance({ strain: 6.4, target, coach: coach("above"), minutesToLow: 1 }).body).toContain("about a minute");
+    expect(on.body).toContain("about 18 minutes at this effort reaches 46%");
+    expect(guidance({ strain: 30, target, coach: coach("above"), minutesToLow: 1 }).body).toContain("about a minute");
   });
 
   it("uses the band alone without a target", () => {
-    expect(guidance({ strain: 6, target: null, coach: coach("below"), minutesToLow: null }).body).not.toContain("target");
-    expect(guidance({ strain: 25, target: null, coach: coach("inBand"), minutesToLow: null }).title).toBe("On track");
+    expect(guidance({ strain: 30, target: null, coach: coach("below"), minutesToLow: null }).body).not.toContain("target");
+    expect(guidance({ strain: 120, target: null, coach: coach("inBand"), minutesToLow: null }).title).toBe("On track");
   });
 });

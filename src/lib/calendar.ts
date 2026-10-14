@@ -10,7 +10,7 @@ export type CalendarContext = "recovery" | "strain" | "sleep"
 /** Monday first, matching the app's ISO weeks (weekOf) and the Asia/Kolkata default (CAL3). 0 = Sunday. */
 export const WEEK_STARTS_ON: 0 | 1 = 1
 
-export const STRAIN_DOT = 10
+export const STRAIN_DOT = 41
 /** Inferred: no current Sleep calendar was found (CAL4). */
 export const SLEEP_DOT = 85
 
