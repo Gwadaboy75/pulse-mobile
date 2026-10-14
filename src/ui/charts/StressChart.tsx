@@ -115,11 +115,11 @@ export function StressChart({ data, variant }: StressChartProps) {
   const empty =
     variant === "full" ? (
       <View className="items-center">
-        <EmptyState body="No still minutes to score yet today. Stress is measured only while you are not moving." />
+        <EmptyState body="No stress scored yet today. Stress is measured outside workouts, every 6 minutes." />
       </View>
     ) : (
       <View className="h-11 justify-center">
-        <Text className="text-xs font-medium leading-4 text-muted-foreground">No still minutes yet</Text>
+        <Text className="text-xs font-medium leading-4 text-muted-foreground">No stress scored yet</Text>
       </View>
     );
   return (

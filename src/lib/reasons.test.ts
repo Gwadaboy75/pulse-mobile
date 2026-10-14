@@ -21,7 +21,7 @@ describe("reasons", () => {
     expect(reasonCopy("calibrating", 1).long).toBe("Calibrating: 1 night left");
   });
   it("spec copy", () => {
-    expect(reasonCopy("no_hrv_last_night").long).toBe("No HRV last night (needs about 3 h of sleep)");
+    expect(reasonCopy("no_hrv_last_night").long).toBe("No HRV in last night’s sleep");
     expect(reasonCopy("awaiting_sleep_sync").long).toBe("Waiting for last night’s sleep to sync");
     expect(reasonCopy("insufficient_hr_data").long).toBe("Not enough heart-rate data");
     expect(reasonCopy("band_not_worn").long).toBe("No data: band not worn");

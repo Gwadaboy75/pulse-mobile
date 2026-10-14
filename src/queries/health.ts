@@ -132,7 +132,7 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "target" | 
     unit: "min",
     domain: [0, 300],
     higherIsBetter: true,
-    explanation: "Moderate activity is linked to steeply lower mortality, with the reference at 150 minutes a week and the benefit levelling off well past it. Counted by Pulse from your heart rate in Zones 2 and 3, on days with 12 hours of heart rate.",
+    explanation: "Moderate activity is linked to steeply lower mortality, with the reference at 150 minutes a week and the benefit levelling off well past it. Counted by Pulse from your heart rate in Zones 2 and 3 (60 to 80% of max heart rate), as a weekly average of the 28 days.",
     source: "Population mortality studies",
   },
   zone45: {
@@ -159,7 +159,7 @@ const HS_META: Record<string, Omit<HealthspanContributor, "metric" | "target" | 
     unit: "steps",
     domain: [0, 15000],
     higherIsBetter: true,
-    explanation: "More daily steps go with lower mortality. The reference is 8,000 a day (6,000 from 60), and credit stops at 10,000 (8,000 from 60). Only days with 12 hours of heart rate count, so a band left on the charger isn't read as a lazy day.",
+    explanation: "More daily steps go with lower mortality. The reference is 8,000 a day (6,000 from 60), and credit stops at 10,000 (8,000 from 60). Days without heart rate or steps are left out, so a band left on the charger isn't read as a lazy day.",
     source: "Population mortality studies",
   },
   vo2max: {

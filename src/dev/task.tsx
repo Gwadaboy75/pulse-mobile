@@ -32,7 +32,7 @@ export default function SheetDemo() {
       <View className="gap-4">
         <TaskSection>Why</TaskSection>
         <Text className={BODY}>Recovery shows how ready your body is to take on strain, from 0 to 100%. Pulse scores it each morning from last night&apos;s heart rate variability, resting heart rate, respiratory rate, sleep performance and skin temperature, each compared with your own baseline.</Text>
-        <Text className={BODY}>Recovery needs 7 nights of HRV before the first score and stays provisional until 14.</Text>
+        <Text className={BODY}>Recovery shows from the second night and stays provisional until your data spans 60 days.</Text>
         <TaskSection>Note</TaskSection>
         <TextInput
           accessibilityLabel="Note"

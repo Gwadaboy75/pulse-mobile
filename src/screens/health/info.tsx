@@ -52,7 +52,7 @@ export const FITNESS_INFO: InfoContent = {
   body: (
     <P>
       VO2 max is the most oxygen your body can use during hard exercise. Pulse ranks it against people of your age and sex from the FRIEND registry.
-      Training load compares your last 7 days of strain with your last 28 (the acute to chronic ratio); 0.8 to 1.3 is the usual sweet spot.
+      Training load divides your fatigue (about a week of workout load) by your fitness (about three weeks); above 1.4 is a spike.
     </P>
   ),
 };
@@ -61,7 +61,7 @@ export const HEALTHSPAN_INFO: InfoContent = {
   title: "About Healthspan",
   body: (
     <P>
-      {AGE_LABEL} estimates how old your body behaves, from nine habits and vitals over the 28 days before each Monday. Pace of Aging is your
+      {AGE_LABEL} estimates how old your body behaves, from nine habits and vitals over the 28 days ending each Sunday. Pace of Aging is your
       {AGE_LABEL} divided by your age: 1.0x means your body behaves its age, below 1.0x younger, above 1.0x older. Both are estimates for personal insight, not a
       medical assessment.
     </P>

@@ -81,7 +81,7 @@ export const STRAIN_TARGET_INFO: InfoContent = {
   title: "Strain Target",
   body: (
     <P>
-      Your Strain Target is a range for today, set from your Recovery and your training load over the last 28{"\u00a0"}days. Inside it, training builds
+      Your Strain Target is a range for today, set from your Recovery and your Strain over the last 14{"\u00a0"}days. Inside it, training builds
       fitness without digging a recovery hole.
     </P>
   ),

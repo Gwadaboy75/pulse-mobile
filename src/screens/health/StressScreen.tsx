@@ -21,7 +21,7 @@ import { ErrorView } from "./ErrorView";
 import { BreatheCard } from "../breathe/BreatheScreen";
 import { STRESS_INFO } from "./info";
 
-const EMPTY = "No still minutes to score yet today.";
+const EMPTY = "No stress scored yet today.";
 const LABEL = "text-xs font-bold uppercase leading-4 tracking-[0.1em]";
 
 const LEVEL_KEYS = [
@@ -113,13 +113,13 @@ export function StressScreen() {
         </SectionShell>
       }
       secondary={[
-        <SectionShell key="levels" variant="card" title="Total day" info={{ title: "Time at each stress level", body: "Scored still minutes split into low, medium and high activation. When available, the faded bar compares the same weekday in your recent history." }}>
+        <SectionShell key="levels" variant="card" title="Total day" info={{ title: "Time at each stress level", body: "Scored time outside workouts, split into low, medium and high activation. When available, the faded bar compares the same weekday in your recent history." }}>
           <MetricState metric={vm.levels} skeleton={<Skeleton className="h-24 w-full" />} renderReason={() => <EmptyState body={EMPTY} />}>
             {(l) => <TotalDay l={l} day={dayWord} />}
           </MetricState>
         </SectionShell>,
         <BreatheCard key="breathe" />,
-        <SectionShell key="trend" variant="card" title="30-day trend" info={{ title: "Daily stress trend", body: "Average activation across each day's scored still minutes over the last 30 days. Days without enough data remain gaps." }}>
+        <SectionShell key="trend" variant="card" title="30-day trend" info={{ title: "Daily stress trend", body: "Average activation across each day's scored time over the last 30 days. Days without enough data remain gaps." }}>
           <TrendChart label="Stress" data={{ value: vm.trend.points.map((p) => ({ date: p.day, value: p.value })), reason: null, provisional: false }} format="int" colorBy="stress" direction="down" fixedRange="m" />
         </SectionShell>,
       ]}

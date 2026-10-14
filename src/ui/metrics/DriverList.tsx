@@ -144,7 +144,7 @@ function Item({ i, max, p }: { i: DriverItem; max: number; p: DriverListProps })
 export function DriverList(p: DriverListProps) {
   const empty =
     p.variant === "recovery" ? (
-      <EmptyState body="No drivers yet: Recovery needs 7 nights first." />
+      <EmptyState body="No drivers yet: Recovery needs a second night first." />
     ) : (
       <EmptyState body="Not enough check-ins yet. Insights need 5 days with and 5 without a behaviour in the last 90 days." action={{ label: "Check in", sheet: "checkin" }} />
     );

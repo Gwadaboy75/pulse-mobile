@@ -76,7 +76,7 @@ export const SCORE_DOCS: ScoreDoc[] = [
           { term: "Heart rate while awake", detail: "Minute averages outside sleep and recorded workouts. Each covers the gap to the next one, up to 30\u00a0minutes; minutes below Zone 1 are left out." },
           { term: "Workouts", detail: "Every heart-rate reading during a recorded workout, each covering the gap to the next one." },
           { term: "Steps", detail: "The steps you take while awake, outside workouts." },
-          { term: "Max heart rate", detail: "The value in Settings; else 208 − 0.7 × your age. Zone 1 starts at 50% of it, then 60, 70, 80 and 90%." },
+          { term: "Max heart rate", detail: "The value in Settings; else 220 − your age. Zone 1 starts at 50% of it, then 60, 70, 80 and 90%." },
         ],
       },
       {
@@ -186,8 +186,8 @@ export const SCORE_DOCS: ScoreDoc[] = [
           { term: "Deep sleep, 20%", detail: "Full marks at about 15% of your need, less with age." },
           { term: "REM sleep, 20%", detail: "Full marks at 20% of your need." },
           { term: "Heart-rate dip, 10%", detail: "Full marks at a dip of about 30%, less with age." },
-          { term: "Efficiency, 7.5%", detail: "Falls off quickly below full efficiency." },
-          { term: "Continuity, 7.5%", detail: "Falls off with each time you woke." },
+          { term: "Efficiency, 7.5%", detail: "Full marks at 97%; falls off quickly below it." },
+          { term: "Continuity, 7.5%", detail: "Full marks up to 5 wake-ups; falls off with each one after." },
         ],
       },
       {
@@ -256,7 +256,7 @@ export const SCORE_DOCS: ScoreDoc[] = [
     sections: [
       {
         title: "What goes in",
-        paragraphs: ["Nine habits and vitals, averaged over the 28 days before each Monday, each against a reference for a healthy person of your age and sex."],
+        paragraphs: ["Nine habits and vitals over the 28 days ending each Sunday, each against a reference for a healthy person of your age and sex."],
         rows: [
           { term: "Sleep hours", detail: "Reference 7.5 hours; much shorter or longer costs years." },
           { term: "Sleep consistency", detail: "Reference 70." },
@@ -288,7 +288,7 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "Limits",
         paragraphs: [
-          "Time in zones is counted by Pulse from your heart rate, on the same five zones as Strain, and steps and zones only on days with 12 hours of heart rate. Pulse Age needs 5 of the 9 factors and updates each Monday. It rests on population studies, not a clinical test of your body.",
+          "Time in zones is counted by Pulse from your heart rate, on the same five zones as Strain, and weekly minutes are your 28-day total divided by four. Pulse Age needs 5 of the 9 factors and updates each Sunday. It rests on population studies, not a clinical test of your body.",
         ],
       },
     ],
@@ -381,17 +381,16 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "What goes in",
         rows: [
-          { term: "Resting heart rate", detail: "Fitbit’s daily resting heart rate from Health Connect, in bpm." },
-          { term: "Heart rate variability", detail: "Fitbit’s nightly HRV, in ms." },
+          { term: "Resting heart rate", detail: "Your mean heart rate while you slept, in bpm." },
+          { term: "Heart rate variability", detail: "The mean of Fitbit’s HRV readings while you slept, in ms." },
           { term: "Respiratory rate", detail: "Breaths per minute asleep, in rpm." },
-          { term: "SpO2", detail: "Blood oxygen overnight, in %, when Health Connect has it." },
           { term: "Skin temperature", detail: "Last night against your skin-temperature baseline, in °C." },
         ],
       },
       {
         title: "How it is weighted",
         paragraphs: [
-          "For every vital, your normal range is the average of your last 30 nights, last night included, ± one standard deviation. A value inside it is within range; below or above it is low or elevated. SpO2 below 95% is always flagged.",
+          "For every vital, your normal range is the average of your last 30 nights, last night included, ± one standard deviation. A value inside it is within range; below or above it is low or elevated.",
           "The illness signal compares resting heart rate, HRV, skin temperature and respiratory rate with your 30 nights before. A vital fires at 2 standard deviations in the unwell direction and adds 22 points per extra deviation, up to 40. With at least 2 vitals firing, 25 points is mild and 50 is raised. If you logged alcohol, sauna or travel the day before, Pulse takes that as the likely cause instead.",
         ],
       },
@@ -400,7 +399,6 @@ export const SCORE_DOCS: ScoreDoc[] = [
         rows: [
           { term: "Within range", detail: "Inside your normal range." },
           { term: "Elevated or Low", detail: "Outside it; the chip names the bound you crossed." },
-          { term: "Below 95%", detail: "SpO2 under 95%, whatever your range." },
           { term: "Illness signal", detail: "Several vitals moved together, a pattern often seen early in illness." },
         ],
       },
@@ -461,43 +459,35 @@ export const SCORE_DOCS: ScoreDoc[] = [
   {
     slug: "training-balance",
     name: "Training balance",
-    summary: "Whether your recent strain is above or below what you are used to.",
+    summary: "Whether your recent training load is above or below what you are used to.",
     href: "/health/fitness",
     sections: [
       {
         title: "What goes in",
-        paragraphs: [
-          "Your daily Strain. A day with the band worn but too little heart rate counts as 0; a day without the band is skipped. Today’s Strain so far counts toward today’s ratio.",
+        rows: [
+          { term: "Fitness and Fatigue", detail: "Your long-term and short-term load from your recorded workouts’ heart rate (see Fitness, fatigue and form)." },
+          { term: "Today’s Recovery", detail: "Tells Pushing from a productive block." },
         ],
       },
       {
         title: "How it is weighted",
         paragraphs: [
-          "Training load (ACWR) is your average Strain over the last 7\u00a0days with data, divided by your average over the last 28. 1.00 means this week matches your usual. Reports use the last day of the week or month that has a ratio; Fitness shows today’s.",
+          "Training load is Fatigue divided by Fitness: about a week of load against about three weeks. 1.00 means this week matches your usual. Pulse also checks whether Fitness is rising or falling: its average over the last 5\u00a0days against the 5\u00a0days before.",
         ],
       },
       {
         title: "What the bands mean",
         rows: [
-          { term: "Below 0.80", detail: "Undertrained (Detraining on Fitness): load dropped below your usual." },
-          { term: "0.80-1.29", detail: "Balanced (Optimal): the usual sweet spot." },
-          { term: "1.30-1.49", detail: "Overreaching (Pushing): load is rising faster than you are used to." },
-          { term: "1.50 and up", detail: "Overreaching (High risk): load jumped well above your usual." },
-        ],
-      },
-      {
-        title: "A worked example",
-        paragraphs: [
-          "Take 28 days of Strain, oldest first: 40, 48, 0, 52, 44, 36, 56, then 44, 48, 0, 48, 40, 52, 48, then 40, 52, 0, 44, 48, 56, 36, and finally 48, 60, 52, 0, 64, 56, 60. The zeros are rest days with the band on, so they count.",
-          "The last 7 days average 48.57 Strain. That is the acute load. All 28 days average 41.86, the chronic load. Training load, the acute to chronic workload ratio (ACWR), is 48.57 / 41.86 = 1.16.",
-          "Pulse reads that against its bands: below 0.80 is Undertrained, 0.80 to 1.29 is Balanced, 1.30 to 1.49 is Pushing and 1.50 and up is High risk. At 1.16 this person is Balanced: the last week is a little heavier than usual, which is normal progression.",
-          "The same week with a ratio of 1.45 would read Pushing, even though the daily numbers might not feel different. That is the point of the ratio: it compares you with yourself, not with anyone else's load.",
+          { term: "Detraining", detail: "1.00 or below, with Fitness down more than 5%: load dropped below your usual." },
+          { term: "Optimal", detail: "1.00 or below with Fitness holding or rising, or up to 1.40 with Recovery of 20% or more." },
+          { term: "Pushing", detail: "Above 1.00 while Recovery is under 20%: load is outrunning your recovery." },
+          { term: "High risk", detail: "Above 1.40: load jumped well above your usual." },
         ],
       },
       {
         title: "Limits",
         paragraphs: [
-          "Training load needs 14\u00a0days of Strain; until there are 28, your usual is the average of the days you have. It compares you with yourself, so it says nothing about whether your usual load suits your goals. The 0.8-1.3 sweet spot comes from team-sport injury research (Gabbett 2016) and is a rule of thumb.",
+          "Training load needs workouts on about 10 of the last 42\u00a0days, a few of them in the last two weeks; until then it is calibrating. Fitness starts from zero, so the ratio reads high in your first weeks. It compares you with yourself, so it says nothing about whether your usual load suits your goals.",
         ],
       },
     ],
@@ -518,14 +508,14 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "How it is weighted",
         paragraphs: [
-          "For each behaviour, Pulse compares the days you answered yes with the days you answered no: the difference in average next-day score. HRV shows as the change in standard deviations from your baseline. To see how sure that difference is, Pulse resamples your days 1,000 times and keeps the middle 90% of the results.",
+          "For each behaviour, Pulse compares the days you answered yes with the days you answered no: the difference in average next-day score. HRV shows as the change in standard deviations from your baseline. To see how sure that difference is, Pulse runs a t-test on the two groups of days and keeps a 70% interval around the difference.",
         ],
       },
       {
         title: "What the bands mean",
         rows: [
-          { term: "Positive or negative", detail: "That whole 90% range sits above or below zero: a clear effect." },
-          { term: "No clear effect", detail: "The range crosses zero." },
+          { term: "Positive or negative", detail: "That whole 70% interval sits above or below zero: a clear effect." },
+          { term: "No clear effect", detail: "The interval crosses zero." },
           { term: "Needs more data", detail: "Fewer than 5 yes days or 5 no days." },
         ],
       },
@@ -534,14 +524,14 @@ export const SCORE_DOCS: ScoreDoc[] = [
         paragraphs: [
           "Say someone logs alcohol for a month. Over 29 days they answer yes on 8 and no on 21. Pulse pairs each answer with the next morning's Recovery, because the question is what the day after looks like.",
           "On the 21 no days, next-morning Recovery averages higher than after the 8 yes days. The difference of the two averages, yes minus no, comes out at minus 11.6 points: on the day after alcohol, Recovery was about 12 points lower.",
-          "That difference alone could be luck, so Pulse resamples. It redraws 8 yes days and 21 no days with replacement, takes the difference again, repeats 1,000 times, and keeps the middle 90% of the results. For this data the range runs from minus 14.7 to minus 8.4.",
-          "The whole range sits below zero, so the label is Negative, a clear effect. Had the range run from, say, minus 4 to plus 6, the label would be No clear effect. Had there been only 4 yes days, Pulse would say Needs more data, because it needs at least 5 yes and 5 no days. These figures come from running Pulse's behaviour insights function on 29 check-ins and 30 daily Recovery scores. It shows an association, not proof of cause.",
+          "That difference alone could be luck, so Pulse tests it. From how much Recovery varies within the yes days and within the no days, a t-test puts a 70% interval around the difference. For this data the whole interval sits well below zero.",
+          "So the label is Negative, a clear effect. Had the interval run from, say, minus 4 to plus 6, the label would be No clear effect. Had there been only 4 yes days, Pulse would say Needs more data, because it needs at least 5 yes and 5 no days. The difference comes from running Pulse's behaviour insights function on 29 check-ins and 30 daily Recovery scores. It shows an association, not proof of cause.",
         ],
       },
       {
         title: "Limits",
         paragraphs: [
-          "This is an association, not proof of cause. It does not adjust for other behaviours or training, so a tag you tend to log on hard days can look harmful. About 1 in 10 behaviours with no real effect will still show a clear one by chance. Days without an answer are left out.",
+          "This is an association, not proof of cause. It does not adjust for other behaviours or training, so a tag you tend to log on hard days can look harmful. A 70% interval is loose on purpose: about 3 in 10 behaviours with no real effect will still show a clear one by chance. Days without an answer are left out.",
         ],
       },
     ],
@@ -655,7 +645,7 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "A worked example",
         paragraphs: [
-          "Take a 36-year-old finishing a steady run. Pulse's default max heart rate for that age is about 183 bpm, so zone 4 starts at 147 bpm. The run reaches 174 bpm, so the workout counts.",
+          "Take a 36-year-old finishing a steady run. Pulse's default max heart rate for that age is 220 − 36 = 184 bpm, so zone 4 starts at 148 bpm. The run reaches 174 bpm, so the workout counts.",
           "Pulse looks at every pair of readings at most 2 minutes apart whose first reading falls before the end. The highest early reading is 174 bpm in the final sprint; the lowest within 2 minutes of it is 149 bpm.",
           "Heart rate recovery is 174 minus 149, so 25 bpm. That is 20 or more, which Pulse calls Good. If the runner had kept jogging and the lowest reading had been 160, the drop would be 14 bpm, which is Typical. A workout that never reaches zone 4 shows Not enough heart-rate data instead of a guess.",
         ],

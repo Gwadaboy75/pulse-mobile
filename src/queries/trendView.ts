@@ -101,7 +101,7 @@ export const TREND_VIEW = {
       { key: "red", label: "Red", min: -Infinity, detail: "<34%" },
     ] },
     about: { title: "What is Recovery?", body: [
-      "Recovery is how ready your body is to take on strain today, on a scale from 0 to 100%.",
+      "Recovery is how ready your body is to take on strain today, on a scale from 1 to 100%.",
       "Pulse scores it each morning from your heart rate variability, resting heart rate, respiratory rate, sleep performance and skin temperature, each compared with your own recent baseline.",
       "Green (67% and up) means you are primed for a hard day, yellow means maintain, and red means your body is asking for rest.",
     ] },

@@ -6,7 +6,7 @@ const COPY: Record<string, string> = {
   "Hours of sleep": "Time asleep during your main sleep session, excluding awake periods.",
   "Stress Monitor": "How hard your body is working, from 0 to 100, from heart rate against your last 30 days and HRV at night. Workouts are left out.",
   "Health Monitor": "Your nightly vital signs against your last 30 nights. Unusual readings are signals to watch, not diagnoses.",
-  "Healthspan": "Pulse Age turns nine sleep, activity and fitness factors from the last 28 days into years older or younger than your age.",
+  "Healthspan": "Pulse Age turns nine sleep, activity and fitness factors from the 28 days ending each Sunday into years older or younger than your age.",
   "Fitness": "Your estimated aerobic fitness and training load, based on the measurements available from Health Connect.",
   "Heart rate": "Heartbeats per minute recorded throughout the day. Gaps mean no reading was available.",
   "Heart rate variability": "Variation in time between heartbeats during sleep, in milliseconds. Compare it with your own usual range.",

@@ -21,15 +21,14 @@ import { FITNESS_INFO } from "./info";
 import { LoadChart } from "./LoadChart";
 
 const BODY = "text-[15px] leading-[22px] text-foreground-secondary";
-// Both thresholds follow the pipeline: ACWR shows after 14 days of strain (readiness `minChronic`), fitness and fatigue
-// after 14 days in a row (training load `minimumDays`).
-const NO_LOAD = "Training load needs 14 days of strain.";
-const NO_FFS = "Fitness, fatigue and form need 14 days of strain in a row.";
+// The engine's load status calibrates until its confidence reaches 0.35 (loadConfidence: active days in 42, recent ones).
+const NO_LOAD = "Training load needs workouts on about 10 of the last 42 days, a few of them recent.";
+const NO_FFS = "Fitness, fatigue and form need workouts with heart rate.";
 
 const STATUS: Record<NonNullable<FitnessVM["trainingLoad"]["value"]>["status"], { word: string; body: string }> = {
-  detraining: { word: "Detraining", body: "Detraining: your recent load is well below your usual. Fitness slowly drops if this lasts." },
+  detraining: { word: "Detraining", body: "Detraining: your recent load is below your usual and your fitness is falling." },
   optimal: { word: "Optimal", body: "Optimal: your recent load matches what you are used to." },
-  pushing: { word: "Pushing", body: "Pushing: load is rising faster than usual. Watch your Recovery." },
+  pushing: { word: "Pushing", body: "Pushing: load is above your usual while your Recovery is low. Ease off." },
   high_risk: { word: "High risk", body: "High risk: load jumped well above your usual. Injury and illness risk rise." },
 };
 const CATEGORIES = ["Poor", "Fair", "Good", "Excellent", "Superior"];

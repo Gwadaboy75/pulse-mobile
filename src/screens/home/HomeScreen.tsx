@@ -406,7 +406,7 @@ function StressCard({ vm, href, timeZone }: { vm: HomePageVM; href: string; time
   if (s.value === null)
     return (
       <SectionShell variant="card" title="Stress Monitor" info={false} href={href} fill>
-        <MonitorLine chip={NO_READING_CHIP} chipClass="bg-secondary" top={s.reason === "band_not_worn" ? "Not worn" : "No still minutes yet"} topClass="text-foreground-secondary" bottom={vm.isToday ? "Today" : "This day"} />
+        <MonitorLine chip={NO_READING_CHIP} chipClass="bg-secondary" top={s.reason === "band_not_worn" ? "Not worn" : "No stress scored yet"} topClass="text-foreground-secondary" bottom={vm.isToday ? "Today" : "This day"} />
       </SectionShell>
     );
   const tone = STRESS_TONE[s.value.level];

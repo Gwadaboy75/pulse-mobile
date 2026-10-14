@@ -168,7 +168,7 @@ function Monitor({ m }: { m: HealthHubVM["monitor"] }) {
 
 function Stress({ m }: { m: HealthHubVM["stress"] }) {
   return (
-    <MetricState metric={m} skeleton={skeleton} renderReason={() => <Text className={EMPTY}>No still minutes yet today</Text>}>
+    <MetricState metric={m} skeleton={skeleton} renderReason={() => <Text className={EMPTY}>No stress scored yet today</Text>}>
       {(v, meta) => {
         const typical = v.typicalHighMin;
         const dir = typical === null ? null : v.highMin < typical - 1 ? "down" : v.highMin > typical + 1 ? "up" : "flat";

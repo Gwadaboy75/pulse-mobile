@@ -36,7 +36,7 @@ export const REASONS: Record<ReasonCode, ReasonEntry> = {
   no_hrv_last_night: {
     icon: HeartPulse,
     short: "No HRV last night",
-    long: () => "No HRV last night (needs about 3 h of sleep)",
+    long: () => "No HRV in last night’s sleep",
   },
   awaiting_sleep_sync: {
     icon: RefreshCw,

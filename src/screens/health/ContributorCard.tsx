@@ -81,7 +81,7 @@ export function ContributorCard({ title, items }: { title: string; items: Health
     <SectionShell
       variant="card"
       title={title}
-      info={{ title: `${title} and Pulse Age`, body: "Each factor's bar marks your average over the 28 days before this week, from poor to good for your age. The years beside it are what that factor adds to or takes off Pulse Age." }}
+      info={{ title: `${title} and Pulse Age`, body: "Each factor's bar marks your average over the 28 days up to the latest Sunday, from poor to good for your age. The years beside it are what that factor adds to or takes off Pulse Age." }}
       fill
     >
       <View>
