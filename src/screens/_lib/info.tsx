@@ -33,7 +33,7 @@ export const RECOVERY_INFO: InfoContent = {
     <>
       <P>
         Recovery shows how ready your body is to take on strain, from 1 to 100%. Pulse scores it each morning from last night’s heart rate
-        variability (40%), resting heart rate (30%) and Sleep Score (30%), the first two against your last 60{"\u00a0"}days. Breathing faster than usual,
+        variability (40%), resting heart rate (30%) and Sleep Performance (30%), the first two against your last 60{"\u00a0"}days. Breathing faster than usual,
         or running warm, lowers it.
       </P>
       <Rows
@@ -97,7 +97,7 @@ export const SLEEP_INFO: InfoContent = {
         your sleep debt.
       </P>
       <P>
-        Sleep debt comes from your sleep bank: the last 7{"\u00a0"}days’ sleep, naps included, against 7.5{"\u00a0"}hours each, recent nights counting most.
+        Sleep debt comes from the last 7{"\u00a0"}days’ sleep, naps included, against 7.5{"\u00a0"}hours each, recent nights counting most.
         Sleep consistency is how closely the times you are asleep agree across those days.
       </P>
       {SOURCE_NOTE}

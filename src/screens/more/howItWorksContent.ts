@@ -29,7 +29,7 @@ export const SCORE_DOCS: ScoreDoc[] = [
         rows: [
           { term: "Heart rate variability", detail: "The mean of Fitbit’s HRV readings while you slept, in ms. Higher is better." },
           { term: "Resting heart rate", detail: "Your mean heart rate while you slept, in bpm. Lower is better." },
-          { term: "Sleep Score", detail: "Last night’s Sleep Score, 0 to 100." },
+          { term: "Sleep Performance", detail: "Last night’s Sleep Performance, 0 to 100." },
           { term: "Respiratory rate", detail: "Breaths per minute asleep, in rpm. Higher than usual counts against you." },
           { term: "Skin temperature", detail: "Last night against your skin-temperature baseline. Only warmer than usual counts, and only against you." },
         ],
@@ -42,7 +42,7 @@ export const SCORE_DOCS: ScoreDoc[] = [
         rows: [
           { term: "HRV", detail: "40%" },
           { term: "Resting heart rate", detail: "30%" },
-          { term: "Sleep Score", detail: "30%" },
+          { term: "Sleep Performance", detail: "30%" },
           { term: "Respiratory rate", detail: "Then up to 10 points up or down." },
           { term: "Skin temperature", detail: "Then up to 30 points down when you run warm; never up." },
         ],
@@ -59,7 +59,7 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "Limits",
         paragraphs: [
-          "Recovery shows from your second night, once there is a night to compare with, and is Provisional until your data spans 60 days. It needs HRV and heart rate in last night’s sleep and a Sleep Score; without them there is no score rather than a guess. Blood oxygen is not used: Fitbit does not share it with Health Connect. Recovery is an estimate from a wrist sensor: it reads your body, not your plans or how you feel.",
+          "Recovery shows from your second night, once there is a night to compare with, and is Provisional until your data spans 60 days. It needs HRV and heart rate in last night’s sleep and a Sleep Performance; without them there is no score rather than a guess. Blood oxygen is not used: Fitbit does not share it with Health Connect. Recovery is an estimate from a wrist sensor: it reads your body, not your plans or how you feel.",
         ],
       },
     ],
@@ -220,7 +220,7 @@ export const SCORE_DOCS: ScoreDoc[] = [
         rows: [
           { term: "Your sleep goal", detail: "7.5 hours a night." },
           { term: "Today’s Strain", detail: "Strain above your 30-day average adds to the need." },
-          { term: "Sleep debt", detail: "What your sleep bank owes from the last 7 days." },
+          { term: "Sleep debt", detail: "What your last 7 days’ sleep owes against your goal." },
           { term: "Your recent nights", detail: "Your usual wake time, sleep efficiency and time to fall asleep." },
         ],
       },
@@ -228,7 +228,7 @@ export const SCORE_DOCS: ScoreDoc[] = [
         title: "How it is weighted",
         paragraphs: [
           "Tonight’s need = 7.5 hours + 2% for each spread today’s Strain sits above your 30-day average + a quarter of your sleep debt.",
-          "The sleep bank adds up the last 7 days’ sleep, naps included, less 7.5 hours each, with recent days counting most: last night in full, each day before it about three quarters of the one after. A negative bank is debt; naps pay it down.",
+          "Sleep debt adds up the last 7 days’ sleep, naps included, less 7.5 hours each, with recent days counting most: last night in full, each day before it about three quarters of the one after. A negative bank is debt; naps pay it down.",
           "Bedtimes count back from your usual wake time on recent weekday or weekend mornings, to match tomorrow, adding the time your usual efficiency and time to fall asleep cost, up to an hour each.",
         ],
       },
@@ -590,7 +590,7 @@ export const SCORE_DOCS: ScoreDoc[] = [
       {
         title: "What goes in",
         paragraphs: [
-          "Cardio Load: each day's training impulse (TRIMP), summed over its recorded workouts from their heart rate against your 60-day resting baseline. A day without a workout counts as 0.",
+          "Training Load: each day's training impulse (TRIMP), summed over its recorded workouts from their heart rate against your 60-day resting baseline. A day without a workout counts as 0.",
         ],
       },
       {

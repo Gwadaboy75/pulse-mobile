@@ -15,7 +15,7 @@ const COPY: Record<string, string> = {
   "Blood oxygen": "Estimated oxygen saturation during sleep, measured by your Fitbit. Compare changes with your usual readings.",
   "Skin temperature": "Nightly temperature difference from your personal baseline, not your absolute body temperature.",
   "Sleep performance": "How your sleep met tonight's need: time asleep, deep and REM sleep, heart-rate dip, efficiency and how rarely you woke.",
-  "Recovery": "Your readiness for the day, from last night's HRV, resting heart rate and Sleep Score against your last 60 days.",
+  "Recovery": "Your readiness for the day, from last night's HRV, resting heart rate and Sleep Performance against your last 60 days.",
   "Strain": "The load of your day as a percent, 0 to 100 on most days. Workouts and everyday activity both contribute.",
   "Calories": "Estimated energy burned for the day or activity shown.",
   "Steps": "Steps counted through the day. Today's count builds as new activity syncs.",
