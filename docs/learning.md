@@ -700,3 +700,20 @@ To measure: a Perfetto trace of taps between two tabs, then the long `Choreograp
 `Record View#draw` children. A local Gradle build reads native modules from the path in
 `android/build/generated/autolinking/autolinking.json`; after moving `node_modules`, delete that folder, or a native
 patch is silently left out of the APK.
+
+## Every HRV sample, bucketed like heart rate
+
+The Pulse engine labels each HRV reading by sleep stage (Recovery's night mean, Stress at night), so the import keeps
+every `HeartRateVariabilityRmssd` record, not just the nightly mean. They go in `hrv_days`, the same per-UTC-day bucket
+table as `hr_days` and `steps_days` (one row of parallel offset and value arrays per day): Fitbit writes one every 5
+minutes at night, about a hundred a day, so a row per sample would be fine too, but one shape for every sample table
+keeps `putSamples`, `readSamples` and `clearImported` shared. Raising `IMPORT_VERSION` to 4 re-imports the history
+window so the samples exist for past nights.
+
+```mermaid
+flowchart LR
+  HC[Health Connect HRV records] --> MAP[mapHrv: one per second, time order]
+  MAP --> HRV[(hrv_days buckets)]
+  HRV --> S1[Stage 1: night mean in sleep, the day's samples]
+  S1 --> S2[Stage 2: Recovery, Stress, Energy Bank]
+```

@@ -135,7 +135,7 @@ describe("parity with the web app", () => {
     // moved, nothing else. Version 21's value was "416071272e0e6e64". 23: Pulse Age on the engine's nine factors
     // (Phase 6); only healthspan moved. Version 22's value was "1be75842de2b2bd1". 24: Health Monitor's ±1 SD band over
     // 30 nights and the engine's journal t-test (Phase 7); Health Monitor and the reports moved. Version 23's value was
-    // "e5852ab4c03c2755".
+    // "e5852ab4c03c2755". The reports also carry each day's strain as the engine's percent (recordOutcomes).
     "daily_scores.scoring_version": "eca080343200e2aa",
     // Version 15: Activity Strain is the session's Banister TRIMP plus its muscular load through 5.05 · ln(1 + 0.09 · T)
     // (a seeded 45-minute strength session goes from 8.2 to 9.9 on 0–21), each activity stores its `cardioTrimp` and
@@ -239,8 +239,6 @@ describe("parity with the web app", () => {
     // recharge included) on the new rates. Version 17's value was "ea5921ebc2c6e657".
     "intraday_series.energy_bank": "8ccf48581238829f",
     "intraday_series.hr": "5ca83bb68dad9033",
-    // Version 18: each minute's TRIMP above the waking floor (all of it in a workout), Energy Bank's drain, in place of its
-    // Edwards zone weight. Version 17's value was "859d8876596ad379".
     "intraday_series.still_hr": "c0bf14266ee71abd",
     "intraday_series.stress": "34660dca062d2b00",
     // Each report's training balance is the period's last ACWR, so it follows training_load. The web's was "7c7cfdf8c1583777".
@@ -249,7 +247,7 @@ describe("parity with the web app", () => {
     // was "dac817e185f4f75f". Version 17: Recovery averages follow the new Recovery. Version 16's was "1043e130fde0738d".
     // Version 18: the training balance is the period's last Garmin ratio, banded at 0.8 / 1.5 / 2.0. Version 17's was
     // "60efbad5a80cb17c".
-    reports: "24e2b988dbd98de5",
+    reports: "9b053f54bcd42d60",
   };
   const canon = (v: unknown): unknown =>
     typeof v === "number"

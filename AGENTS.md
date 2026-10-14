@@ -37,7 +37,7 @@ app/          Expo Router routes: one file per screen, _layout.tsx files are nav
 src/
   health/     Health Connect: permissions, record → row mapping, sync, source policy, data check (halo)
   data/       the Store interface, the async expo-sqlite store, the in-memory store for tests, the demo seed (halo)
-  core/       pure TypeScript: engine/ (the Pulse engine, from the reference study), scoring and algorithms (halo, until docs/engine-plan.md Phase 8)
+  core/       pure TypeScript: engine/ (the Pulse engine, from the reference study: every score the screens show), scoring and algorithms (halo's, kept for the extras listed in docs/engine-plan.md Phase 7)
   pipeline/   stage 1 and stage 2: imported rows to stored scores (halo)
   queries/    view models (halo), plus Pulse-only extras the screens need (trendView, homeExtras, mobileExtras, journalExtras, shell)
   lib/        time, yield (time slicing), format, bands, reasons, url and the UI catalogues
@@ -63,7 +63,7 @@ docs/         rewrite-plan.md, plan.md, design/spec.md, learning.md, onboarding.
 - **halo is the reference elsewhere.** Engine code outside `src/core/engine` (`src/health`, `src/data`, `src/pipeline`, `src/queries`, the old `src/core/scoring` and `src/core/algorithms`) follows halo. Copy its code and its way of doing things; it is the same pulse code under the same license and copyright owner. Pulse-only additions live in their own files (the `*Extras.ts` queries) so the copies stay comparable.
 - **No secrets in logs.** Never log health-record bodies or keys. Secrets (the coach key, later) live only in `expo-secure-store`.
 - **Honest states.** Every nullable metric is `{ value, reason, provisional }`, using the reason codes in `src/lib/reasons.ts`. Never show a fabricated number. Where a source has no data for a card, hide the card or show its reason; never invent a value.
-- **Scales.** Core keeps Effort on 0 to 100. `toStrainScale` (x21/100) is applied only for display and in Strain Target. Recovery's `sleepPerf` is on [0, 1].
+- **Scales.** Strain is a percent: 0 to 100 on most days, up to about 129; rings fill at 100 and labels show the real value. Recovery is 1 to 100, Stress and the Sleep Score 0 to 100, Energy Bank 1 to 100. Halo's Effort (0 to 100) still feeds halo's extras only. Recovery's `sleepPerf` is on [0, 1].
 - **Causality.** A day's scores depend only on that day and earlier days. Baselines fold from earlier nights only. Never let a later night change history.
 - **Scoring version.** A change to what the pipeline stores bumps `SCORING_VERSION` (`src/pipeline/types.ts`), which rescores the history. A change to the import mapping bumps `IMPORT_VERSION` (`src/health/sync.ts`), which re-imports the history window.
 - **Long loops yield.** The import and the pipeline await `slice()` (`src/lib/yield.ts`) in long loops so taps and frames get through.
