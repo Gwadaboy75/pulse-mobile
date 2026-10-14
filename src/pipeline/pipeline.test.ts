@@ -126,8 +126,10 @@ describe("parity with the web app", () => {
     // value was "fab0c4eee005f38d". 17: Recovery on WHOOP's 2026 inputs (recovery.ts). Version 16's value was
     // "3b88f4ed65deb34e". 18: Garmin's training load, the 24-hour Energy Bank and Halo Age's WHOOP definitions. Version
     // 17's value was "a95ad63c44f235eb". 19: HRV Status and Garmin-style training (two new columns, below). Version 18's
-    // value was "c4a73691987f16d1".
-    "daily_scores.scoring_version": "769c3cb7fe6c5606",
+    // value was "c4a73691987f16d1". 20: the Pulse engine's Sleep and Recovery (src/pipeline/engine.ts); every column that
+    // reads Recovery, the Sleep Score or the need moved with them (Energy Bank, Health Monitor, Pulse Age, HRV Status,
+    // the planner, Strain Target, training, training load, reports). Version 19's value was "769c3cb7fe6c5606".
+    "daily_scores.scoring_version": "f0df0ca35661e535",
     // Version 15: Activity Strain is the session's Banister TRIMP plus its muscular load through 5.05 · ln(1 + 0.09 · T)
     // (a seeded 45-minute strength session goes from 8.2 to 9.9 on 0–21), each activity stores its `cardioTrimp` and
     // `muscularTrimp`, and its zone seconds count Zone 1 from 40 % of the reserve. Version 14's value was "cb2d75373aaf4d20".
@@ -144,13 +146,13 @@ describe("parity with the web app", () => {
     // temperature is out of the score, terms and drivers (still in `inputs`, `baselines` and `stale` for Health Monitor).
     // Scores move 2.1 points on average, 7.4 at most (today's 78.3 → 79.0); over the seed the mean is 59.3 with 15 % red
     // and 41 % green (was 58.6, 14 %, 37 %). Version 16's value was "238d071f788df5f8".
-    "daily_scores.recovery": "0a5ce13387776b0a",
+    "daily_scores.recovery": "b981b09bb8608ea3",
     // Version 16: Sleep Performance is WHOOP's 2025 four parts (hours against the night's full need, WHOOP-style 4-day
     // consistency, efficiency against 95 %, 100 − Sleep Stress) with restorative sleep left out; rows gain `parts`,
     // `needMin`, `stressPct` and the night's `latencyMin`, `consistency` is the 4-day measure (SRI stays in `sri`), and debt
     // looks back 28 nights. Today’s 89.83 → 86.46 (7 h 13 min asleep against an 8 h 53 min need). Version 15's value was
     // "ccb090c5c5766471".
-    "daily_scores.sleep": "4e45ff368c6f8040",
+    "daily_scores.sleep": "fca55d2a2be86f7d",
     // A worn day too short of heart rate for an Effort is missing, not 0 (src/pipeline/scores.ts scoreTrainingLoad): the
     // band-back day 2026-09-10 (32 samples) no longer pulls the acute load down, so from that day on the ACWR differs
     // (0.82 there, was 0.73) and the run of days restarts one day later. The web's value was "c6a22d117dfa06bc".
@@ -160,7 +162,7 @@ describe("parity with the web app", () => {
     // load that is the 28-day mean of it, rows gain `acute` and `chronic`, monotony and CTL/ATL/TSB read the TRIMP too. The
     // ratio is livelier (0.47–1.92 over the seed, was 0.64–1.29; today's 1.02 → 0.99), and on Garmin's 0.8 / 1.5 / 2.0
     // bands 17 days read building fast where none did. Version 17's value was "2f0b3f43cfc8014c".
-    "daily_scores.training_load": "61c9071adcef2316",
+    "daily_scores.training_load": "71e9a87a376d3dd8",
     // Follows the ACWR above (the target reads the day before's): 2026-09-11 to 09-14 are no longer "lifted" for a
     // ramping-down load. The web's value was "bfcfd859e9c7dd75". Version 15: the target's base is the 28-day mean of the
     // recalibrated Strain (today's range 6.8–8.8 → 9.2–11.4). Version 14's value was "75e4cf7d163079e5".
@@ -170,13 +172,13 @@ describe("parity with the web app", () => {
     // 66.2 → 70.8 green, …), and their ranges follow. Version 16's value was "98e74b2f34c069cd".
     // Version 18: the cap reads Garmin's ratio, from 1.5 (was 1.3), and the lift under 0.8 fires on the livelier ratio:
     // 42 days' ranges move (today's 9.2–11.4 is unchanged). Version 17's value was "58d9671c01a08352".
-    "daily_scores.strain_target": "f43f4e876bfd315c",
+    "daily_scores.strain_target": "b82ef5de2f3e1d33",
     // Version 15: the planner's strain term reads the recalibrated Effort against its 28-day mean (2026-10-01's need 506 →
     // 502 minutes). Version 14's value was "bf57a92ddfecd8e0".
     // Version 16: need = baseline + WHOOP's patented strain sigmoid + half the debt (at most an hour) − naps, in 6.5–11 h,
     // and bedtimes leave the typical minutes to fall asleep (tonight's need 492 → 515 minutes; the seed's average need is
     // now 514, WHOOP's published member average is 8 h 34 min). Version 15's value was "b1b372539fa00d58".
-    "daily_scores.sleep_planner": "c2b792c1a0031d32",
+    "daily_scores.sleep_planner": "6da0fba933954222",
     // Version 16: each morning starts from 0.6 × Recovery + 0.4 × Sleep Performance, both moved by the new Sleep
     // Performance (today's start 83.6 → 81.6). Version 15's value was "f822e67fed343673".
     // Version 17: its start follows the new Recovery (today's 81.6 → 82.0). Version 16's value was "6e4699097a6c6d00".
@@ -185,12 +187,12 @@ describe("parity with the web app", () => {
     // and awake minutes pay sleep pressure, TRIMP and stress. Rows gain `from`, `fromLevel` and `band`. The level at wake
     // averages 90 (was 71) and the day's last level 36 (was 28); today's wake 82.0 → 99.8, now 61.0 → 70.3. Version 17's
     // value was "ab6a00f26829217a".
-    "daily_scores.energy_bank": "bb038b8e4946c2e1",
+    "daily_scores.energy_bank": "2acf9c448a125641",
     "daily_scores.stress": "a8514c3f8bedce98",
     // The illness signal's SD is floored at half the baselines' σ floor (src/core/scoring/illness.ts illnessSdFloor),
     // which tempers a few days' scores (the seeded illness's 2026-08-03 scores 51 where it scored 69). The web's
     // value was "3a2163c7f92d4dab".
-    "daily_scores.health_monitor": "abb58b72955859e1",
+    "daily_scores.health_monitor": "58c0f6991a5dc0df",
     // Mobile rebuilds Pulse Age on WHOOP's Healthspan method (src/core/algorithms/healthspan.ts): 6.0 years per ln HR
     // (WHOOP's 10 × an overlap factor of 0.6) with no 9/n rescaling (a missing term counts 0), WHOOP's references and
     // curves (sleep from 7 h, Arem and Ahmadi zone curves, strength flat after 40 min, lean mass as body fat %), zone time
@@ -213,22 +215,22 @@ describe("parity with the web app", () => {
     // shows Monday 2026-09-28's 1.70, its own daily value being 1.42 (version 17 showed a daily 1.61). Today's Halo Age
     // 33.41 → 33.78. Version
     // 17's value was "2fdf2c34ba15be9c".
-    "daily_scores.healthspan": "e0077d0297538a97",
+    "daily_scores.healthspan": "e58da0a6c287b90c",
     // Version 19: the VO2 max categories use Garmin's percentile cut-offs, 40 / 60 / 80 / 95 (were 20 / 40 / 60 / 80), so
     // today's 45.3 at the 61st percentile reads Good, not Excellent; percentiles are unchanged. Version 18's value was
     // "cfad8d1954c878ed".
     "daily_scores.fitness": "acc03af566eaa295",
     // New at version 19 (hrvStatus.ts): HRV Status from the 7-night average of ln HRV against the 60 nights before; the
     // seed reads building for its first 27 days, then Balanced on 148 days and Unbalanced on 5.
-    "daily_scores.hrv_status": "027b836ad9f6714d",
+    "daily_scores.hrv_status": "9ac04f611f5dad6d",
     // New at version 19 (scores.ts scoreTraining): each workout's Aerobic Training Effect (walks about 1.5, strength 2.3,
     // easy runs 3.3, tempo runs 4.3, intervals 5.0 on the seed), Recovery Time, Training Readiness at wake and now, and
     // Training Status (productive 58 days, maintaining 77, recovery 26, no status 19).
-    "daily_scores.training": "88e80ba28c35bb03",
+    "daily_scores.training": "f5fcc9e2b2c17d26",
     // Version 16: the curve follows its start level (above). Version 15's value was "237320b091a7a358".
     // Version 17: likewise. Version 16's value was "081d84cb00f2d1a6". Version 18: the curve runs from midnight (the night's
     // recharge included) on the new rates. Version 17's value was "ea5921ebc2c6e657".
-    "intraday_series.energy_bank": "c3dc047f9cbdca4d",
+    "intraday_series.energy_bank": "9c25444e0d210fac",
     "intraday_series.hr": "5ca83bb68dad9033",
     // Version 18: each minute's TRIMP above the waking floor (all of it in a workout), Energy Bank's drain, in place of its
     // Edwards zone weight. Version 17's value was "859d8876596ad379".
@@ -241,7 +243,7 @@ describe("parity with the web app", () => {
     // was "dac817e185f4f75f". Version 17: Recovery averages follow the new Recovery. Version 16's was "1043e130fde0738d".
     // Version 18: the training balance is the period's last Garmin ratio, banded at 0.8 / 1.5 / 2.0. Version 17's was
     // "60efbad5a80cb17c".
-    reports: "9b30fda4da0ba3d6",
+    reports: "b65afe95735ca187",
   };
   const canon = (v: unknown): unknown =>
     typeof v === "number"
@@ -402,7 +404,8 @@ describe("numbers checked by hand", () => {
     }
     const d = dayAt(120);
     const m = metrics.get(d)!;
-    expect(col(d, "recovery").inputs.rhr).toBe(m.rhrBpm);
+    // Version 20: Recovery's resting HR is last night's mean heart rate in sleep (the engine's aggregate), not the daily one.
+    expect(col(d, "recovery").inputs.rhr).toBe(Math.round(col(d, "strain").engine!.restingHR!.avg * 10) / 10);
     expect(col(d, "strain")).toMatchObject({ restingHr: m.rhrBpm, restingHrSource: "daily" });
     // Skin temperature: nightly − Google's baseline; Health Monitor takes Google's ranges.
     expect(col(d, "recovery").inputs.skinTempDev).toBeCloseTo(m.nightlyTempC! - m.tempBaselineC!, 9);
@@ -415,20 +418,21 @@ describe("numbers checked by hand", () => {
     expect(by.resp.rangeSource).toBe("pulse");
   });
 
-  it("days 1–7 calibrate with the nights left, day 8 is the first (provisional) score", () => {
-    for (let i = 0; i < 7; i++) expect(col(dayAt(i), "recovery")).toMatchObject({ value: null, reason: "calibrating", nightsLeft: 7 - i });
-    const first = col(dayAt(7), "recovery");
+  it("the first night has no baseline; Recovery shows from the second, provisional until 60 days span its data (fix 17)", () => {
+    expect(col(dayAt(0), "recovery")).toMatchObject({ value: null, reason: "calibrating", nightsLeft: 1 });
+    const first = col(dayAt(1), "recovery");
     expect(first.value).toBeTypeOf("number");
     expect(first.provisional).toBe(true);
-    expect(col(dayAt(30), "recovery").provisional).toBe(false);
+    expect(col(dayAt(59), "recovery").provisional).toBe(true);
+    expect(col(dayAt(70), "recovery").provisional).toBe(false);
   });
 
-  it("the skin-temperature gap leaves its baseline stale on day 100; skin temperature is never a Recovery term (version 17)", () => {
-    const r = col(dayAt(100), "recovery");
-    expect(r.stale).toContain("skinTemp"); // Health Monitor still reads the stale baseline
-    for (const d of [dayAt(100), dayAt(101), dayAt(150)]) {
-      expect(col(d, "recovery").terms).not.toContain("skinTemp");
-      expect(col(d, "recovery").drivers.map((x) => x.label)).not.toContain("SKIN_TEMPERATURE");
+  it("skin temperature only ever lowers Recovery; nights without it have no temperature term", () => {
+    for (const d of allDays) {
+      const r = col(d, "recovery");
+      const t = r.drivers.find((x) => x.label === "SKIN_TEMPERATURE");
+      if (t) expect(t.deltaPoints, d).toBeLessThanOrEqual(0);
+      if (r.inputs.skinTempDev == null) expect(r.terms, d).not.toContain("skinTemp");
     }
     expect(col(dayAt(101), "recovery").inputs.skinTempDev).toBeTypeOf("number");
   });

@@ -85,13 +85,12 @@ export function baseline(prior: readonly (Agg | null | undefined)[], pooling: Po
 }
 
 /**
- * Whether a score is calibrated: its data days span at least `spanDays` (first + span <= last) and there are at least
+ * Whether a score is calibrated (day numbers of its first and latest data day, and how many there are): they span at least `spanDays` (first + span <= last) and there are at least
  * 5 of them. Reference study, shared-machinery.md § G07 (Recovery 60 days, Stress 30). The source showed this as a badge
  * only; the Pulse engine shows the score from the first day it can, marked provisional until calibrated (fix 17).
  */
-export function calibrated(dataDayNumbers: readonly number[], spanDays: number): boolean {
-  if (dataDayNumbers.length < 5) return false;
-  return dataDayNumbers[0] + spanDays <= dataDayNumbers[dataDayNumbers.length - 1];
+export function calibrated(firstDay: number, lastDay: number, dataDays: number, spanDays: number): boolean {
+  return dataDays >= 5 && firstDay + spanDays <= lastDay;
 }
 
 export const RECOVERY_CALIBRATION_DAYS = 60;

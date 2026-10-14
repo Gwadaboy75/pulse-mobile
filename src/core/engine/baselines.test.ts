@@ -48,8 +48,8 @@ describe("pooling", () => {
 
 describe("calibration (fix 17: the score shows, marked provisional until calibrated)", () => {
   it("needs 5 data days spanning the window", () => {
-    expect(calibrated([0, 1, 2, 3], 3)).toBe(false);
-    expect(calibrated([0, 10, 20, 30, 59], 60)).toBe(false);
-    expect(calibrated([0, 10, 20, 30, 60], 60)).toBe(true);
+    expect(calibrated(0, 3, 4, 3)).toBe(false);
+    expect(calibrated(0, 59, 5, 60)).toBe(false);
+    expect(calibrated(0, 60, 5, 60)).toBe(true);
   });
 });

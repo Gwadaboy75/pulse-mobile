@@ -36,6 +36,7 @@ import {
 import { trainingReadiness, type TrainingReadinessInput } from "@/core/algorithms/trainingReadiness";
 import { trainingStatus, trainingStatusConfig } from "@/core/algorithms/trainingStatus";
 import { type Data, r1, round, type Segment, type Session } from "./data";
+import { newEngineFold } from "./engine";
 import type {
   BaselineSummary,
   EnergyBankRow,
@@ -112,6 +113,8 @@ export const newFold = () => ({
   lastWeight: null as number | null,
   /** Pace of Aging as last published (a Monday's row, version 18), carried through the week. */
   weeklyPace: null as { day: string; value: number | null } | null,
+  /** Version 20: the Pulse engine's state (engine.ts). */
+  engine: newEngineFold(),
 });
 
 /** One day's inputs. */

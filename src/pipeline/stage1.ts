@@ -20,7 +20,11 @@ import { minuteMeanHr, stress } from "@/core/algorithms/stress";
 import { BATCH_DAYS, type Data, type Exercise, type Progress, r1, round, type Segment, type Session, sha, touching } from "./data";
 import { MODERATE_FROM_HRR } from "./intensity";
 import { carriedRestingHr, estimateRestingHr, resolveRestingHr } from "./restingHr";
-import { type PipelineOptions, SCORING_VERSION, type Stage1Activity, type Stage1Day } from "./types";
+import { type EngineDayAggs, type PipelineOptions, SCORING_VERSION, type Stage1Activity, type Stage1Day } from "./types";
+import type { Agg } from "@/core/engine/baselines";
+import { minuteHr, timeline } from "@/core/engine/context";
+import { dayAggregates } from "@/core/engine/days";
+import type { HrvSample } from "@/data/types";
 
 /** A baseline whose centre is set, so stress() scores every still minute; only the still mask is kept. */
 const MASK_BASELINE: BaselineState = { baseline: 0, spread: 1, nValid: 1, nightsSinceUpdate: 0, status: "calibrating" };
@@ -172,10 +176,13 @@ export async function stage1(store: Store, data: Data, dirtyDays: string[], opts
       // ponytail: one range per batch, so scattered dirty days read the HR between them too; split on gaps if that bites.
       const lo = Math.min(...batch.map((b) => b.lo));
       const hi = Math.max(...batch.map((b) => b.hi));
-      const [hrAll, stepsAll, segmentRows] = await Promise.all([
+      // Every session the batch touches, with its stages: the engine labels samples by them (naps too).
+      const near = touching(data.sessions, lo, hi);
+      const [hrAll, stepsAll, segmentRows, hrvAll] = await Promise.all([
         store.readHr(lo, hi),
         store.readSteps(Math.min(...batch.map((b) => b.start)), Math.max(...batch.map((b) => b.end))),
-        store.segmentsFor(batch.flatMap((b) => (b.main ? [b.main.id] : []))),
+        store.segmentsFor(near.map((s) => s.id)),
+        store.readHrv(lo, hi),
       ]);
       for (const b of batch) {
         // A day's work is synchronous; between days the JS thread goes back to the screen (src/lib/yield.ts).
@@ -186,6 +193,7 @@ export async function stage1(store: Store, data: Data, dirtyDays: string[], opts
         const key = stage1Key(data, b.day, opts, carried, floor);
         const segs = b.main ? segmentRows.filter((g) => g.sessionId === b.main!.id) : [];
         const r = stage1Day(data, b.day, b.start, b.end, b.main, segs, b.exs, between(hrAll, b.lo, b.hi), steps, key, carried, floor, opts);
+        r.s1.engine = engineAggs(data, b, between(hrAll, b.lo, b.hi), between(hrvAll, b.lo, b.hi), segmentRows);
         if (data.metrics.get(b.day)?.rhrBpm == null) {
           if (r.sessionRhr != null) known.set(b.day, r.sessionRhr);
           else known.delete(b.day);
@@ -208,6 +216,38 @@ export async function stage1(store: Store, data: Data, dirtyDays: string[], opts
     total += todo.length;
   }
   return [...new Set(redone)];
+}
+
+/** Aggregates to 4 decimals, so the stored JSON stays small and stable. */
+const r4 = (a: Agg | null): Agg | null =>
+  a && { avg: round(a.avg, 4), sd: round(a.sd, 4), count: a.count, ...(a.hist && { hist: a.hist }) };
+
+/** The Pulse engine's sample-based aggregates for a day (src/core/engine/days.ts). */
+function engineAggs(
+  data: Data,
+  b: { start: number; end: number; main: Session | undefined; lo: number; hi: number },
+  hr: HrSample[],
+  hrv: HrvSample[],
+  segmentRows: Segment[],
+): EngineDayAggs {
+  const sessions = touching(data.sessions, b.lo, b.hi);
+  const ids = new Set(sessions.map((s) => s.id));
+  const tl = timeline({
+    sessions,
+    segments: segmentRows.filter((g) => ids.has(g.sessionId)),
+    workouts: touching(data.exercises, b.lo, b.hi),
+  });
+  const a = dayAggregates({
+    dayStart: b.start,
+    dayEnd: b.end,
+    primary: b.main ?? null,
+    tl,
+    hr: minuteHr(hr),
+    hrv,
+    respBpm: null,
+    tempDeltaC: null,
+  });
+  return { restingHRV: r4(a.restingHRV), averageHRV: r4(a.averageHRV), restingHR: r4(a.restingHR), inactiveHR: r4(a.inactiveHR) };
 }
 
 /** The samples with lo <= ts < hi of a time-ordered list. */

@@ -17,6 +17,7 @@ import type { TrainingReadiness } from "@/core/algorithms/trainingReadiness";
 import type { TrainingStatus } from "@/core/algorithms/trainingStatus";
 import type { StrainTarget } from "@/core/algorithms/strainTarget";
 import type { RestingHrSource } from "./restingHr";
+import type { DayAggs } from "@/core/engine/days";
 
 /**
  * Bump on any scoring change; a mismatch at startup reruns both stages for every day.
@@ -54,8 +55,11 @@ import type { RestingHrSource } from "./restingHr";
  * 19 (batch 5, new columns): HRV Status (`hrv_status`) and Garmin-style training (`training`: Aerobic Training Effect
  * from each workout's peak EPOC, which stage 1 now stores, Recovery Time, Training Readiness 1–100, Training Status);
  * VO2 max categories on Garmin's 40 / 60 / 80 / 95 percentiles; workouts auto-detected from 10 minutes (WHOOP, 2026).
+ * 20 (the Pulse engine, docs/engine-plan.md Phase 3): Sleep Score, Sleep Bank, Consistency and Need, and Recovery from
+ * every HRV and heart-rate sample labelled by sleep stage, against 60-day pooled baselines (src/core/engine); stage 1
+ * keeps each day's aggregates (Stage1Day.engine).
  */
-export const SCORING_VERSION = 19;
+export const SCORING_VERSION = 20;
 
 export type PipelineOptions = {
   timeZone: string;
@@ -115,7 +119,15 @@ export type Stage1Day = {
   /** Stress Monitor's resting daytime HR for the day (independent of the baseline). */
   dayAggregate: number | null;
   stillMinutes: number;
+  /**
+   * Version 20: the Pulse engine's per-day aggregates from labelled samples (src/core/engine/days.ts): last night's HRV and
+   * heart rate in sleep, the day's HRV and awake heart rate (with its histogram). Stage 2 pools them into baselines.
+   */
+  engine?: EngineDayAggs;
 };
+
+/** The sample-based part of the engine's DayAggs; respiratory rate and temperature come from the daily row in stage 2. */
+export type EngineDayAggs = Pick<DayAggs, "restingHRV" | "averageHRV" | "restingHR" | "inactiveHR">;
 
 /** Stage 1, `daily_scores.activities`. */
 export type Stage1Activity = {
@@ -200,6 +212,13 @@ export type SleepRow = {
   consistency: number | null;
   /** Version 16: Sleep Stress, % of last night's asleep minutes in a high-stress state (sleepStress.ts); null without one. */
   stressPct?: number | null;
+  /**
+   * Version 20, the Pulse engine's Sleep Score inputs (src/core/engine/sleep.ts): asleep, deep and REM time as shares of
+   * the need, the heart-rate dip, efficiency and the continuity factor; null where missing.
+   */
+  components?: Record<"asleep" | "deep" | "rem" | "hrDip" | "efficiency" | "continuity", number | null>;
+  /** Version 20: the 7-day Sleep Bank, minutes, signed (debtMin is its negative part). */
+  bankMin?: number;
 };
 
 export type StressRow = {

@@ -1,6 +1,6 @@
 # Pulse engine: plan
 
-Status: in progress (Phases 0 to 2 done 2026-10-14). Written so a fresh Claude Code session can start at Phase 0 and
+Status: in progress (Phases 0 to 3 in code 2026-10-14; Phase 3 not yet tried on the phone). Written so a fresh Claude Code session can start at Phase 0 and
 work through the phases in order, one or two per session.
 
 ## What and why

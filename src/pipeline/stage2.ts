@@ -26,7 +26,6 @@ import {
   scoreHrvStatus,
   scoreTraining,
   scorePlanner,
-  scoreRecovery,
   scoreSleep,
   scoreStrainTarget,
   scoreStress,
@@ -34,6 +33,7 @@ import {
 } from "./scores";
 import { type JournalImpactRow, type PipelineOptions, SCORING_VERSION, STAGE2_COLUMNS, type Stage2Row } from "./types";
 import { emptyScoreRow } from "./stage1";
+import { enginePlan, engineSleepRow, foldEngineDay, scoreEngineRecovery, scoreEngineSleep } from "./engine";
 import { resume, snapshot } from "./checkpoint";
 
 export async function stage2(store: Store, data: Data, opts: PipelineOptions, onProgress?: Progress, rerun: string[] = []) {
@@ -86,11 +86,13 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
       }
     }
     const d = dayOf(data, inputs, day, opts);
-    const sleep = scoreSleep(data, inputs, f, d, tz);
-    const recovery = scoreRecovery(f, d, sleep);
+    // The Pulse engine's Sleep and Recovery (engine.ts) on the rows halo's scorers shape.
+    const engineSleep = scoreEngineSleep(f, d, inputs, opts, tz);
+    const sleep = engineSleepRow(scoreSleep(data, inputs, f, d, tz), engineSleep);
+    const recovery = scoreEngineRecovery(f, d, engineSleep);
     const trainingLoad = scoreTrainingLoad(f, d, recovery);
     const strainTarget = scoreStrainTarget(f, recovery);
-    const planner = scorePlanner(f, d, sleep, tz);
+    const planner = enginePlan(f, d, engineSleep, scorePlanner(f, d, sleep, tz), d.s1.effort);
     recovery.forecast = forecastOf(f, d, recovery, planner.plan, planner.tonightNeed);
     await slice();
     const stress = scoreStress(f, d, inputs);
@@ -125,6 +127,7 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
     f.respB = update(f.respB, recovery.inputs.resp, respCfg);
     f.skinB = update(f.skinB, d.dm?.nightlyTempC ?? null, skinTempCfg);
     f.efforts.push(d.s1.effort);
+    foldEngineDay(f, d, engineSleep, d.s1.effort);
     f.prevAcwr = trainingLoad.acwr;
   }
   await flush();
