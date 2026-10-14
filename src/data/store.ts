@@ -118,7 +118,7 @@ export interface Store {
 /** A coach chat in the list: its title follows the first question. `updatedAt` is unix seconds. */
 export type CoachChatRow = { id: string; title: string; updatedAt: number };
 
-export type SeriesKind = "hr" | "still_hr" | "load" | "stress" | "energy_bank";
+export type SeriesKind = "hr" | "still_hr" | "stress" | "energy_bank";
 
 /** Mirrors Pulse's journal_tags: a behaviour the check-in can ask about. Defaults are never removed, only hidden. */
 export type JournalTagRow = { tag: string; label: string; isDefault: boolean; hidden: boolean; position: number };

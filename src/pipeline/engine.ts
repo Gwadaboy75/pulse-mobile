@@ -4,7 +4,6 @@
 // their look. Every value for day D reads only D and earlier days.
 import type { ReasonCode } from "@/lib/reasons";
 import { addDays, daysBetween, fractionalYears, localMinutes } from "@/lib/time";
-import { type Drain, energyBand } from "@/core/algorithms/energyBank";
 import { IMPACT_METRICS, type JournalDay, type OutcomeDay, type TagImpact } from "@/core/algorithms/journalImpact";
 import { arms, effect, MIN_DAYS } from "@/core/engine/journal";
 import { type SleepPlan, sleepPlan } from "@/core/algorithms/sleepPlanner";
@@ -13,7 +12,7 @@ import { band } from "@/core/scoring/recovery";
 import { type Agg, baseline, calibrated, chanMerge, mergeHist, RECOVERY_CALIBRATION_DAYS, STRESS_CALIBRATION_DAYS } from "@/core/engine/baselines";
 import { timeline } from "@/core/engine/context";
 import { DEFAULT_SLEEP_GOAL_HOURS, POOLING } from "@/core/engine/days";
-import { awakeSeconds, energyStep, WARMUP_DAYS } from "@/core/engine/energyBank";
+import { awakeSeconds, type Drain, energyBand, energyStep, WARMUP_DAYS } from "@/core/engine/energyBank";
 import { mean, popStats, roundHalfAway } from "@/core/engine/math";
 import { paceOf, pulseAge, type PulseAgeDay, references } from "@/core/engine/pulseAge";
 import { recovery, type RecoveryResult } from "@/core/engine/recovery";

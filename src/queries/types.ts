@@ -4,7 +4,7 @@
 // local `YYYY-MM-DD`, Strain is on the reference app's 0–21 scale, and no number is ever NaN or ±Infinity.
 import type { ChipTone, DashboardKey, FormatKey, GoodDirection, RecoveryBand as Band, StressLevel } from "./_lib";
 import type { Metric, MetricTag, ReasonCode } from "@/lib/reasons";
-import type { EnergyBand } from "@/core/algorithms/energyBank";
+import type { EnergyBand } from "@/core/engine/energyBank";
 
 export type { Band, ChipTone, GoodDirection, Metric, MetricTag, ReasonCode, StressLevel };
 export type SleepStatus = "poor" | "sufficient" | "optimal";

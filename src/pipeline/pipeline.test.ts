@@ -31,7 +31,7 @@ const DAY_S = 86_400;
 const NOW = Date.parse("2026-10-02T14:00:00+05:30") / 1000;
 const PROFILE: Profile = { birthDate: "1990-01-01", sex: "male", maxHr: 183, heightCm: 178, timeZone: TZ };
 const dayAt = (i: number) => new Date(Date.parse(ANCHOR) + i * DAY_S * 1000).toISOString().slice(0, 10);
-const SERIES: SeriesKind[] = ["hr", "still_hr", "load", "stress", "energy_bank"];
+const SERIES: SeriesKind[] = ["hr", "still_hr", "stress", "energy_bank"];
 
 /** A store that counts the pipeline's writes, so a no-op run can be shown to write nothing. */
 class CountingStore extends MemoryStore {
@@ -241,7 +241,6 @@ describe("parity with the web app", () => {
     "intraday_series.hr": "5ca83bb68dad9033",
     // Version 18: each minute's TRIMP above the waking floor (all of it in a workout), Energy Bank's drain, in place of its
     // Edwards zone weight. Version 17's value was "859d8876596ad379".
-    "intraday_series.load": "2947aa20aef2ba71",
     "intraday_series.still_hr": "c0bf14266ee71abd",
     "intraday_series.stress": "34660dca062d2b00",
     // Each report's training balance is the period's last ACWR, so it follows training_load. The web's was "7c7cfdf8c1583777".

@@ -13,7 +13,7 @@ const TZ = "Asia/Kolkata";
 const TODAY = "2026-10-02";
 const NOW = Date.parse("2026-10-02T14:00:00+05:30") / 1000;
 const PROFILE: Profile = { birthDate: "1990-01-01", sex: "male", maxHr: 183, heightCm: 178, timeZone: TZ };
-const SERIES: SeriesKind[] = ["hr", "still_hr", "load", "stress", "energy_bank"];
+const SERIES: SeriesKind[] = ["hr", "still_hr", "stress", "energy_bank"];
 
 const run = (store: MemoryStore) => runPipeline(store, PROFILE, { today: TODAY });
 

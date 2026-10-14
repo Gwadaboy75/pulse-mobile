@@ -1,6 +1,6 @@
 // Home `/` (spec §7.1). Ported from Pulse's src/server/queries/home.ts.
 import { addDays, localMinutes } from "@/lib/time";
-import { energyBand } from "@/core/algorithms/energyBank";
+import { energyBand } from "@/core/engine/energyBank";
 import {
   BODY_METRICS,
   DASHBOARD_DEFAULT,

@@ -12,7 +12,6 @@ import { isWakingHourOfDay, quantile } from "@/core/scoring/stressBase";
 import type { BaselineState, HrSample } from "@/core/scoring/types";
 import { timeInZone, zones as hrZones } from "@/core/scoring/zones";
 import { AUTO_WORKOUT_VERSION, detectWorkouts } from "@/core/algorithms/autoWorkout";
-import { minuteTrimp } from "@/core/algorithms/energyBank";
 import { zoneBoutSeconds } from "@/core/algorithms/healthspan";
 import { sleepStress } from "@/core/algorithms/sleepStress";
 import { maxHrSplit, peakEpoc } from "@/core/algorithms/trainingEffect";
@@ -225,7 +224,6 @@ export async function stage1(store: Store, data: Data, dirtyDays: string[], opts
         await store.putScores({ ...prev, strain: r.s1, activities: r.activities, sessionRhrBpm: r.sessionRhr, detected: r.detected });
         await store.putSeries(b.day, "hr", r.hrSeries);
         await store.putSeries(b.day, "still_hr", r.still);
-        await store.putSeries(b.day, "load", r.load);
       }
       onProgress?.("stage1", redone.length, total);
     }
@@ -466,7 +464,5 @@ function stage1Day(
     sessionRhr,
     hrSeries: means.map(r1),
     still,
-    // Energy Bank's per-minute drain (version 18): each minute's TRIMP above the waking floor, all of it in a workout.
-    load: minuteTrimp(means, restingHr, maxHr, sex, floorX, (m) => inWorkout(start + m * 60)).map((v) => (v == null ? null : round(v, 4))),
   };
 }

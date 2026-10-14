@@ -6,6 +6,20 @@
 import { clamp } from "./math";
 import type { SlotContext } from "./stress";
 
+/** The level's band, for its colour: high above 75, medium above 50, low above 25, else very low. */
+export type EnergyBand = "very_low" | "low" | "medium" | "high";
+export const energyBand = (level: number): EnergyBand => (level > 75 ? "high" : level > 50 ? "medium" : level > 25 ? "low" : "very_low");
+
+/** A stretch that drained the bank: a workout (by its name), stress, or other activity; `amount` in points. */
+export interface Drain {
+  label: string;
+  kind: "workout" | "activity" | "stress";
+  /** Unix seconds, [start, end). */
+  start: number;
+  end: number;
+  amount: number;
+}
+
 /** Days the machine runs before its level is shown. */
 export const WARMUP_DAYS = 7;
 export const DEFAULT_AWAKE_S = 57_600;

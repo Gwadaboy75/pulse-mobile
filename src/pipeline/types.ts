@@ -4,7 +4,7 @@ import type { ChargeDriver } from "@/core/scoring/drivers";
 import type { RecoveryForecast } from "@/core/scoring/forecast";
 import type { HrRecoveryResult } from "@/core/scoring/hrRecovery";
 import type { BaselineState } from "@/core/scoring/types";
-import type { Drain, EnergyBand } from "@/core/algorithms/energyBank";
+import type { Drain, EnergyBand } from "@/core/engine/energyBank";
 import type { FitnessCategory, FitnessEstimate } from "@/core/algorithms/fitnessLevel";
 import type { HealthMonitorResult } from "@/core/algorithms/healthMonitor";
 import type { HealthspanResult } from "@/core/algorithms/healthspan";
@@ -15,8 +15,8 @@ import type { HrvStatus } from "@/core/algorithms/hrvStatus";
 import type { PrimaryBenefit, TeLabel } from "@/core/algorithms/trainingEffect";
 import type { TrainingReadiness } from "@/core/algorithms/trainingReadiness";
 import type { TrainingStatus } from "@/core/algorithms/trainingStatus";
-import type { StrainTarget } from "@/core/algorithms/strainTarget";
 import type { RestingHrSource } from "./restingHr";
+import type { RecoveryBand } from "@/core/scoring/recovery";
 import type { DayAggs } from "@/core/engine/days";
 import type { LoadStatus } from "@/core/engine/strain";
 
@@ -313,6 +313,12 @@ export type TrainingLoadRow = {
  * and CTL, their ratio, how sure the status can be (0–1) and the status.
  */
 export type CardioLoadRow = { load: number; atl: number; ctl: number; ratio: number | null; confidence: number; status: LoadStatus };
+
+/**
+ * Target Strain (version 21, the Pulse engine): today's range on the percent scale, the 14-day base it scales, the
+ * Recovery band, and whether fewer than 14 days stood behind it. `acwrRule` is always null (halo's rule is gone).
+ */
+export type StrainTarget = { low: number; high: number; base: number | null; band: RecoveryBand; coldStart: boolean; acwrRule: null };
 
 export type StrainTargetRow = ({ reason: null } & StrainTarget) | { reason: ReasonCode; nightsLeft?: number };
 

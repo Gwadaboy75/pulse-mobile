@@ -54,9 +54,8 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
   const { days } = data;
   const { inputs, journal, storedImpact, storedRows } = await readInputs(store, data);
   const stillHr = new Map<string, (number | null)[]>();
-  const loadSeries = new Map<string, (number | null)[]>();
   const hrSeries = new Map<string, (number | null)[]>();
-  Object.assign(inputs, { stillHr, loadSeries, hrSeries });
+  Object.assign(inputs, { stillHr, hrSeries });
 
   // Pulse: start from the fold kept by the last run when no earlier day's inputs changed (checkpoint.ts).
   const cp = resume(store, data, inputs, journal, opts, rerun);
@@ -92,12 +91,10 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
       onProgress?.("stage2", i, days.length);
       const batch = days.slice(i, i + BATCH_DAYS);
       stillHr.clear();
-      loadSeries.clear();
       hrSeries.clear();
       for (const d of batch) {
-        const [still, load, hr] = await Promise.all([store.getSeries(d, "still_hr"), store.getSeries(d, "load"), store.getSeries(d, "hr")]);
+        const [still, hr] = await Promise.all([store.getSeries(d, "still_hr"), store.getSeries(d, "hr")]);
         if (still) stillHr.set(d, still);
-        if (load) loadSeries.set(d, load);
         if (hr) hrSeries.set(d, hr);
       }
     }
@@ -250,7 +247,6 @@ async function readInputs(store: Store, data: Data) {
     cached,
     // Filled a batch of days at a time by stage2.
     stillHr: new Map(),
-    loadSeries: new Map(),
     segments: groupBy(segments as Segment[], (s) => s.sessionId),
     tagOn: (day, tag) => (journal.get(day) ?? []).some((e) => e.tag === tag && e.value > 0),
   };

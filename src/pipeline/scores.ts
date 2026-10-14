@@ -4,16 +4,12 @@
 // mobile changes (Training load's missing Effort, Pulse Age's HR coverage) are marked where they are.
 import type { ReasonCode } from "@/lib/reasons";
 import { addDays, fractionalYears, localMidnight, localMinutes, wholeYears } from "@/lib/time";
-import { deviation, isTrusted, isUsable, sigma } from "@/core/scoring/baselines";
-import { chargeDrivers, type ChargeDriver } from "@/core/scoring/drivers";
 import { forecast as recoveryForecast } from "@/core/scoring/forecast";
 import { evaluateWithTrainingLoad, type ReadinessDay } from "@/core/scoring/readiness";
-import { gatedRecovery, minBaselineNights } from "@/core/scoring/recovery";
 import { creditedSleepMin, hypnogramMetrics, ledger, minNeedNights, personalizedNeedHours, sleepPerformance, sleepPerformanceParts } from "@/core/scoring/sleep";
 import { toStrainScale } from "@/core/scoring/strain";
 import { foldDaytimeBaseline } from "@/core/scoring/stressBase";
 import type { BaselineState } from "@/core/scoring/types";
-import { energyBand, energyBank, energyBankConfig, nightQuality } from "@/core/algorithms/energyBank";
 import { fitnessEstimate as fitnessEstimateOf, type FitnessEstimateDay, fitnessLevel } from "@/core/algorithms/fitnessLevel";
 import { healthMonitor, healthMonitorConfig, type HealthMonitorDay, type VitalKey } from "@/core/algorithms/healthMonitor";
 import { HEALTHSPAN_STRENGTH_TYPES, healthspan, type HealthspanDay } from "@/core/algorithms/healthspan";
@@ -21,7 +17,6 @@ import type { OutcomeDay } from "@/core/algorithms/journalImpact";
 import type { ReportDay } from "@/core/algorithms/reports";
 import { sleepPlan, type SleepPlan } from "@/core/algorithms/sleepPlanner";
 import { laggedPairs, poolPairs, sriOf, sriPairs, type SriPair, WHOOP_CONSISTENCY_DAYS, whoopConsistency } from "@/core/algorithms/sleepRegularity";
-import { strainTarget } from "@/core/algorithms/strainTarget";
 import { stress } from "@/core/algorithms/stress";
 import { hrvStatus } from "@/core/algorithms/hrvStatus";
 import {
@@ -35,11 +30,9 @@ import {
 } from "@/core/algorithms/trainingEffect";
 import { trainingReadiness, type TrainingReadinessInput } from "@/core/algorithms/trainingReadiness";
 import { trainingStatus, trainingStatusConfig } from "@/core/algorithms/trainingStatus";
-import { type Data, r1, round, type Segment, type Session } from "./data";
+import { type Data, round, type Segment, type Session } from "./data";
 import { newEngineFold } from "./engine";
 import type {
-  BaselineSummary,
-  EnergyBankRow,
   FitnessRow,
   HealthMonitorRow,
   HealthspanRow,
@@ -50,7 +43,6 @@ import type {
   SleepRow,
   Stage1Activity,
   Stage1Day,
-  StrainTargetRow,
   StressRow,
   TrainingLoadRow,
   TrainingRow,
@@ -65,7 +57,6 @@ export type Inputs = {
   cached: Map<string, Cached>;
   /** Per-minute series, loaded a batch of days at a time by stage 2 (only the day being scored is ever asked for). */
   stillHr: Pick<Map<string, (number | null)[]>, "get">;
-  loadSeries: Pick<Map<string, (number | null)[]>, "get">;
   /** Version 22: the day's minute heart rate (stage 1's "hr" series), for the engine's Stress and Energy Bank. */
   hrSeries?: Pick<Map<string, (number | null)[]>, "get">;
   segments: Map<string, Segment[]>;
@@ -99,8 +90,6 @@ export const newFold = () => ({
   prevAcwr: null as number | null,
   /** Tonight's need as the planner made it this evening, for scoring the night it plans (scoreSleep, the next day). */
   prevPlan: null as { wakeDay: string; needMin: number } | null,
-  /** Energy Bank's level at the end of the last day it ran to midnight (version 18: each day carries on from it). */
-  energy: null as { day: string; level: number } | null,
   /** Version 19: nightly HRV (ms) one per day, and HRV Status by day, for HRV Status and Training Status. */
   hrvNights: [] as (number | null)[],
   hrvStatusHist: [] as { status: HrvStatusRow["status"]; direction: "high" | "low" | null }[],
@@ -145,9 +134,6 @@ export function dayOf(data: Data, inputs: Inputs, day: string, opts: PipelineOpt
 
 /** A Monday (its yyyy-MM-dd as a UTC date). */
 const isMonday = (day: string) => new Date(`${day}T00:00:00Z`).getUTCDay() === 1;
-
-const summarize = (s: BaselineState | null): BaselineSummary =>
-  s && { mean: s.baseline, sd: sigma(s), status: s.status, nValid: s.nValid };
 
 function nightOf(main: Session, segments: Segment[] | undefined): NonNullable<SleepRow["main"]> {
   const staged = main.stagesStatus === "SUCCEEDED" && !!segments?.length;
@@ -265,89 +251,6 @@ function sleepRegularity(data: Data, cached: Map<string, Cached>, day: string, t
   return { sri: all === null ? null : sriOf(all.same, all.pairs), newest: pairs[pairs.length - 1] ?? null, consistency: whoopConsistency(lagged) };
 }
 
-// ── Recovery (forecast filled in by forecastOf, once tonight's plan exists) ──
-
-export function scoreRecovery(f: Fold, d: Day, sleep: SleepRow): RecoveryRow {
-  const { dm, mainSession, main } = d;
-  const { hrvB, hrvLnB, rhrB, respB, skinB } = f;
-  const hrv = dm?.hrvMs ?? null;
-  // Google's daily resting HR first; Pulse's sleep-session estimate only on days Google has none.
-  const rhr = dm?.rhrBpm ?? d.cache.sessionRhr;
-  const resp = dm?.respBpm ?? null;
-  // Shown and passed on to Health Monitor; not part of Recovery since version 17 (WHOOP 2026).
-  const skinTempDev = skinDeviation(d, skinB);
-  const sleepPerf = sleep.performance != null ? sleep.performance / 100 : main ? main.efficiency : null;
-  const stale = (
-    [
-      ["hrv", hrvB],
-      ["rhr", rhrB],
-      ["resp", respB],
-      ["skinTemp", skinB],
-    ] as const
-  )
-    // Google's skin-temperature baseline never goes stale here: it comes with the night.
-    .filter(([k, b]) => b?.status === "stale" && !(k === "skinTemp" && dm?.tempBaselineC != null))
-    .map(([k]) => k);
-  const rhrUsable = rhrB && isUsable(rhrB) ? rhrB : null;
-  const respUsable = respB && isUsable(respB) ? respB : null;
-  let reason: ReasonCode | null = null;
-  let nightsLeft: number | undefined;
-  let value: number | null = null;
-  let drivers: ChargeDriver[] = [];
-  if (!mainSession) reason = "band_not_worn";
-  else if (!mainSession.processed) reason = "awaiting_sleep_sync";
-  else if (mainSession.stagesStatus !== "SUCCEEDED" || hrv == null) reason = "no_hrv_last_night";
-  else {
-    const g = hrvLnB
-      ? gatedRecovery({ hrv, rhr, resp, hrvBaseline: hrvLnB, rhrBaseline: rhrUsable, respBaseline: respUsable, sleepPerf })
-      : { recovery: null };
-    if (g.recovery == null) {
-      reason = "calibrating";
-      nightsLeft = Math.max(1, minBaselineNights - (hrvLnB?.nValid ?? 0));
-    } else {
-      value = g.recovery;
-      drivers = chargeDrivers({ hrv, rhr, resp, hrvBaseline: hrvLnB!, rhrBaseline: rhrUsable, respBaseline: respUsable, sleepPerf });
-    }
-  }
-  const terms =
-    value == null
-      ? []
-      : [
-          "hrv",
-          ...(rhrUsable && rhr != null ? ["rhr"] : []),
-          ...(respUsable && resp != null ? ["resp"] : []),
-          ...(sleepPerf != null ? ["sleep"] : []),
-        ];
-  const prev = d.cache.recovery;
-  const updated = value != null && prev?.value != null && (prev.updated || terms.some((t) => !prev.terms.includes(t)));
-  // The HRV z Recovery scored: ln(ms) against the ln baseline.
-  const hrvZ = hrv != null && hrv > 0 && hrvLnB && isUsable(hrvLnB) ? deviation(Math.log(hrv), hrvLnB).z : null;
-  if (value != null) f.recoveries.push(value);
-  return {
-    value,
-    reason,
-    ...(nightsLeft !== undefined && { nightsLeft }),
-    provisional: value != null && !isTrusted(hrvLnB!),
-    stale,
-    terms,
-    updated,
-    inputs: { hrv, rhr, resp, sleepPerf, skinTempDev },
-    baselines: { hrv: summarize(hrvB), rhr: summarize(rhrB), resp: summarize(respB), skinTemp: summarize(skinB) },
-    hrvZ,
-    drivers,
-    forecast: null,
-    forecastNightsLeft: Math.max(0, 14 - f.recoveries.length),
-  };
-}
-
-/** Last night's skin temperature against Google's baseline (its 30-night median), else Pulse's own causal one. */
-function skinDeviation(d: Day, skinB: BaselineState | null): number | null {
-  const t = d.dm?.nightlyTempC;
-  if (t == null) return null;
-  if (d.dm?.tempBaselineC != null) return t - d.dm.tempBaselineC;
-  return skinB && isUsable(skinB) ? t - skinB.baseline : null;
-}
-
 // ── Training load and readiness (today's strain counts toward today's ACWR) ──
 
 export function scoreTrainingLoad(f: Fold, d: Day, rec: RecoveryRow): TrainingLoadRow {
@@ -372,13 +275,6 @@ export function scoreTrainingLoad(f: Fold, d: Day, rec: RecoveryRow): TrainingLo
     tsb: trainingLoad.tsb,
   };
 }
-
-// ── Strain Target: prior days' Effort and ACWR ───────────────────────────────
-
-export const scoreStrainTarget = (f: Fold, rec: RecoveryRow): StrainTargetRow =>
-  rec.value == null
-    ? { reason: rec.reason!, ...(rec.nightsLeft !== undefined && { nightsLeft: rec.nightsLeft }) }
-    : { reason: null, ...strainTarget(f.efforts.slice(), rec.value, f.prevAcwr) };
 
 // ── Sleep Planner (tonight) ──────────────────────────────────────────────────
 
@@ -459,82 +355,6 @@ function longestRun(xs: (number | null)[], hit: (v: number | null) => boolean, s
     }
   }
   return best;
-}
-
-// ── Energy Bank ──────────────────────────────────────────────────────────────
-
-export function scoreEnergyBank(
-  data: Data,
-  inputs: Inputs,
-  f: Fold,
-  d: Day,
-  rec: RecoveryRow,
-  sleep: SleepRow,
-  stressMinutes: (number | null)[],
-): { row: EnergyBankRow; curve: (number | null)[] | null } {
-  const { day, start, end, main, s1 } = d;
-  const carried = f.energy?.day === addDays(day, -1) ? f.energy.level : null;
-  f.energy = null;
-  // A day without heart rate or sleep has nothing to go on: no curve, and the next day starts afresh.
-  const noData = s1.hrCount === 0 && !main;
-  const firstStart = rec.value != null && main ? energyBankConfig.wRecovery * rec.value + energyBankConfig.wSleep * (sleep.performance ?? main.efficiency * 100) : null;
-  if (noData || (carried == null && firstStart == null)) return { row: { value: null, reason: rec.reason ?? "no_data", provisional: false }, curve: null };
-  // A day before the last runs to midnight (and hands its level on); the last day to its last heart rate.
-  const full = day < data.last;
-  const until = full ? end : s1.lastHrTs != null ? Math.min(end, s1.lastHrTs + 60) : end;
-  const from = carried != null ? start : main!.end;
-  const startLevel = carried ?? firstStart!;
-  const n = Math.round((end - start) / 60);
-  // Asleep minutes, by stage, in every sleep touching the day: last night's main sleep (night quality from its HRV
-  // against the baseline), tonight's before midnight and naps (quality 1, as their HRV isn't known yet).
-  const asleep = new Array<number>(n).fill(0);
-  const hrvBaseline = f.hrvB && isUsable(f.hrvB) ? f.hrvB.baseline : null;
-  const sessions = [...(data.sessionsByDay.get(day) ?? []), ...(data.sessionsByDay.get(addDays(day, 1)) ?? [])].filter((x) => x.endTs > start && x.startTs < end);
-  for (const x of sessions) {
-    const q = x === d.mainSession ? nightQuality(d.dm?.hrvMs ?? null, hrvBaseline) : 1;
-    const segs = x.stagesStatus === "SUCCEEDED" ? inputs.segments.get(x.id) : undefined;
-    const mark = (lo: number, hi: number, w: number) => {
-      for (let m = Math.max(0, Math.ceil((lo - start) / 60)); m < n && start + m * 60 < hi; m++) asleep[m] = w * q;
-    };
-    if (segs?.length) for (const g of segs) mark(g.startTs, g.endTs, energyBankConfig.stageWeight[g.stage] ?? 0);
-    // Without stages, the session at its asleep share.
-    else mark(x.startTs, x.endTs, x.endTs > x.startTs ? Math.min(1, ((x.asleepMin ?? 0) * 60) / (x.endTs - x.startTs)) : 0);
-  }
-  const eb = energyBank({
-    start,
-    from,
-    until,
-    startLevel,
-    needHours: sleep.needHours,
-    asleep,
-    load: inputs.loadSeries.get(day) ?? [],
-    stress: stressMinutes,
-    workouts: (data.exercisesByDay.get(day) ?? []).map((e) => ({ start: e.startTs, end: e.endTs, label: e.name ?? "Workout" })),
-  });
-  if (full) f.energy = { day, level: eb.current };
-  // The level at wake (the end of the minute before it), else where the curve starts.
-  const wake = main ? Math.max(from, main.end) : from;
-  const wakeM = Math.floor((wake - start) / 60) - 1;
-  const atWake = wakeM >= 0 && eb.curve[wakeM] != null ? eb.curve[wakeM]! : startLevel;
-  const napIntervals = d.naps.filter((x) => main == null || x.start >= main.end).map((x) => ({ start: x.start, end: x.end }));
-  return {
-    row: {
-      value: eb.current,
-      reason: null,
-      provisional: rec.provisional,
-      startLevel: atWake,
-      wake,
-      until,
-      charged: eb.charged,
-      drained: eb.drained,
-      topDrains: eb.topDrains,
-      naps: napIntervals,
-      from,
-      fromLevel: startLevel,
-      band: energyBand(eb.current),
-    },
-    curve: eb.curve.map(r1),
-  };
 }
 
 // ── HRV Status (Garmin-style, version 19) ──────────────────────────────────
