@@ -189,7 +189,7 @@ function Home({ vm, timeZone }: { vm: HomePageVM; timeZone: string }) {
                   <View className="min-w-0 flex-1 flex-row"><StressCard vm={vm} href={at("/health/stress")} timeZone={timeZone} /></View>
                 </View>
               )}
-              {vm.insights.length > 0 && <HomeInsight items={vm.insights} />}
+              {vm.insights.length > 0 && <HomeInsight day={d} items={vm.insights} />}
               {vm.monitorAlert && <MonitorAlert alert={vm.monitorAlert} href={at("/health/monitor")} />}
             </View>
             <SectionShell variant="section" title="My Day" action={<PlusKey label={vm.isToday ? "Add to today" : `Add to ${formatDay(d, DAY.short)}`} />}>
