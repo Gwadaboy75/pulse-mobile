@@ -605,9 +605,8 @@ export function scoreEnginePulseAge(f: Fold, d: Day, s: EngineSleep, halo: Healt
 
 /** Folds day D's Pulse Age inputs (after scoring it: a week reads only the days before its Monday). */
 export function foldPulseAgeDay(f: Fold, d: Day, s: EngineSleep, data: Data) {
-  // Steps, zone and strength minutes only on a day with 12 h of heart rate: on a day the band was barely worn they read
-  // near 0, when they are really unknown.
-  const covered = d.s1.hrMinutesAm + d.s1.hrMinutesPm >= 720;
+  // Steps, zone and strength minutes on every day with data (heart rate or steps), as the study's daily metrics.
+  const covered = d.s1.engine?.strain != null;
   const z = d.s1.engine?.strain?.zoneS;
   const bodyFat = d.dm?.bodyFatPct;
   push(

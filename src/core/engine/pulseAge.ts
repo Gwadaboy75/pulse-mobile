@@ -113,11 +113,10 @@ export type PulseAge = { pulseAge: number; deltaYears: number; confidence: numbe
  */
 export function pulseAge(a: { age: number; sex: Sex; days: readonly PulseAgeDay[]; vo2: readonly number[]; leanPct: readonly number[] }): PulseAge | null {
   const daily = (k: keyof PulseAgeDay) => a.days.map((d) => d[k]).filter((v): v is number => v != null && Number.isFinite(v));
-  // Weekly minutes: the mean day with a value × 7. The source took the 28-day sum × 0.25, which counts a day without data
-  // as a day without activity; on a full window the two agree.
+  // Weekly minutes: the 28-day sum × 0.25 (minutes per week), over the days with a value.
   const weekly = (k: keyof PulseAgeDay) => {
-    const m = mean(daily(k));
-    return { x: m == null ? null : m * 7, n: daily(k).length };
+    const xs = daily(k);
+    return { x: xs.length ? xs.reduce((s, v) => s + v, 0) * (7 / WINDOW_DAYS) : null, n: xs.length };
   };
   const meanOf = (k: keyof PulseAgeDay) => {
     const xs = daily(k);

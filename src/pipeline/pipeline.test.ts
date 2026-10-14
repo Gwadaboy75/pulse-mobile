@@ -135,8 +135,9 @@ describe("parity with the web app", () => {
     // moved, nothing else. Version 21's value was "416071272e0e6e64". 23: Pulse Age on the engine's nine factors
     // (Phase 6); only healthspan moved. Version 22's value was "1be75842de2b2bd1". 24: Health Monitor's ±1 SD band over
     // 30 nights and the engine's journal t-test (Phase 7); Health Monitor and the reports moved. Version 23's value was
-    // "e5852ab4c03c2755". The reports also carry each day's strain as the engine's percent (recordOutcomes).
-    "daily_scores.scoring_version": "eca080343200e2aa",
+    // "e5852ab4c03c2755". The reports also carry each day's strain as the engine's percent (recordOutcomes). 25: the engine's zones on 220 − age and Pulse Age's weekly sums,
+    // as the study. Version 24's value was "eca080343200e2aa".
+    "daily_scores.scoring_version": "cd0c930a0a7e70db",
     // Version 15: Activity Strain is the session's Banister TRIMP plus its muscular load through 5.05 · ln(1 + 0.09 · T)
     // (a seeded 45-minute strength session goes from 8.2 to 9.9 on 0–21), each activity stores its `cardioTrimp` and
     // `muscularTrimp`, and its zone seconds count Zone 1 from 40 % of the reserve. Version 14's value was "cb2d75373aaf4d20".
@@ -222,7 +223,7 @@ describe("parity with the web app", () => {
     // shows Monday 2026-09-28's 1.70, its own daily value being 1.42 (version 17 showed a daily 1.61). Today's Halo Age
     // 33.41 → 33.78. Version
     // 17's value was "2fdf2c34ba15be9c".
-    "daily_scores.healthspan": "367258bf10a52d25",
+    "daily_scores.healthspan": "1058bdf94c3b3927",
     // Version 19: the VO2 max categories use Garmin's percentile cut-offs, 40 / 60 / 80 / 95 (were 20 / 40 / 60 / 80), so
     // today's 45.3 at the 61st percentile reads Good, not Excellent; percentiles are unchanged. Version 18's value was
     // "cfad8d1954c878ed".

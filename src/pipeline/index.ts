@@ -28,6 +28,9 @@ export const lastRun = { stage1Days: [] as string[], stage2From: "", ms: 0, stag
 export const resolveMaxHr = (profile: Pick<Profile, "birthDate" | "maxHr">, today: string, learned: number | null = null) =>
   profile.maxHr ?? Math.max(Math.round(208 - 0.7 * wholeYears(profile.birthDate, today)), learned ?? 0);
 
+/** The Pulse engine's max HR: the profile's own, else 220 − age (whole years on `today`). */
+export const engineMaxHr = (profile: Pick<Profile, "birthDate" | "maxHr">, today: string) => profile.maxHr ?? 220 - wholeYears(profile.birthDate, today);
+
 /** daily_values keys (on day "latest") holding the learned max HR and the day it was last checked (epoch days). */
 export const LEARNED_MAX_HR_KEY = "learned_max_hr";
 export const LEARNED_MAX_HR_CHECKED_KEY = "learned_max_hr_checked";
@@ -73,7 +76,14 @@ export async function pipelineOptions(store: Store, profile: Profile, today: str
   const [height, learned] = await Promise.all([profile.heightCm ?? sourceHeight(store), learnedMaxHr(store, profile, today)]);
   return {
     timeZone: profile.timeZone,
-    profile: { birthDate: profile.birthDate, sex: profile.sex, maxHr: resolveMaxHr(profile, today, learned), heightCm: height, waistCm: profile.waistCm ?? null },
+    profile: {
+      birthDate: profile.birthDate,
+      sex: profile.sex,
+      maxHr: resolveMaxHr(profile, today, learned),
+      engineMaxHr: engineMaxHr(profile, today),
+      heightCm: height,
+      waistCm: profile.waistCm ?? null,
+    },
   };
 }
 

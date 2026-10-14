@@ -21,7 +21,8 @@ export const RATE_WINDOW_MS = 3 * 60_000;
 export const MIN_TARGET_RATE = 60;
 
 /** Today's stored Daily Strain inputs: the units (waking plus workouts) and the steps taken awake. */
-export type StrainBase = { units: number; steps: number };
+/** `maxHr`: the engine max HR the stored units were counted on. */
+export type StrainBase = { units: number; steps: number; maxHr?: number };
 
 /** Daily Strain (a percent) of a base; 0 without one. */
 export const strainOfBase = (b: StrainBase | null): number => (b ? dayStrain(b.steps, b.units) : 0);
@@ -66,7 +67,8 @@ export class LiveStrain {
     this.maxHr = c.maxHr;
     this.sex = c.sex ?? "male";
     this.zoneSet = zones(this.restingHr, c.maxHr);
-    this.engineZones = zonesOf(c.maxHr);
+    // The engine's zones use its own max HR (220 − age without the profile's), as stage 1 stored it.
+    this.engineZones = zonesOf(c.base?.maxHr ?? c.maxHr);
     this.base = c.base ?? { units: 0, steps: 0 };
   }
 

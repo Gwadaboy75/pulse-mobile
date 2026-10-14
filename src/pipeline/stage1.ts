@@ -92,6 +92,7 @@ function stage1Key(data: Data, day: string, opts: PipelineOptions, carried: numb
       AUTO_WORKOUT_VERSION, // mobile: a change to detection redoes every day
       vo2maxFor(data, day), // Training Effect's intensity scale (version 19)
       rhrBase, // the engine's TRIMP and EPOC rest on the 60-day resting-HR baseline (version 21)
+      opts.profile.engineMaxHr, // the engine's zones (version 25)
     ]),
   );
 }
@@ -264,7 +265,8 @@ function engineDay(
   const minutes = minuteHr(hr);
   const a = dayAggregates({ dayStart: b.start, dayEnd: b.end, primary: b.main ?? null, tl, hr: minutes, hrv, respBpm: null, tempDeltaC: null });
 
-  const { maxHr, sex } = opts.profile;
+  const { sex } = opts.profile;
+  const maxHr = opts.profile.engineMaxHr ?? opts.profile.maxHr;
   const zones = zonesOf(maxHr);
   const workouts = new Map<string, EngineWorkout>();
   let workoutUnits = 0;
@@ -308,6 +310,7 @@ function engineDay(
           passiveUnits: round(passive, 1),
           workoutUnits: round(workoutUnits, 1),
           zoneS: zoneS.map((v) => Math.round(v)),
+          maxHr,
         }
       : null,
   };

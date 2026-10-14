@@ -38,7 +38,7 @@ export function workoutSetup(
   return {
     restingHr: restingHr ?? defaultRestingHR,
     maxHr: s1?.maxHr ?? fallbackMaxHr,
-    base: s1?.engine?.strain ? { units: s1.engine.strain.passiveUnits + s1.engine.strain.workoutUnits, steps: s1.engine.strain.steps } : null,
+    base: s1?.engine?.strain ? { units: s1.engine.strain.passiveUnits + s1.engine.strain.workoutUnits, steps: s1.engine.strain.steps, maxHr: s1.engine.strain.maxHr } : null,
     target: t && t.reason === null ? [t.low, t.high] : null,
     recovery: row?.recovery?.value ?? null,
     synced: !!s1 && s1.hrCount > 0,

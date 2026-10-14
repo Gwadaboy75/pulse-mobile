@@ -69,13 +69,26 @@ import type { LoadStatus } from "@/core/engine/strain";
  * factors present (at least 5); stage 1 keeps each day's zone seconds on % of max HR (engine.strain.zoneS).
  * 24 (Phase 7): Health Monitor's normal band is ±1 SD of the last 30 nights, the night shown included; journal impact is
  * the engine's pooled t-test (a 70 % interval) in place of the bootstrap.
+ * 25: back in line with the reference study: the engine's zones on its own max HR (the profile's, else 220 − age, not
+ * Tanaka's), and Pulse Age's weekly minutes as the 28-day sum × 0.25 over every day with data.
  */
-export const SCORING_VERSION = 24;
+export const SCORING_VERSION = 25;
 
 export type PipelineOptions = {
   timeZone: string;
   /** `waistCm` (mobile): optional, for the Nes 2011 VO2max estimate (fitnessLevel.ts). */
-  profile: { birthDate: string; sex: "male" | "female"; maxHr: number; heightCm?: number | null; waistCm?: number | null };
+  profile: {
+    birthDate: string;
+    sex: "male" | "female";
+    maxHr: number;
+    /**
+     * The Pulse engine's max HR (reference study, strain-load.md § Zone settings, shared-machinery.md § Profile): the
+     * profile's own, else 220 − age; halo's `maxHr` (Tanaka, raised to the learned max) feeds halo's extras only.
+     */
+    engineMaxHr?: number;
+    heightCm?: number | null;
+    waistCm?: number | null;
+  };
 };
 
 export type BaselineSummary = { mean: number; sd: number; status: BaselineState["status"]; nValid: number } | null;
@@ -144,7 +157,7 @@ export type Stage1Day = {
  */
 export type EngineDayAggs = Pick<DayAggs, "restingHRV" | "averageHRV" | "restingHR" | "inactiveHR"> & {
   /** `zoneS` (version 23): seconds in zones 0–5 on % of max HR, waking heart rate and workouts. */
-  strain?: { value: number; steps: number; passiveUnits: number; workoutUnits: number; zoneS?: number[] } | null;
+  strain?: { value: number; steps: number; passiveUnits: number; workoutUnits: number; zoneS?: number[]; maxHr?: number } | null;
   /** Version 22: the day's HRV samples as [seconds after local midnight, ms], for Stress and Energy Bank in stage 2. */
   hrv?: [number, number][];
 };
