@@ -283,6 +283,7 @@ function engineDay(
     const rec = engineHrr(hr.filter((s) => s.ts >= e.startTs && s.ts < e.endTs + 120), e.endTs, zones);
     workouts.set(e.id, {
       units: round(u, 1),
+      zoneS: zoneSeconds(segs, zones).map((v) => Math.round(v)),
       strain: round(workoutStrain(u), 2),
       trimp: t == null ? null : round(t, 2),
       epocPeak: ep && round(ep.peak, 2),

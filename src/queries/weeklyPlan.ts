@@ -60,10 +60,8 @@ export function strengthByDay(exs: readonly ExerciseRow[]): Map<string, number> 
 }
 
 /**
- * One stored day as the plan's inputs. Zone minutes count from 40 % of heart-rate reserve, where Pulse Age's moderate
- * band starts (stage 1's `moderateSeconds` under Zone 1), but every minute once and on any day with HR: the plan counts
- * what was done, not Pulse Age's dose (bouts of 10+ minutes, 60–80 % counted twice, 12-hour days only). Sleep is the
- * night ending that morning, credited as the debt ledger does.
+ * One stored day as the plan's inputs. Zone minutes are the Pulse engine's zones (% of max HR): zones 1–3 and 4–5, every
+ * minute once on any day with HR. Sleep is the night ending that morning, credited as the debt ledger does.
  */
 export function planDay(r: DayRow, strengthSessions: number): PlanDay {
   const s1 = r.s1;
@@ -74,7 +72,7 @@ export function planDay(r: DayRow, strengthSessions: number): PlanDay {
   const need = nightNeedMin(sleep);
   return {
     day: r.day,
-    zone13Min: z ? ((s1?.moderateSeconds ?? 0) + z[0] + z[1] + z[2]) / 60 : null,
+    zone13Min: z ? (z[0] + z[1] + z[2]) / 60 : null,
     zone45Min: z ? (z[3] + z[4]) / 60 : null,
     strengthSessions,
     steps: finite(steps) ? steps : null,

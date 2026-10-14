@@ -138,13 +138,14 @@ describe("parity with the web app", () => {
     // "e5852ab4c03c2755". The reports also carry each day's strain as the engine's percent (recordOutcomes). 25: the engine's zones on 220 − age and Pulse Age's weekly sums,
     // as the study. Version 24's value was "eca080343200e2aa".
     // 26: Pulse Age on Sundays and Health Monitor without SpO2. Version 25's value was "cd0c930a0a7e70db".
-    "daily_scores.scoring_version": "56420b3a0a69eda6",
+    // 27: workouts' engine zones and the reports' training balance on Training Load. Version 26's value was "56420b3a0a69eda6".
+    "daily_scores.scoring_version": "bfc30f8718e6d5cb",
     // Version 15: Activity Strain is the session's Banister TRIMP plus its muscular load through 5.05 · ln(1 + 0.09 · T)
     // (a seeded 45-minute strength session goes from 8.2 to 9.9 on 0–21), each activity stores its `cardioTrimp` and
     // `muscularTrimp`, and its zone seconds count Zone 1 from 40 % of the reserve. Version 14's value was "cb2d75373aaf4d20".
     // Version 19: each activity also stores its peak EPOC, the VO2max it was read on and its time by % of max HR (Training
     // Effect's inputs); every earlier field is unchanged. Version 18's value was "ea888703b987b5a2".
-    "daily_scores.activities": "7699c85755bbfe8f",
+    "daily_scores.activities": "630ee2607f93bac5",
     "daily_scores.session_rhr_bpm": "2f808b51bd7a0bc8",
     // Version 15: only the forecast moved (it reads today's and the last 14 days' Effort); every Recovery score, input,
     // baseline and driver is unchanged. Version 14's value was "f30d80524db0f63f".
@@ -249,7 +250,7 @@ describe("parity with the web app", () => {
     // was "dac817e185f4f75f". Version 17: Recovery averages follow the new Recovery. Version 16's was "1043e130fde0738d".
     // Version 18: the training balance is the period's last Garmin ratio, banded at 0.8 / 1.5 / 2.0. Version 17's was
     // "60efbad5a80cb17c".
-    reports: "9b053f54bcd42d60",
+    reports: "1d3f0b8d953960c6",
   };
   const canon = (v: unknown): unknown =>
     typeof v === "number"

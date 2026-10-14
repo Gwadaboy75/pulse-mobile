@@ -8,9 +8,8 @@
 //
 // Display-only: nothing here is written to the Store. The workout counts for real when Fitbit syncs it to Health
 // Connect, so a beat never counts twice.
-import { dayStrain, weight, workoutStrain, type Zones, zonesOf } from "@/core/engine/strain";
+import { dayStrain, weight, workoutStrain, zoneOf, type Zones, zonesOf } from "@/core/engine/strain";
 import { defaultRestingHR, JUMP_WINDOW_S, MAX_JUMP_BPM, MAX_PLAUSIBLE_BPM, maxSampleGapMin, MIN_PLAUSIBLE_BPM } from "@/core/scoring/strain";
-import { zoneNumber, zones } from "@/core/scoring/zones";
 
 export { MAX_JUMP_BPM, MAX_PLAUSIBLE_BPM, MIN_PLAUSIBLE_BPM };
 /** A jump larger than MAX_JUMP_BPM within this of the last accepted reading is an artifact (noop: 45 bpm in 12 s). */
@@ -47,7 +46,6 @@ export class LiveStrain {
   readonly restingHr: number;
   readonly maxHr: number;
   readonly sex: string;
-  private readonly zoneSet: ReturnType<typeof zones>;
   private readonly engineZones: Zones;
   /** The day's units and awake steps before the workout. */
   readonly base: StrainBase;
@@ -66,7 +64,6 @@ export class LiveStrain {
     this.restingHr = c.restingHr > 0 ? c.restingHr : defaultRestingHR;
     this.maxHr = c.maxHr;
     this.sex = c.sex ?? "male";
-    this.zoneSet = zones(this.restingHr, c.maxHr);
     // The engine's zones use its own max HR (220 − age without the profile's), as stage 1 stored it.
     this.engineZones = zonesOf(c.base?.maxHr ?? c.maxHr);
     this.base = c.base ?? { units: 0, steps: 0 };
@@ -102,9 +99,10 @@ export class LiveStrain {
     return true;
   }
 
-  /** Heart-rate zone 1–5 of `bpm`, 0 below Zone 1 (the display zones, zones.ts: 40/60/70/80/90 % of the reserve). */
+  /** Heart-rate zone 1–5 of `bpm`, 0 below Zone 1 (the engine's zones: 50/60/70/80/90 % of max HR). */
   zoneOf(bpm: number): number {
-    return zoneNumber(this.zoneSet, bpm);
+    // The engine's zones (% of max HR), the ones the Strain screen shows: 0 below zone 1.
+    return zoneOf(bpm, this.engineZones);
   }
 
   /** The workout's own Strain, a percent. */

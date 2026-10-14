@@ -5,7 +5,7 @@ import { workoutSetup } from "./workoutSetup";
 import type { DayRow } from "@/queries/common";
 
 const REST = 60;
-const MAX = 190; // display zones on the reserve: 112 / 138 / 151 / 164 / 177; engine zones on max HR: 95 / 114 / 133 / 152 / 171
+const MAX = 190; // engine zones on max HR: 95 / 114 / 133 / 152 / 171
 const Z = zonesOf(MAX);
 /** Engine units a second at `bpm`. */
 const w = (bpm: number) => weight(bpm, Z);
@@ -36,7 +36,7 @@ describe("LiveStrain", () => {
     expect(s.units).toBeCloseTo(300 * w(130) + 600 * w(155) + 299 * w(180), 6);
     expect(s.sessionStrain).toBeCloseTo(workoutStrain(s.units), 9);
     expect(s.dayStrain).toBeCloseTo(dayStrain(0, s.units), 9);
-    expect(s.zoneSeconds.map(Math.round)).toEqual([0, 300, 0, 600, 0, 299]);
+    expect(s.zoneSeconds.map(Math.round)).toEqual([0, 0, 300, 0, 600, 299]); // the engine's zones on max HR
     expect(s.avgHr).toBe(155);
     expect(s.maxBpm).toBe(180);
   });
@@ -73,9 +73,9 @@ describe("LiveStrain", () => {
 
   it("knows the zone and estimates minutes to a target from the recent rate", () => {
     const s = new LiveStrain({ restingHr: REST, maxHr: MAX, base: null });
-    expect(s.zoneOf(111)).toBe(0);
-    expect(s.zoneOf(112)).toBe(1); // Zone 1 from 40 % of the reserve
-    expect(s.zoneOf(140)).toBe(2);
+    expect(s.zoneOf(94)).toBe(0);
+    expect(s.zoneOf(95)).toBe(1); // Zone 1 from 50 % of max HR (the engine's zones)
+    expect(s.zoneOf(140)).toBe(3);
     expect(s.zoneOf(190)).toBe(5);
     expect(s.minutesTo(20, 0)).toBeNull();
     const t = feed(s, 155, 0, 240);

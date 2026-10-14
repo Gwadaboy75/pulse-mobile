@@ -218,7 +218,7 @@ export default function ReportScreen() {
           {vm.trainingBalance.value ? (
             <View className="gap-1">
               <Text className={cn("font-numeric text-xl font-bold leading-6", BALANCE_TONE[vm.trainingBalance.value.status])}>{vm.trainingBalance.value.word}</Text>
-              <Text className={cn(CAPTION, "tabular-nums")}>Training load (ACWR) {formatValue("decimal2", vm.trainingBalance.value.acwr)}</Text>
+              <Text className={cn(CAPTION, "tabular-nums")}>Fatigue ÷ Fitness {formatValue("decimal2", vm.trainingBalance.value.acwr)}</Text>
               <Text className="pt-2 text-[15px] leading-[22px] text-foreground-secondary">{vm.trainingBalance.value.line}</Text>
             </View>
           ) : (

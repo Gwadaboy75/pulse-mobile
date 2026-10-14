@@ -249,7 +249,7 @@ export type StrainVM = {
   hr: Metric<HrChart>;
   zones: Metric<ZoneRow[]>;
   maxHr: number;
-  /** How the zones are set: five on heart-rate reserve from the day's resting and max heart rate. */
+  /** How the zones are set: five on % of max heart rate (the Pulse engine's). */
   zoneNote: string;
   activities: ActivityItem[];
   trend: Trend;
@@ -283,7 +283,7 @@ export type ActivityVM = {
   hr: Metric<HrChart>;
   zones: Metric<ZoneRow[]>;
   maxHr: number;
-  /** How the zones are set: five on heart-rate reserve from the day's resting and max heart rate. */
+  /** How the zones are set: five on % of max heart rate (the Pulse engine's). */
   zoneNote: string;
   hrr: Metric<{ value: number; tone: ChipTone; label: "Good" | "Typical" | "Low" }>;
   /** Mobile: this kind's Activity Cost and the Recovery the morning after this workout; null before the pipeline stored one. */

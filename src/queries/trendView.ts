@@ -233,7 +233,7 @@ export const TREND_VIEW = {
     footnote: "Zone time is derived from your heart rate through the day.",
     actions: { addActivity: true, goal: "Set a HR zones goal in Weekly Plan" },
     about: { title: "What are Heart Rate Zones 1-3?", body: [
-      "Zones 1 to 3 cover light to moderate effort, 50 to 80% of your heart-rate reserve: brisk walks, easy runs, steady rides.",
+      "Zones 1 to 3 cover light to moderate effort, 50 to 80% of your max heart rate: brisk walks, easy runs, steady rides.",
       "Time here builds your aerobic base and helps recovery without adding much fatigue.",
     ] },
   },
@@ -243,7 +243,7 @@ export const TREND_VIEW = {
     footnote: "Zone time is derived from your heart rate through the day.",
     actions: { addActivity: true, goal: "Update your HR zones 4-5 goal" },
     about: { title: "What are Heart Rate Zones 4-5?", body: [
-      "Zones 4 and 5 are hard effort, above 80% of your heart-rate reserve: intervals, races and the end of a hard climb.",
+      "Zones 4 and 5 are hard effort, from 80% of your max heart rate: intervals, races and the end of a hard climb.",
       "A little time here each week raises your fitness ceiling; too much without rest adds strain faster than you recover.",
     ] },
   },

@@ -36,7 +36,7 @@ describe("ISO weeks and months", () => {
 describe("buildReport", () => {
   // Week 39 (Sep 21–27) at recovery 50, week 40 (Sep 28–Oct 4) at 30, 40, … 90, then Oct 5–6 of week 41.
   const prev = Array.from({ length: 7 }, (_, i) => row(addDays("2026-09-21", i), 50, { strain: 8, hrv: 45 }));
-  const week = Array.from({ length: 7 }, (_, i) => row(addDays("2026-09-28", i), 30 + 10 * i, { strain: 12, acwr: i === 6 ? 1.4 : 1 }));
+  const week = Array.from({ length: 7 }, (_, i) => row(addDays("2026-09-28", i), 30 + 10 * i, { strain: 12, acwr: i === 6 ? 1.4 : 1, loadStatus: i === 6 ? "productive" : "maintaining" }));
   const tail = [row("2026-10-05", 60), row("2026-10-06", null)];
   const rows = [...tail, ...week, ...prev];
 
@@ -51,7 +51,7 @@ describe("buildReport", () => {
     expect(r.best).toEqual({ day: "2026-10-04", recovery: 90 });
     expect(r.worst).toEqual({ day: "2026-09-28", recovery: 30 });
     // The last day's ACWR: 1.4 is in Garmin's optimal range (0.8–1.5, version 18; it read building fast at noop's 1.3).
-    expect(r.trainingBalance).toEqual({ acwr: 1.4, status: "LOAD_SWEET_SPOT" });
+    expect(r.trainingBalance).toEqual({ acwr: 1.4, status: "productive" }); // the last day's Training Load status
     expect(r.sleepConsistency).toBe(80);
   });
 

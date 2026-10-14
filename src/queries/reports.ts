@@ -30,11 +30,14 @@ function neighbour(rows: ReportRow[], pattern: RegExp, period: string, dir: -1 |
   return same.filter((p) => p > period).sort()[0] ?? null;
 }
 
+/** Training Load's status (the Pulse engine's) as the report's training balance. */
 const BALANCE = {
-  LOAD_SWEET_SPOT: { status: "balanced", word: "Balanced", line: "Your strain matched your recovery most days." },
-  LOAD_BUILDING_FAST: { status: "overreaching", word: "Overreaching", line: "Your load rose faster than your body is used to. Watch your Recovery." },
-  LOAD_SPIKING: { status: "overreaching", word: "Overreaching", line: "Your load jumped well above your usual. Injury and illness risk rise." },
-  LOAD_RAMPING_DOWN: { status: "undertrained", word: "Undertrained", line: "Your load dropped below your usual. Fitness slowly fades if this lasts." },
+  maintaining: { status: "balanced", word: "Balanced", line: "Your training held steady with what your body is used to." },
+  peaking: { status: "balanced", word: "Balanced", line: "Your fitness kept climbing at a pace your body is used to." },
+  productive: { status: "balanced", word: "Balanced", line: "Your fatigue ran a little above your fitness: the kind of load that builds it." },
+  fatigued: { status: "overreaching", word: "Overreaching", line: "Your fatigue ran above your fitness while Recovery was low. Watch your Recovery." },
+  overtraining: { status: "overreaching", word: "Overreaching", line: "Your fatigue jumped well above your fitness. Injury and illness risk rise." },
+  detraining: { status: "undertrained", word: "Undertrained", line: "Your fitness was falling. It slowly fades if this lasts." },
 } as const;
 
 /** Reports `/reports/[period]` (spec §7.13); null for a period with no data. `targets`: the Weekly Plan's. */

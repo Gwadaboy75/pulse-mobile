@@ -1,6 +1,5 @@
 // Recovery `/recovery` (spec §7.2). Ported from Pulse's src/server/queries/recovery.ts.
 import type { ChargeDriver } from "@/core/scoring/drivers";
-import { sleepPerfCenter, sleepPerfScale } from "@/core/scoring/recovery";
 import { addDays } from "@/lib/time";
 import {
   type DayRow,
@@ -8,6 +7,7 @@ import {
   fromReason,
   loadDays,
   none,
+  priorStats,
   ok,
   type QueryCtx,
   recoveryBand,
@@ -81,7 +81,7 @@ export async function getRecovery(day: string, ctx: QueryCtx): Promise<RecoveryV
     isToday,
     recovery,
     band: recovery.value != null ? recoveryBand(recovery.value) : null,
-    contributors: contributors(row, isToday),
+    contributors: contributors(row, isToday, rows),
     insight: r?.value != null ? insightOf(r.drivers) : null,
     trend: {
       points: trendPoints(rows, day, (r) => r.recovery?.value, 182, (r) => !!r.recovery?.provisional),
@@ -91,7 +91,11 @@ export async function getRecovery(day: string, ctx: QueryCtx): Promise<RecoveryV
   };
 }
 
-export function contributors(row: DayRow | undefined, isToday: boolean): Contributor[] {
+/**
+ * `rows` (with the 60 days before `row`): the Sleep row's usual range is your own Sleep Performance over them, the
+ * "typical night" the Pulse engine's Recovery drivers compare with.
+ */
+export function contributors(row: DayRow | undefined, isToday: boolean, rows?: Map<string, DayRow>): Contributor[] {
   const r = row?.recovery;
   const pts = (key: Contributor["key"]) => r?.drivers.find((d) => KEY_OF[d.label] === key)?.deltaPoints ?? null;
   const base = (b: { mean: number; sd: number } | null | undefined, ok = true) => (b && ok ? { mean: b.mean, sd: b.sd } : null);
@@ -137,8 +141,7 @@ export function contributors(row: DayRow | undefined, isToday: boolean): Contrib
       label: "Sleep performance",
       unit: "%",
       metric: metric("sleep", inputs?.sleepPerf != null ? inputs.sleepPerf * 100 : null, missing),
-      // The score centres sleep at 85% with a 12-point scale (noop's sleepPerfCenter / sleepPerfScale).
-      baseline: { mean: sleepPerfCenter * 100, sd: sleepPerfScale * 100 },
+      baseline: sleepBase(row, rows),
       points: pts("sleep"),
       direction: "up",
     },
@@ -172,4 +175,11 @@ export function insightOf(drivers: ChargeDriver[]): string {
   if (down.length && !up.length) return `${cap(phrase(down[0], false))}, which held Recovery back today.`;
   if (up.length && down.length) return `${cap(phrase(up[0], true))}, but ${phrase(down[0], false)}. Together they shaped today’s Recovery.`;
   return "Your signals sit close to your baseline, so Recovery is near your usual level.";
+}
+
+/** Mean and SD of Sleep Performance over the 60 days before `row`; null without two nights. */
+function sleepBase(row: DayRow | undefined, rows: Map<string, DayRow> | undefined): { mean: number; sd: number } | null {
+  if (!row || !rows) return null;
+  const s = priorStats(rows, row.day, (r) => r.sleep?.performance, 60);
+  return s.mean != null && s.sd != null && rows.size > 1 ? { mean: s.mean, sd: s.sd } : null;
 }

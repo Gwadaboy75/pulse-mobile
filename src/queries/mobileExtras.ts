@@ -36,7 +36,7 @@ export async function getRecoveryExtras(day: string, ctx: QueryCtx): Promise<{ s
   const windowDays = journalImpactConfig.windowDays;
   const [rows, exs] = await Promise.all([loadDays(ctx, addDays(day, -(windowDays + 30)), day), exercisesBetween(ctx, addDays(day, -windowDays), day)]);
   const row = rows.get(day);
-  const cs = contributors(row, isToday);
+  const cs = contributors(row, isToday, rows);
   const summary: KeyStat[] = (["hrv", "rhr", "resp", "sleep"] as const).map((key) => {
     const c = cs.find((x) => x.key === key)!;
     const prior = priorStats(rows, day, PICK[key]);

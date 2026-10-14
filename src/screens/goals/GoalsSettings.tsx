@@ -26,7 +26,7 @@ const GOAL_HINT: Partial<Record<TargetKey, string>> = {
 };
 
 const PLAN_HINT: Record<PlanKey, string> = {
-  zone13: "WHO: 150–300 minutes a week. Counted from 40% of heart-rate reserve, a brisk walk.",
+  zone13: "WHO: 150–300 minutes a week. Zones 1–3, from 50% of your max heart rate, a brisk walk.",
   zone45: "WHO: 75–150 minutes a week, or mix them with moderate minutes.",
   strength: "Strength, weights, HIIT or calisthenics workouts. WHO: 2 or more days a week.",
   steps: "The benefit levels off around 8,000 to 10,000 steps a day (Paluch 2022).",

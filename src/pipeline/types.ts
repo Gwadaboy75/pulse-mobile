@@ -73,8 +73,10 @@ import type { LoadStatus } from "@/core/engine/strain";
  * Tanaka's), and Pulse Age's weekly minutes as the 28-day sum × 0.25 over every day with data.
  * 26: Pulse Age stored on the week's Sunday (the screens show a week on its Sunday; same 28 days), and Health Monitor
  * without SpO2 (Health Connect has none).
+ * 27: each workout keeps its zone seconds on the engine's zones (Stage1Activity.engine.zoneS), and the reports' training
+ * balance is the engine's Training Load (Fatigue ÷ Fitness and its status).
  */
-export const SCORING_VERSION = 26;
+export const SCORING_VERSION = 27;
 
 export type PipelineOptions = {
   timeZone: string;
@@ -172,6 +174,8 @@ export type EngineDayAggs = Pick<DayAggs, "restingHRV" | "averageHRV" | "resting
  */
 export type EngineWorkout = {
   units: number;
+  /** Version 27: seconds in zones 0–5 on % of max HR (the engine's zones). */
+  zoneS?: number[];
   strain: number;
   trimp: number | null;
   epocPeak: number | null;

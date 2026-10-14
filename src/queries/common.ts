@@ -2,7 +2,7 @@
 // Ported from Pulse's src/server/queries/common.ts; every Postgres read is a Store read.
 import type { DetectedActivity } from "@/core/algorithms/autoWorkout";
 import { STRENGTH_TYPES } from "@/core/algorithms/healthspan";
-import { tanakaHRmax } from "@/core/scoring/strain";
+import { zonesOf as engineZones } from "@/core/engine/strain";
 import type { Exercise, Metrics } from "@/data/types";
 import type { Metric, MetricTag, ReasonCode } from "@/lib/reasons";
 import { addDays, localMidnight, wholeYears } from "@/lib/time";
@@ -34,10 +34,26 @@ export type { QueryCtx } from "./ctx";
 export const todayOf = (ctx: QueryCtx) => ctx.today;
 
 /** The person's max HR: their own, else Tanaka (208 − 0.7·age) on `today`, as the pipeline resolves it. */
-export const maxHrOf = (ctx: QueryCtx) => ctx.profile.maxHr ?? Math.round(tanakaHRmax(wholeYears(ctx.profile.birthDate, ctx.today)));
+/** The Pulse engine's max HR: the profile's own, else 220 − age. */
+export const maxHrOf = (ctx: QueryCtx) => ctx.profile.maxHr ?? 220 - wholeYears(ctx.profile.birthDate, ctx.today);
 
 /** The daily aggregates row; the Store's `Metrics` is a superset of the web's `MetricsRow`. */
 export type MetricsRow = Metrics;
+
+/**
+ * The screens' zones are the Pulse engine's (% of max HR, max HR the profile's or 220 − age): a stored day or workout
+ * with engine zone seconds shows those, zone 0 as the time below zone 1, with the engine's lower bounds. Halo's zones on
+ * heart-rate reserve stay in the stored row for halo's extras.
+ */
+function engineZoned(s1: Stage1Day): Stage1Day {
+  const st = s1.engine?.strain;
+  if (!st?.zoneS || st.maxHr == null) return s1;
+  return { ...s1, zoneSeconds: st.zoneS.slice(1), zoneBelowSeconds: st.zoneS[0], zoneLower: [...engineZones(st.maxHr).lowest], maxHr: st.maxHr };
+}
+function engineZonedActivity(a: Stage1Activity, s1: Stage1Day | null): Stage1Activity {
+  const z = a.engine?.zoneS;
+  return z && s1?.engine?.strain?.maxHr != null ? { ...a, zoneSeconds: z.slice(1), zoneBelowSeconds: z[0] } : a;
+}
 
 export type DayRow = {
   day: string;
@@ -95,8 +111,8 @@ export async function loadDays(ctx: QueryCtx, from: string, to: string): Promise
     const r = scores.get(d);
     out.set(d, {
       day: d,
-      s1: r?.strain ?? null,
-      activities: r?.activities ?? [],
+      s1: r?.strain ? engineZoned(r.strain) : null,
+      activities: (r?.activities ?? []).map((a) => engineZonedActivity(a, r?.strain ?? null)),
       detected: r?.detected ?? [],
       sessionRhr: r?.sessionRhrBpm ?? null,
       recovery: r?.recovery ?? null,

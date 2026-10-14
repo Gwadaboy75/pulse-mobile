@@ -632,7 +632,8 @@ export function recordOutcomes(f: Fold, d: Day, rec: RecoveryRow, sleep: SleepRo
     sleepHours: main ? (main.asleepMin + d.naps.reduce((a, n) => a + n.asleepMin, 0)) / 60 : null,
     hrv: rec.inputs.hrv,
     rhr: rec.inputs.rhr ?? dm?.rhrBpm ?? null,
-    acwr: tl.acwr,
+    acwr: tl.cardio?.ratio ?? null,
+    loadStatus: tl.cardio?.status ?? null,
     sleepConsistency: sleep.consistency,
   });
 }

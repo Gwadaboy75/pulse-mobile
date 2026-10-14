@@ -1,7 +1,7 @@
 // Own algorithm (docs/algorithms/reports.md): ISO-week (Monday–Sunday) and calendar-month summaries of the
 // daily scores, with deltas against the previous period of the same kind.
 import { mean } from "../scoring/forecast";
-import { acwrBand, type ReadinessDetail } from "../scoring/readiness";
+import type { LoadStatus } from "../engine/strain";
 import { band, type RecoveryBand } from "../scoring/recovery";
 import type { TagImpact } from "./journalImpact";
 import { hasPlanData, PLAN_DEFAULTS, type PlanDay, type PlanTargets } from "./weeklyPlan";
@@ -21,8 +21,9 @@ export interface ReportDay {
   hrv: number | null;
   /** bpm */
   rhr: number | null;
-  /** Acute:chronic workload ratio on this day. */
+  /** Training Load on the Pulse engine this day: Fatigue ÷ Fitness (ATL ÷ CTL) and its status. */
   acwr: number | null;
+  loadStatus?: LoadStatus | null;
   /** Sleep Regularity display value, 0–100. */
   sleepConsistency: number | null;
 }
@@ -46,7 +47,7 @@ export interface Report {
   /** Days in each band; sums to the days with a recovery score. */
   bands: Record<RecoveryBand, number>;
   /** From the period's last day with an ACWR. */
-  trainingBalance: { acwr: number; status: ReadinessDetail } | null;
+  trainingBalance: { acwr: number; status: LoadStatus } | null;
   sleepConsistency: number | null;
   /** Up to 3 tags with a clear recovery effect, largest |Δ| first. */
   topImpacts: TagImpact[];
@@ -119,7 +120,8 @@ export function buildReport(period: string, rows: ReportDay[], impacts: TagImpac
   const best = scored.reduce<(typeof scored)[number] | null>((b, r) => (!b || r.recovery > b.recovery ? r : b), null);
   const worst = scored.reduce<(typeof scored)[number] | null>((w, r) => (!w || r.recovery < w.recovery ? r : w), null);
 
-  const lastAcwr = cur.findLast((r) => r.acwr != null)?.acwr ?? null;
+  // The period's last day with a calibrated Training Load status.
+  const lastLoad = cur.findLast((r) => r.acwr != null && r.loadStatus != null && r.loadStatus !== "calibrating") ?? null;
   const consistency = cur.map((r) => r.sleepConsistency).filter((v): v is number => v != null);
 
   return {
@@ -132,7 +134,7 @@ export function buildReport(period: string, rows: ReportDay[], impacts: TagImpac
     averages: avg,
     deltas,
     bands,
-    trainingBalance: lastAcwr == null ? null : { acwr: lastAcwr, status: acwrBand(lastAcwr) },
+    trainingBalance: lastLoad ? { acwr: lastLoad.acwr!, status: lastLoad.loadStatus! } : null,
     sleepConsistency: consistency.length ? mean(consistency) : null,
     topImpacts: impacts
       .filter((t) => t.effects.recovery.label === "positive" || t.effects.recovery.label === "negative")

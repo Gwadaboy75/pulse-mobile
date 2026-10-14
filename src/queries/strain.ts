@@ -152,7 +152,7 @@ export const zoneBounds = (lower: number[]): ZoneRow[] =>
 
 /** How the day's zones are set, under the zone rows. */
 export const zoneNote = (row: DayRow | undefined, ctx: QueryCtx) =>
-  `Zones on your heart-rate reserve: resting ${Math.round(row?.s1?.restingHr ?? 0)} to max ${row?.s1?.maxHr ?? maxHrOf(ctx)} bpm.`;
+  `Zones on % of your max heart rate (${row?.s1?.maxHr ?? maxHrOf(ctx)} bpm): zone 1 from 50%, zone 5 from 90%.`;
 
 export function zoneRows(row: DayRow | undefined, seconds = row?.s1?.zoneSeconds, below = row?.s1?.zoneBelowSeconds): Metric<ZoneRow[]> {
   const s1 = row?.s1;
