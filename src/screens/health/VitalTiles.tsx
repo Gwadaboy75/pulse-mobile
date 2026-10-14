@@ -13,9 +13,9 @@ const GLYPH: Record<VitalKey, LucideIcon> = { resp: Wind, spo2: Droplet, resting
 // A tile's icon: 20 px, stroke 1.5, muted (the web's `[&_svg]:stroke-[1.5]`).
 const ICON = (k: VitalKey): ReactNode => <Icon icon={GLYPH[k]} size={20} tone="muted-foreground" strokeWidth={1.5} />;
 const FORMAT: Record<VitalKey, FormatKey> = { resp: "decimal1", spo2: "int", restingHr: "int", hrv: "int", skinTempDev: "signed1" };
-const NOTE = "Your range is your baseline ± 2 SD over 60 nights.";
+const NOTE = "Your range is your average ± 1 SD over the last 30 nights; skin temp is the change from your baseline.";
 
-/** The web's two-column grid with the last tile across both (`*:last:col-span-2`), as rows of two. */
+/** Rows of two tiles (four vitals since SpO2 left: no wide last tile). */
 function Grid({ tiles }: { tiles: ReactNode[] }) {
   const rows: ReactNode[][] = [];
   for (let i = 0; i < tiles.length; i += 2) rows.push(tiles.slice(i, i + 2));
@@ -38,12 +38,10 @@ export function VitalTiles({ vitals, day, today }: { vitals: Vital[]; day: strin
   return (
     <>
       <Grid
-        tiles={vitals.map((x, i) => (
+        tiles={vitals.map((x) => (
           <KeyStatRow
             key={x.key}
             variant="tile"
-            wide={i === vitals.length - 1}
-            spark={{ values: x.trend.points.slice(-30).map((p) => p.value), band: x.range, caption: "Last 30 nights" }}
             icon={ICON(x.key)}
             label={x.key === "restingHr" || x.key === "hrv" ? x.short : x.label}
             metric={x.metric}
