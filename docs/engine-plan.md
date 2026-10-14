@@ -1,6 +1,6 @@
 # Pulse engine: plan
 
-Status: plan, written 2026-10-14. Nothing implemented. Written so a fresh Claude Code session can start at Phase 0 and
+Status: in progress (Phase 0 done 2026-10-14). Written so a fresh Claude Code session can start at Phase 0 and
 work through the phases in order, one or two per session.
 
 ## What and why
