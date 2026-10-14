@@ -1,8 +1,43 @@
+<div align="center">
+
+<img src="assets/images/icon.png" alt="" width="96" height="96">
+
 # Pulse Mobile
 
-Pulse Mobile is the Android app version of [Pulse](https://github.com/adityaongit/pulse): recovery, strain, sleep, Pulse Age, stress, Energy Bank and journal insights from your Fitbit data, on your phone.
+**Recovery, strain and sleep from your Fitbit, scored on your Android phone.**
 
-There is no server and no account. The app reads your Fitbit data from **Health Connect**, where the Google Health app writes it, keeps it in SQLite on the phone and scores it there. Pulse only reads Health Connect and never writes to it. The engine (Health Connect source, storage, scoring and view models) comes from halo, a fork of the same Pulse app; the screens keep Pulse's own look.
+No server, no account, no cloud. Pulse Mobile reads your Fitbit data from Health Connect and keeps every byte on the phone.
+
+[![CI](https://github.com/adityaongit/pulse-mobile/actions/workflows/ci.yml/badge.svg)](https://github.com/adityaongit/pulse-mobile/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/adityaongit/pulse-mobile?include_prereleases&label=APK)](https://github.com/adityaongit/pulse-mobile/releases/latest)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue)](LICENSE)
+![Android](https://img.shields.io/badge/Android-Health%20Connect-34A853?logo=android&logoColor=white)
+
+[**Download the APK**](https://github.com/adityaongit/pulse-mobile/releases/latest) · [**Website**](https://pulse.portlabs.in) · [**Pulse (self-hosted)**](https://github.com/adityaongit/pulse) · [**Metrics**](https://pulse.portlabs.in/metrics/)
+
+</div>
+
+## What you get
+
+- **Sleep, Recovery and Strain** each morning, with a Strain Target set by how recovered you are.
+- **Pulse Age** and its pace: how old your body is behaving, and whether that is speeding up.
+- **Stress** and **Energy Bank** through the day.
+- **Health Monitor**: last night's vitals against your normal range.
+- **Journal** and **Log**: water, food, weight and mood, and what moves tomorrow's Recovery.
+- **Activities and workouts**, **Trends**, weekly and monthly **Reports**, and **My Dashboard**.
+
+How each score is computed: [the metrics](https://pulse.portlabs.in/metrics/).
+
+## Install
+
+1. Download `…-arm64-v8a.apk` from the [latest release](https://github.com/adityaongit/pulse-mobile/releases/latest). It fits nearly every Android phone since 2017; [docs/releases.md](docs/releases.md) lists the other builds.
+2. Open it. Android asks once to allow installs from your browser or file manager, and Play Protect may ask to scan an app from an unknown developer: both are normal for an app from outside the Play Store.
+3. In the Google Health app, let it share your data with Health Connect.
+4. Open Pulse, enter your profile, tap **Connect Health Connect** and allow every permission, including access to past data. The first import reads the last 180 days.
+
+Pulse only reads Health Connect and never writes to it.
+
+## How it works
 
 ```mermaid
 flowchart LR
@@ -16,43 +51,30 @@ flowchart LR
   Q --> UI[Screens: Expo Router, Skia charts]
 ```
 
-The plan is in [docs/rewrite-plan.md](docs/rewrite-plan.md).
+The engine (Health Connect source, storage, scoring and view models) comes from halo, a fork of the same Pulse app; the screens keep Pulse's own look. The plan is in [docs/rewrite-plan.md](docs/rewrite-plan.md).
 
 ## Pulse Mobile or Pulse?
 
-| | Pulse Mobile (this repo) | [Pulse](https://github.com/adityaongit/pulse) |
+| | **Pulse Mobile** (this repo) | **[Pulse](https://github.com/adityaongit/pulse)** |
 |---|---|---|
-| Runs | On your Android phone | On a server you host, in the browser (and its app shell) |
+| Runs | On your Android phone | On a server you host, in the browser or its app shell |
 | Data | Only on the phone | On your server |
 | Source | Fitbit through Health Connect | The Google Health API |
-| Accounts | None: one install is one person | One server, many users |
+| Accounts | None: one install is one person | One server, many people |
 
-Pulse Mobile imports what Health Connect holds, up to the last 180 days. It does not carry over a Pulse server's
-history.
+Pulse Mobile imports what Health Connect holds, up to the last 180 days. It does not carry over a Pulse server's history.
 
-## Install
+## Build from source
 
-Download the APK for your phone from [Releases](https://github.com/adityaongit/pulse-mobile/releases/latest)
-(`arm64-v8a` fits nearly every phone since 2017) and open it to install. Android asks you to allow installs from
-your browser or file manager once. [docs/releases.md](docs/releases.md) lists the builds.
+You need Node 24, [pnpm](https://pnpm.io) and, for a local build, Android Studio.
 
-## Setup
-
-You need Node (current LTS) and [pnpm](https://pnpm.io).
-
-```bash
+```sh
+git clone https://github.com/adityaongit/pulse-mobile.git && cd pulse-mobile
 pnpm install
+pnpm android        # builds a development build and runs it on a phone or emulator
 ```
 
-## Run it on a phone
-
-Expo changes every SDK, so check the current docs first: fetch https://docs.expo.dev/llms.txt and follow its links. This project is on SDK 57.
-
-Health Connect is a native module, so the app needs a development build, not Expo Go. Build one with `npx eas-cli@latest build --profile development`, or locally with `pnpm android` (needs Android Studio). Then `pnpm start` and open the project in that build. Docs: https://docs.expo.dev/develop/development-builds/introduction.md
-
-On the phone, make sure the Google Health app shares its data with Health Connect, then open Pulse, enter your profile, tap **Connect Health Connect** and allow every permission, including access to past data. The first import reads the last 180 days.
-
-## Commands
+Health Connect is a native module, so the app needs a [development build](https://docs.expo.dev/develop/development-builds/introduction/), not Expo Go. A cloud build works too: `npx eas-cli@latest build --profile development`. This project is on Expo SDK 57; Expo changes every SDK, so check [the current docs](https://docs.expo.dev/llms.txt) before touching an Expo API.
 
 | Command | What it does |
 |---|---|
@@ -66,15 +88,20 @@ On the phone, make sure the Google Health app shares its data with Health Connec
 
 ## Documentation
 
-- [AGENTS.md](AGENTS.md): commands, layout and rules for contributors and coding agents.
-- [docs/rewrite-plan.md](docs/rewrite-plan.md): the move to Health Connect and halo's engine.
-- [docs/learning.md](docs/learning.md): a running notebook of the React Native and Expo choices made here, and why.
-- [docs/onboarding.md](docs/onboarding.md): the first run.
-- [docs/design/spec.md](docs/design/spec.md): the UI contract.
+| Guide | What it covers |
+|---|---|
+| [AGENTS.md](AGENTS.md) | Commands, layout and rules for contributors and coding agents |
+| [Releases](docs/releases.md) | Building the APKs and publishing a release |
+| [First run](docs/onboarding.md) | What happens the first time the app opens |
+| [Rewrite plan](docs/rewrite-plan.md) | The move to Health Connect and halo's engine |
+| [Design spec](docs/design/spec.md) | The UI contract |
+| [Learning notes](docs/learning.md) | The React Native and Expo choices made here, and why |
 
-## Contributing
+## Contributing and security
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Report security issues privately: [SECURITY.md](SECURITY.md).
+- [Contributing](CONTRIBUTING.md): set up, how changes land, the rules of the codebase.
+- [Security policy](SECURITY.md): report vulnerabilities privately.
+- [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
