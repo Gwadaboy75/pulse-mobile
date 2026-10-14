@@ -24,7 +24,7 @@ import { type EngineDayAggs, type EngineWorkout, type PipelineOptions, SCORING_V
 import type { Agg } from "@/core/engine/baselines";
 import { contextAt, minuteHr, timeline, within } from "@/core/engine/context";
 import { baseline, BASELINE_DAYS } from "@/core/engine/baselines";
-import { dayStrain, epoc, hrRecovery as engineHrr, PASSIVE_GAP_S, segmentsOf, trimp, units, workoutStrain, zonesOf } from "@/core/engine/strain";
+import { dayStrain, epoc, hrRecovery as engineHrr, PASSIVE_GAP_S, segmentsOf, trimp, units, workoutStrain, zoneSeconds, zonesOf } from "@/core/engine/strain";
 import { dayAggregates } from "@/core/engine/days";
 import type { HrvSample } from "@/data/types";
 
@@ -270,9 +270,12 @@ function engineDay(
   const zones = zonesOf(maxHr);
   const workouts = new Map<string, EngineWorkout>();
   let workoutUnits = 0;
+  const zoneS = [0, 0, 0, 0, 0, 0];
+  const addZones = (segs: ReturnType<typeof segmentsOf>) => zoneSeconds(segs, zones).forEach((v, k) => (zoneS[k] += v));
   for (const e of b.exs) {
     const xs = hr.filter((s) => s.ts >= e.startTs && s.ts < e.endTs);
     const segs = segmentsOf(xs);
+    addZones(segs);
     const u = units(segs, zones);
     workoutUnits += u;
     const t = trimp(segs, rhrBase, maxHr, sex);
@@ -290,7 +293,9 @@ function engineDay(
   // The waking (passive) pool: minute heart rate labelled awake, gaps capped at 30 minutes, zone 0 left out; steps taken
   // awake (not asleep, not in a workout).
   const awake = within(minutes, b.start, b.end).filter((m) => contextAt(tl, m.ts) === "awake");
-  const passive = units(segmentsOf(awake, PASSIVE_GAP_S), zones, true);
+  const awakeSegs = segmentsOf(awake, PASSIVE_GAP_S);
+  addZones(awakeSegs);
+  const passive = units(awakeSegs, zones, true);
   const awakeSteps = steps.reduce((n, s) => n + (contextAt(tl, s.ts, false) === "awake" ? s.v : 0), 0);
   const day: EngineDayAggs = {
     restingHRV: r4(a.restingHRV),
@@ -299,7 +304,13 @@ function engineDay(
     inactiveHR: r4(a.inactiveHR),
     hrv: within(hrv, b.start, b.end).map((s): [number, number] => [s.ts - b.start, s.ms]),
     strain: hr.length || awakeSteps
-      ? { value: round(dayStrain(awakeSteps, passive + workoutUnits), 2), steps: awakeSteps, passiveUnits: round(passive, 1), workoutUnits: round(workoutUnits, 1) }
+      ? {
+          value: round(dayStrain(awakeSteps, passive + workoutUnits), 2),
+          steps: awakeSteps,
+          passiveUnits: round(passive, 1),
+          workoutUnits: round(workoutUnits, 1),
+          zoneS: zoneS.map((v) => Math.round(v)),
+        }
       : null,
   };
   return { day, workouts };

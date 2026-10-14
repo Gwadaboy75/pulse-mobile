@@ -132,8 +132,9 @@ describe("parity with the web app", () => {
     // Strain as a percent and Cardio Load (Phase 4): each activity gains its engine units, TRIMP, EPOC and heart-rate
     // recovery, Target Strain moves to the percent scale, and the sleep need reads the new strain. Version 20's value was
     // "f0df0ca35661e535". 22: Stress on 0–100 and the engine's Energy Bank (Phase 5); both columns and both series
-    // moved, nothing else. Version 21's value was "416071272e0e6e64".
-    "daily_scores.scoring_version": "1be75842de2b2bd1",
+    // moved, nothing else. Version 21's value was "416071272e0e6e64". 23: Pulse Age on the engine's nine factors
+    // (Phase 6); only healthspan moved. Version 22's value was "1be75842de2b2bd1".
+    "daily_scores.scoring_version": "e5852ab4c03c2755",
     // Version 15: Activity Strain is the session's Banister TRIMP plus its muscular load through 5.05 · ln(1 + 0.09 · T)
     // (a seeded 45-minute strength session goes from 8.2 to 9.9 on 0–21), each activity stores its `cardioTrimp` and
     // `muscularTrimp`, and its zone seconds count Zone 1 from 40 % of the reserve. Version 14's value was "cb2d75373aaf4d20".
@@ -219,7 +220,7 @@ describe("parity with the web app", () => {
     // shows Monday 2026-09-28's 1.70, its own daily value being 1.42 (version 17 showed a daily 1.61). Today's Halo Age
     // 33.41 → 33.78. Version
     // 17's value was "2fdf2c34ba15be9c".
-    "daily_scores.healthspan": "e58da0a6c287b90c",
+    "daily_scores.healthspan": "367258bf10a52d25",
     // Version 19: the VO2 max categories use Garmin's percentile cut-offs, 40 / 60 / 80 / 95 (were 20 / 40 / 60 / 80), so
     // today's 45.3 at the 61st percentile reads Good, not Excellent; percentiles are unchanged. Version 18's value was
     // "cfad8d1954c878ed".

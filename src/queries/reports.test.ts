@@ -165,7 +165,7 @@ describe("Healthspan, Fitness and Heart rate", () => {
     const lean = vm.contributors.find((c) => c.key === "leanMass")!;
     expect(lean.metric.value).toBeGreaterThan(60);
     expect(lean.metric.value).toBeLessThan(95);
-    expect(lean.target).toBe(80);
+    expect(lean.target).toBe(78.8); // the engine: 100 − the 21.2 % body-fat mean of men 20–39
     expect(lean.caption).toMatch(/% body fat · [\d.]+ kg lean, [\d.]+ kg fat · FFMI [\d.]+, FMI [\d.]+ kg\/m²\./);
     expect(vm.contributors.find((c) => c.key === "vo2max")!.caption).toBe("Measured");
     expect(vm.history.length).toBeLessThanOrEqual(26);

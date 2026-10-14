@@ -65,8 +65,10 @@ import type { LoadStatus } from "@/core/engine/strain";
  * 22 (Phase 5): Stress on 0–100 from 6-minute slots on the local grid (heart rate against the 30-day awake distribution,
  * night HRV against its 30-day baseline), and Energy Bank as the engine's charge and drain machine, continuous across
  * midnight and shown from its eighth day; stage 1 keeps each day's HRV samples (Stage1Day.engine.hrv).
+ * 23 (Phase 6): Pulse Age on the engine's nine hazard factors over the 28 days before each Monday, renormalized over the
+ * factors present (at least 5); stage 1 keeps each day's zone seconds on % of max HR (engine.strain.zoneS).
  */
-export const SCORING_VERSION = 22;
+export const SCORING_VERSION = 23;
 
 export type PipelineOptions = {
   timeZone: string;
@@ -139,7 +141,8 @@ export type Stage1Day = {
  * and the workouts' units; null on a day with no heart rate or steps.
  */
 export type EngineDayAggs = Pick<DayAggs, "restingHRV" | "averageHRV" | "restingHR" | "inactiveHR"> & {
-  strain?: { value: number; steps: number; passiveUnits: number; workoutUnits: number } | null;
+  /** `zoneS` (version 23): seconds in zones 0–5 on % of max HR, waking heart rate and workouts. */
+  strain?: { value: number; steps: number; passiveUnits: number; workoutUnits: number; zoneS?: number[] } | null;
   /** Version 22: the day's HRV samples as [seconds after local midnight, ms], for Stress and Energy Bank in stage 2. */
   hrv?: [number, number][];
 };

@@ -36,9 +36,11 @@ import {
   engineSleepRow,
   engineStrain,
   foldEngineDay,
+  foldPulseAgeDay,
   scoreCardioLoad,
   scoreEngineRecovery,
   scoreEngineEnergyBank,
+  scoreEnginePulseAge,
   scoreEngineSleep,
   scoreEngineStress,
   scoreEngineStrainTarget,
@@ -116,7 +118,7 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
     const hrvStatusRow = scoreHrvStatus(f, recovery);
     const training = scoreTraining(data, f, d, recovery, sleep, trainingLoad, stress.row, stress.minutes, hrvStatusRow, opts);
     const healthMonitor = scoreHealthMonitor(f, d, inputs, recovery);
-    const healthspan = scoreHealthspan(data, f, d, sleep, opts, recovery);
+    const healthspan = scoreEnginePulseAge(f, d, engineSleep, scoreHealthspan(data, f, d, sleep, opts, recovery), opts);
     const fitness = scoreFitness(f, d, opts);
     recordOutcomes(f, d, recovery, sleep, trainingLoad);
     out.set(day, {
@@ -142,6 +144,7 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
     f.skinB = update(f.skinB, d.dm?.nightlyTempC ?? null, skinTempCfg);
     f.efforts.push(d.s1.effort);
     foldEngineDay(f, d, engineSleep, engineStrain(d));
+    foldPulseAgeDay(f, d, engineSleep, data);
     f.prevAcwr = trainingLoad.acwr;
   }
   await flush();

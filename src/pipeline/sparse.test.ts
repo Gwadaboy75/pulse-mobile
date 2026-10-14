@@ -84,45 +84,22 @@ describe("resting HR without Fitbit's daily value or a sleep session", () => {
 });
 
 describe("Pulse Age on sparse data", () => {
-  it("leaves zone and strength minutes out of a day with under 12 h of HR, instead of counting 0", async () => {
-    const hs = (await store.getScores(TODAY))!.healthspan as HealthspanRow;
-    if (hs.reason !== null) throw new Error("no healthspan");
-    // Every full day has the 30-minute walk in the moderate band: 210 min a week. Day 20's 6 h (no walk) and day 21's
-    // ten samples are left out; counted as 0 they would pull it to 205.7.
-    const zone13 = hs.contributions.find((c) => c.key === "zone13")!;
-    expect(zone13.value).toBeCloseTo(210, 9);
+  it("puts the walk (68 % of max HR) in zone 2 on the engine's zones, every full day", async () => {
+    expect((await s1(40)).engine?.strain?.zoneS?.[2]).toBe(30 * 60);
     expect((await s1(SHORT_DAY)).hrMinutesAm + (await s1(SHORT_DAY)).hrMinutesPm).toBe(360);
-  });
-
-  it("counts the walk (45 % of the reserve) as moderate activity: Zone 1 starts at ACSM's 40 % moderate floor", async () => {
-    const d = await s1(40);
-    expect(d.moderateSeconds).toBeUndefined(); // the separate 40–50 % tally is gone with Zone 1 at 40 %
-    expect(d.zoneSeconds).toEqual([30 * 60, 0, 0, 0, 0]);
-    expect(d.boutZoneSeconds).toEqual([30 * 60, 0, 0]);
-    const hs = (await store.getScores(TODAY))!.healthspan as HealthspanRow;
-    if (hs.reason !== null) throw new Error("no healthspan");
-    // 210 min a week of moderate activity is past the 150 reference: a small credit, where 0 cost +11.9 years.
-    expect(hs.contributions.find((c) => c.key === "zone13")!.years).toBeLessThan(0);
   });
 
   it("has no sleep consistency without recorded sleep (it read a perfectly regular 100 from heart rate alone)", async () => {
     for (const i of [10, 40]) expect(((await store.getScores(dayAt(i)))!.sleep as { sri: number | null }).sri).toBeNull();
   });
 
-  it("says how many inputs it rests on, and is provisional at 6 of 9", async () => {
+  it("shows no Pulse Age on four factors (fix 9: at least five)", async () => {
+    // Steps, zones 2–3, zones 4–5 and strength; no sleep (so no sleep heart rate for resting HR or consistency), no VO2
+    // max, and the one body-fat reading is outside the 28 days.
     const hs = (await store.getScores(TODAY))!.healthspan as HealthspanRow;
-    if (hs.reason !== null) throw new Error("no healthspan");
-    // Steps, zones 1–3, zones 4–5, strength, resting HR (day 5) and lean mass (body fat on day 2); no sleep, consistency
-    // or VO2max (Pulse's own estimate needs 4 of 7 days with a resting HR, and there is one reading in 50 days).
-    expect(hs.contributions.map((c) => c.key).sort()).toEqual(["leanMass", "restingHr", "steps", "strength", "zone13", "zone45"]);
-    expect(hs).toMatchObject({ termsUsed: 6, provisional: true, vo2maxSource: null, fitnessEstimate: null });
-    // The unfit, heavier 27-year-old is older than his age, about 4.5 years with these six inputs (missing ones count 0).
-    expect(hs.deltaYears).toBeGreaterThan(3);
-    expect(hs.deltaYears).toBeLessThan(6);
+    expect(hs).toMatchObject({ reason: "calibrating" });
     const ctx: QueryCtx = { store, profile: PROFILE, timeZone: TZ, today: TODAY, now: localMidnight(TODAY, TZ) + 20 * 3600, sync: { lastSyncTs: null, firstDay: FIRST, lastError: null } };
-    const vm = await getHealthspan(TODAY, ctx);
-    expect(vm.result.provisional).toBe(true);
-    expect(vm.insight?.body).toContain("Based on 6 of 9 inputs; the missing ones neither add nor take away years.");
+    expect((await getHealthspan(TODAY, ctx)).result.value).toBeNull();
   });
 });
 

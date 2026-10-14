@@ -56,6 +56,16 @@ export function units(segs: readonly Seg[], z: Zones, dropBelowZone1 = false): n
   return u;
 }
 
+/** Seconds per zone 0–5 over segments (the day's zone breakdown, Pulse Age's zone minutes). */
+export function zoneSeconds(segs: readonly Seg[], z: Zones): number[] {
+  const out = [0, 0, 0, 0, 0, 0];
+  for (const s of segs) out[zoneOf(s.bpm, z)] += s.seconds;
+  return out;
+}
+
+/** Strength-type workouts (strength, weights, calisthenics, HIIT): Pulse Age's strength minutes. */
+export const STRENGTH_TYPES = /STRENGTH|WEIGHT|CALISTHENICS|HIGH_INTENSITY_INTERVAL/;
+
 /** The passive pool's gap cap, seconds. */
 export const PASSIVE_GAP_S = 1800;
 

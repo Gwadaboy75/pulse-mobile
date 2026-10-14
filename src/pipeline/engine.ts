@@ -1,14 +1,19 @@
-// Stage 2's Pulse engine scorers (docs/engine-plan.md), next to halo's in scores.ts: the Sleep Score, Sleep Bank,
-// Consistency and Need, and Recovery, from the per-day aggregates stage 1 keeps (Stage1Day.engine) and the 60-day
-// pooled baselines over the days before. They fill the same daily_scores rows the screens read, so the screens keep
+// Stage 2's Pulse engine scorers (docs/engine-plan.md), next to halo's in scores.ts: the sleep family and Recovery,
+// Cardio Load and Target Strain, Stress and Energy Bank, and Pulse Age, from the per-day aggregates stage 1 keeps
+// (Stage1Day.engine) and the pooled baselines over the days before. They fill the same daily_scores rows the screens read, so the screens keep
 // their look. Every value for day D reads only D and earlier days.
 import type { ReasonCode } from "@/lib/reasons";
-import { addDays, daysBetween, localMinutes } from "@/lib/time";
+import { addDays, daysBetween, fractionalYears, localMinutes } from "@/lib/time";
+import { type Drain, energyBand } from "@/core/algorithms/energyBank";
 import { type SleepPlan, sleepPlan } from "@/core/algorithms/sleepPlanner";
 import type { ChargeDriver, ChargeDriverVerdict } from "@/core/scoring/drivers";
-import { type Agg, baseline, calibrated, RECOVERY_CALIBRATION_DAYS } from "@/core/engine/baselines";
+import { band } from "@/core/scoring/recovery";
+import { type Agg, baseline, calibrated, chanMerge, mergeHist, RECOVERY_CALIBRATION_DAYS, STRESS_CALIBRATION_DAYS } from "@/core/engine/baselines";
+import { timeline } from "@/core/engine/context";
 import { DEFAULT_SLEEP_GOAL_HOURS, POOLING } from "@/core/engine/days";
+import { awakeSeconds, energyStep, WARMUP_DAYS } from "@/core/engine/energyBank";
 import { mean, roundHalfAway } from "@/core/engine/math";
+import { paceOf, pulseAge, type PulseAgeDay, references } from "@/core/engine/pulseAge";
 import { recovery, type RecoveryResult } from "@/core/engine/recovery";
 import {
   hasStages,
@@ -23,16 +28,11 @@ import {
   stageSums,
   tonightNeeded,
 } from "@/core/engine/sleep";
-import type { Day, Fold, Inputs, scorePlanner } from "./scores";
-import { type Data, touching } from "./data";
-import { chanMerge, mergeHist, STRESS_CALIBRATION_DAYS } from "@/core/engine/baselines";
-import { timeline } from "@/core/engine/context";
-import { awakeSeconds, energyStep, WARMUP_DAYS } from "@/core/engine/energyBank";
+import { loadConfidence, loadStatus, loadStep, STRENGTH_TYPES, targetBase, targetRange } from "@/core/engine/strain";
 import { cdfOf, displayStress, gapFill, HRV_LOOKBACK_S, SLOT_S, type SlotContext, slotContext, slotHr, slotsOf, slotStress, stressLevel } from "@/core/engine/stress";
-import { type Drain, energyBand } from "@/core/algorithms/energyBank";
-import type { BaselineSummary, CardioLoadRow, EnergyBankRow, PipelineOptions, RecoveryRow, SleepPlannerRow, SleepRow, StrainTargetRow, StressRow } from "./types";
-import { loadConfidence, loadStatus, loadStep, targetBase, targetRange } from "@/core/engine/strain";
-import { band } from "@/core/scoring/recovery";
+import { type Data, touching } from "./data";
+import type { Day, Fold, Inputs, scorePlanner } from "./scores";
+import type { BaselineSummary, CardioLoadRow, EnergyBankRow, HealthspanRow, PipelineOptions, RecoveryRow, SleepPlannerRow, SleepRow, StrainTargetRow, StressRow } from "./types";
 
 /** Aggregates kept per day for the baselines (oldest first, at most BASELINE_DAYS). */
 type DayAggRow = { restingHRV: Agg | null; averageHRV: Agg | null; restingHR: Agg | null; inactiveHR: Agg | null; resp: Agg | null; temp: Agg | null };
@@ -72,6 +72,9 @@ export const newEngineFold = () => ({
   ebLevel: null as number | null,
   ebDays: 0,
   sleepS: [] as number[],
+  /** Pulse Age: the last 28 days' inputs (with their VO2 max and lean %), and the week's result as of its Monday. */
+  ageDays: [] as { day: PulseAgeDay; vo2: number | null; vo2Run: boolean; lean: number | null }[],
+  ageWeek: null as { day: string; row: HealthspanRow } | null,
 });
 
 const push = <T>(xs: T[], x: T, max: number) => {
@@ -546,3 +549,86 @@ export function scoreEngineEnergyBank(f: Fold, d: Day, data: Data, slots: Slot[]
     curve: perMinute(d, slots, (_, i) => before[i]),
   };
 }
+
+// ── Pulse Age (Phase 6) ─────────────────────────────────────────────────────
+
+const isMonday = (day: string) => new Date(`${day}T00:00:00Z`).getUTCDay() === 1;
+
+/**
+ * Pulse Age for day D: on a Monday, the week's value from the 28 days before it (pulseAge.ts); every other day carries
+ * the week's. Fitbit's VO2 max and body-fat readings feed VO2 max and lean %. `halo`: halo's row, for the Fitness Age
+ * estimate and body composition it also carries.
+ */
+export function scoreEnginePulseAge(f: Fold, d: Day, s: EngineSleep, halo: HealthspanRow, opts: PipelineOptions): HealthspanRow {
+  const e = f.engine;
+  const fitnessEstimate = halo.fitnessEstimate;
+  if (isMonday(d.day) || !e.ageWeek) {
+    const age = fractionalYears(opts.profile.birthDate, d.day);
+    const r = pulseAge({
+      age,
+      sex: opts.profile.sex,
+      days: e.ageDays.map((x) => x.day),
+      vo2: e.ageDays.flatMap((x) => (x.vo2 == null ? [] : [x.vo2])),
+      leanPct: e.ageDays.flatMap((x) => (x.lean == null ? [] : [x.lean])),
+    });
+    const refs = references(age, opts.profile.sex);
+    const dataDays = e.ageDays.filter((x) => Object.values(x.day).some((v) => v != null)).length;
+    const r2 = (v: number) => roundHalfAway(v, 2);
+    const row: HealthspanRow = r
+      ? {
+          reason: null,
+          age: r2(age),
+          pulseAge: r2(r.pulseAge),
+          deltaYears: r2(r.deltaYears),
+          paceOfAging: r2(paceOf(r.pulseAge, age)),
+          paceDaily: r2(paceOf(r.pulseAge, age)),
+          paceAsOf: d.day,
+          paceDays: dataDays,
+          contributions: r.factors.flatMap((x) =>
+            x.value == null || x.years == null ? [] : [{ key: x.key, value: r2(x.value), reference: r2(refs[x.key]), years: r2(x.years) }],
+          ),
+          vo2maxSource: e.ageDays.some((x) => x.vo2Run) ? "run" : e.ageDays.some((x) => x.vo2 != null) ? "daily" : null,
+          bodyComposition: halo.reason === null ? halo.bodyComposition : null,
+          dataDays,
+          termsUsed: r.present,
+          provisional: r.confidence < 0.5,
+          paceProvisional: r.confidence < 0.5,
+          fitnessEstimate,
+        }
+      : { reason: "calibrating", dataDays, fitnessEstimate };
+    if (isMonday(d.day)) e.ageWeek = { day: d.day, row };
+    else return row;
+  }
+  return { ...e.ageWeek!.row, fitnessEstimate };
+}
+
+/** Folds day D's Pulse Age inputs (after scoring it: a week reads only the days before its Monday). */
+export function foldPulseAgeDay(f: Fold, d: Day, s: EngineSleep, data: Data) {
+  // Steps, zone and strength minutes only on a day with 12 h of heart rate: on a day the band was barely worn they read
+  // near 0, when they are really unknown.
+  const covered = d.s1.hrMinutesAm + d.s1.hrMinutesPm >= 720;
+  const z = d.s1.engine?.strain?.zoneS;
+  const bodyFat = d.dm?.bodyFatPct;
+  push(
+    f.engine.ageDays,
+    {
+      day: {
+        sleepHours: d.mainSession ? s.asleepS / 3600 : null,
+        sri: s.consistency,
+        steps: covered ? (d.s1.engine?.strain?.steps ?? null) : null,
+        zone13Min: covered && z ? (z[2] + z[3]) / 60 : null,
+        zone45Min: covered && z ? (z[4] + z[5]) / 60 : null,
+        strengthMin: covered ? strengthMinutes(data, d) : null,
+        restingHr: d.s1.engine?.restingHR?.avg ?? null,
+      },
+      vo2: d.dm?.vo2maxRun ?? d.dm?.vo2maxDaily ?? null,
+      vo2Run: d.dm?.vo2maxRun != null,
+      lean: bodyFat == null ? null : 100 - bodyFat,
+    },
+    28,
+  );
+}
+
+/** Minutes of strength-type workouts that started on day D. */
+const strengthMinutes = (data: Data, d: Day) =>
+  (data.exercisesByDay.get(d.day) ?? []).filter((x) => STRENGTH_TYPES.test(x.type)).reduce((a, x) => a + (x.endTs - x.startTs) / 60, 0);
