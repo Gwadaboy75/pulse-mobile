@@ -31,6 +31,8 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # `expo start` writes this gitignored file locally; without its `expo/types` the CSS animation styles do not type.
+      - run: echo '/// <reference types="expo/types" />' > expo-env.d.ts
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
