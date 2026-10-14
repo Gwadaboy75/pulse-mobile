@@ -74,7 +74,7 @@ export async function getHealthHub(ctx: QueryCtx): Promise<HealthHubVM> {
     day: today,
     healthspan: hs.value ? ok({ pulseAge: hs.value.pulseAge, deltaYears: hs.value.deltaYears, pace: hs.value.pace, paceDelta: prevPace == null || hs.value.pace == null ? null : hs.value.pace - prevPace }, hs.provisional) : none(hs.reason ?? "no_data", hs.nightsLeft),
     monitor: monitor.count.value
-      ? ok({ vitals: monitor.vitals.map((v) => ({ key: v.key, short: v.short, status: v.status })), inRange: monitor.count.value.inRange, total: 5 })
+      ? ok({ vitals: monitor.vitals.map((v) => ({ key: v.key, short: v.short, status: v.status })), inRange: monitor.count.value.inRange, total: VITALS.length })
       : none(monitor.count.reason ?? "no_data"),
     stress:
       st && st.average != null
@@ -313,9 +313,9 @@ function healthspanInsight(pace: number | null, deltaYears: number, cs: Healthsp
 
 const VITALS: { key: VitalKey; short: string; unit: string; signed?: boolean; pick: (r: DayRow) => number | null | undefined }[] = [
   { key: "resp", short: "Resp", unit: "rpm", pick: (r) => r.metrics?.respBpm },
-  { key: "spo2", short: "SpO2", unit: "%", pick: (r) => r.metrics?.spo2Pct },
-  { key: "restingHr", short: "RHR", unit: "bpm", pick: (r) => r.metrics?.rhrBpm ?? r.sessionRhr },
-  { key: "hrv", short: "HRV", unit: "ms", pick: (r) => r.metrics?.hrvMs },
+  // The engine's night values, the ones Health Monitor's band and Recovery use (the daily ones before a scored night).
+  { key: "restingHr", short: "RHR", unit: "bpm", pick: (r) => r.recovery?.inputs.rhr ?? r.metrics?.rhrBpm ?? r.sessionRhr },
+  { key: "hrv", short: "HRV", unit: "ms", pick: (r) => r.recovery?.inputs.hrv ?? r.metrics?.hrvMs },
   { key: "skinTempDev", short: "Temp", unit: "°C", signed: true, pick: (r) => r.recovery?.inputs.skinTempDev },
 ];
 
@@ -373,7 +373,7 @@ export async function getMonitor(day: string, ctx: QueryCtx, preloaded?: Map<str
   else if (hm.reason !== null) count = none(nightReason(hm.reason, isToday));
   else {
     const raised = illnessRaised(hm);
-    count = ok({ inRange: hm.inRange, total: 5, outOfRange: hm.flagged, status: raised ? "illness" : hm.flagged ? "out" : "within" });
+    count = ok({ inRange: hm.inRange, total: VITALS.length, outOfRange: hm.flagged, status: raised ? "illness" : hm.flagged ? "out" : "within" });
   }
   return {
     day,

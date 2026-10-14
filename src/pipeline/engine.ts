@@ -553,18 +553,21 @@ export function scoreEngineEnergyBank(f: Fold, d: Day, data: Data, slots: Slot[]
 
 // ── Pulse Age (Phase 6) ─────────────────────────────────────────────────────
 
-const isMonday = (day: string) => new Date(`${day}T00:00:00Z`).getUTCDay() === 1;
+const isSunday = (day: string) => new Date(`${day}T00:00:00Z`).getUTCDay() === 0;
 
 /**
- * Pulse Age for day D: on a Monday, the week's value from the 28 days before it (pulseAge.ts); every other day carries
- * the week's. Fitbit's VO2 max and body-fat readings feed VO2 max and lean %. `halo`: halo's row, for the Fitness Age
+ * Pulse Age for day D. The study computes the week starting Monday W from the 28 days before W; the screens show a
+ * week on its Sunday, so the value is stored on that Sunday, from the 28 days ending with it (the same days), with the
+ * age at W, and every day after carries it until the next Sunday. Before the first Sunday, each day shows what its own
+ * 28 days give. Fitbit's VO2 max and body-fat readings feed VO2 max and lean %. `halo`: halo's row, for the Fitness Age
  * estimate and body composition it also carries.
  */
-export function scoreEnginePulseAge(f: Fold, d: Day, s: EngineSleep, halo: HealthspanRow, opts: PipelineOptions): HealthspanRow {
+export function scoreEnginePulseAge(f: Fold, d: Day, s: EngineSleep, halo: HealthspanRow, opts: PipelineOptions, data: Data): HealthspanRow {
   const e = f.engine;
+  foldPulseAgeDay(f, d, s, data);
   const fitnessEstimate = halo.fitnessEstimate;
-  if (isMonday(d.day) || !e.ageWeek) {
-    const age = fractionalYears(opts.profile.birthDate, d.day);
+  if (isSunday(d.day) || !e.ageWeek) {
+    const age = fractionalYears(opts.profile.birthDate, addDays(d.day, 1));
     const r = pulseAge({
       age,
       sex: opts.profile.sex,
@@ -597,14 +600,14 @@ export function scoreEnginePulseAge(f: Fold, d: Day, s: EngineSleep, halo: Healt
           fitnessEstimate,
         }
       : { reason: "calibrating", dataDays, fitnessEstimate };
-    if (isMonday(d.day)) e.ageWeek = { day: d.day, row };
+    if (isSunday(d.day)) e.ageWeek = { day: d.day, row };
     else return row;
   }
   return { ...e.ageWeek!.row, fitnessEstimate };
 }
 
-/** Folds day D's Pulse Age inputs (after scoring it: a week reads only the days before its Monday). */
-export function foldPulseAgeDay(f: Fold, d: Day, s: EngineSleep, data: Data) {
+/** Adds day D's Pulse Age inputs to the 28-day window. */
+function foldPulseAgeDay(f: Fold, d: Day, s: EngineSleep, data: Data) {
   // Steps, zone and strength minutes on every day with data (heart rate or steps), as the study's daily metrics.
   const covered = d.s1.engine?.strain != null;
   const z = d.s1.engine?.strain?.zoneS;
@@ -666,7 +669,8 @@ const MONITOR_FIELD = { restingHr: "rhr", hrv: "hrv", resp: "resp", spo2: "spo2"
 export function engineMonitor(f: Fold, row: HealthMonitorRow): HealthMonitorRow {
   if (row.reason !== null) return row;
   const nights = f.monitorRows.slice(-MONITOR_WINDOW);
-  const vitals = row.vitals.map((v) => {
+  // No SpO2: Fitbit does not write it to Health Connect, so it is left out rather than shown empty.
+  const vitals = row.vitals.filter((v) => v.key !== "spo2").map((v) => {
     const xs = nights.map((n) => n[MONITOR_FIELD[v.key]]).filter((x): x is number => x != null && Number.isFinite(x));
     const s = popStats(xs);
     const range = s && { low: roundHalfAway(s.mean - s.sd, 2), high: roundHalfAway(s.mean + s.sd, 2) };

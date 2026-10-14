@@ -71,8 +71,10 @@ import type { LoadStatus } from "@/core/engine/strain";
  * the engine's pooled t-test (a 70 % interval) in place of the bootstrap.
  * 25: back in line with the reference study: the engine's zones on its own max HR (the profile's, else 220 − age, not
  * Tanaka's), and Pulse Age's weekly minutes as the 28-day sum × 0.25 over every day with data.
+ * 26: Pulse Age stored on the week's Sunday (the screens show a week on its Sunday; same 28 days), and Health Monitor
+ * without SpO2 (Health Connect has none).
  */
-export const SCORING_VERSION = 25;
+export const SCORING_VERSION = 26;
 
 export type PipelineOptions = {
   timeZone: string;

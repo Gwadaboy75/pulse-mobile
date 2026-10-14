@@ -137,7 +137,8 @@ describe("parity with the web app", () => {
     // 30 nights and the engine's journal t-test (Phase 7); Health Monitor and the reports moved. Version 23's value was
     // "e5852ab4c03c2755". The reports also carry each day's strain as the engine's percent (recordOutcomes). 25: the engine's zones on 220 − age and Pulse Age's weekly sums,
     // as the study. Version 24's value was "eca080343200e2aa".
-    "daily_scores.scoring_version": "cd0c930a0a7e70db",
+    // 26: Pulse Age on Sundays and Health Monitor without SpO2. Version 25's value was "cd0c930a0a7e70db".
+    "daily_scores.scoring_version": "56420b3a0a69eda6",
     // Version 15: Activity Strain is the session's Banister TRIMP plus its muscular load through 5.05 · ln(1 + 0.09 · T)
     // (a seeded 45-minute strength session goes from 8.2 to 9.9 on 0–21), each activity stores its `cardioTrimp` and
     // `muscularTrimp`, and its zone seconds count Zone 1 from 40 % of the reserve. Version 14's value was "cb2d75373aaf4d20".
@@ -200,7 +201,7 @@ describe("parity with the web app", () => {
     // The illness signal's SD is floored at half the baselines' σ floor (src/core/scoring/illness.ts illnessSdFloor),
     // which tempers a few days' scores (the seeded illness's 2026-08-03 scores 51 where it scored 69). The web's
     // value was "3a2163c7f92d4dab".
-    "daily_scores.health_monitor": "155474eac1079378",
+    "daily_scores.health_monitor": "47289fc792ec11ef",
     // Mobile rebuilds Pulse Age on WHOOP's Healthspan method (src/core/algorithms/healthspan.ts): 6.0 years per ln HR
     // (WHOOP's 10 × an overlap factor of 0.6) with no 9/n rescaling (a missing term counts 0), WHOOP's references and
     // curves (sleep from 7 h, Arem and Ahmadi zone curves, strength flat after 40 min, lean mass as body fat %), zone time
@@ -223,7 +224,7 @@ describe("parity with the web app", () => {
     // shows Monday 2026-09-28's 1.70, its own daily value being 1.42 (version 17 showed a daily 1.61). Today's Halo Age
     // 33.41 → 33.78. Version
     // 17's value was "2fdf2c34ba15be9c".
-    "daily_scores.healthspan": "1058bdf94c3b3927",
+    "daily_scores.healthspan": "a85973629b8558d7",
     // Version 19: the VO2 max categories use Garmin's percentile cut-offs, 40 / 60 / 80 / 95 (were 20 / 40 / 60 / 80), so
     // today's 45.3 at the 61st percentile reads Good, not Excellent; percentiles are unchanged. Version 18's value was
     // "cfad8d1954c878ed".
@@ -357,7 +358,7 @@ describe("the last 30 days", () => {
     expect(Math.min(...efforts)).toBeGreaterThanOrEqual(0); // a rest day can sit at 0
   });
 
-  it("have Health Monitor's five vitals on every night with data", () => {
+  it("have Health Monitor's four vitals on every night with data (no SpO2: Health Connect has none)", () => {
     for (const d of last30()) {
       const hm = col(d, "health_monitor");
       if (bandOffNights.includes(d)) {
@@ -365,7 +366,7 @@ describe("the last 30 days", () => {
         continue;
       }
       if (hm.reason !== null) throw new Error(`${d}: ${hm.reason}`);
-      expect(hm.vitals.map((v) => v.key).sort()).toEqual(["hrv", "resp", "restingHr", "skinTempDev", "spo2"]);
+      expect(hm.vitals.map((v) => v.key).sort()).toEqual(["hrv", "resp", "restingHr", "skinTempDev"]);
     }
   });
 

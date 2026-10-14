@@ -35,7 +35,6 @@ const EMPTY = "text-[15px] leading-[22px] text-foreground-secondary";
 const VITAL_ICON: Record<VitalKey, LucideIcon> = { resp: Wind, spo2: Droplet, restingHr: Heart, hrv: Activity, skinTempDev: Thermometer };
 const VITAL_ORDER: { key: VitalKey; short: string }[] = [
   { key: "resp", short: "Resp" },
-  { key: "spo2", short: "SpO2" },
   { key: "restingHr", short: "RHR" },
   { key: "hrv", short: "HRV" },
   { key: "skinTempDev", short: "Temp" },

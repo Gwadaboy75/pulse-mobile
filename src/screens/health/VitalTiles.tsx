@@ -62,7 +62,6 @@ export function VitalTiles({ vitals, day, today }: { vitals: Vital[]; day: strin
 
 const SKELETON_LABEL: [VitalKey, string][] = [
   ["resp", "Respiratory rate"],
-  ["spo2", "Blood oxygen"],
   ["restingHr", "RHR"],
   ["hrv", "HRV"],
   ["skinTempDev", "Skin temperature"],
