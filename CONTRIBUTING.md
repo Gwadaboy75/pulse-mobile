@@ -17,8 +17,16 @@ algorithms.
 ## Set up
 
 You need Node 24 and pnpm (the version pinned in `package.json`; `corepack enable` picks it up), and Android Studio
-for a local development build. The README's [Run it on a phone](README.md#run-it-on-a-phone) has the steps. Health
-Connect is a native module, so Expo Go does not work.
+for a local development build. Health Connect is a native module, so Expo Go does not work.
+
+```sh
+pnpm install
+pnpm android    # builds a development build and runs it on a phone or emulator
+```
+
+Or build one in the cloud with `npx eas-cli@latest build --profile development`, then `pnpm start` and open the project
+in that build. On the phone, let the Google Health app share with Health Connect, open Pulse, tap **Connect Health
+Connect** and allow every permission, including past data. Every command is in [AGENTS.md](AGENTS.md#commands).
 
 ## How changes land
 
