@@ -13,7 +13,7 @@ import { hash, mulberry32 } from "@/core/algorithms/journalImpact";
 import { addDays, localDay, localMidnight } from "@/lib/time";
 import { resolveMaxHr } from "@/pipeline/index";
 import type { Store } from "./store";
-import type { DailyValue, Exercise, Metrics, Profile, Segment, Session } from "./types";
+import type { DailyValue, Exercise, HrvSample, Metrics, Profile, Segment, Session } from "./types";
 
 // ---------------------------------------------------------------------------------------------
 // The demo person's story (scenario.ts). Day indices are 0-based from the first seeded day (the anchor), so the
@@ -355,6 +355,24 @@ function nightOf(ctx: Ctx, i: number): Night {
   return { bed, wake, segments, summary, rhr, metrics };
 }
 
+/** RMSSD relative to the night's mean by stage: higher in deep sleep, lower awake (demo values). */
+const HRV_STAGE: Record<Stage, number> = { deep: 1.15, light: 1.0, rem: 0.92, awake: 0.8 };
+
+/**
+ * The night's HRV samples, one every 5 minutes from bed to wake as Fitbit writes them to Health Connect, around the
+ * night's mean by stage. Its own random stream, so the rest of the seed reads the same as before it existed.
+ */
+function hrvSamples(i: number, n: NonNullable<Night>): HrvSample[] {
+  if (n.metrics.hrvMs == null) return [];
+  const r = rng(i, "hrv");
+  const out: HrvSample[] = [];
+  for (let t = n.bed; t < n.wake; t += 300) {
+    const stage = n.segments.find((g) => t >= g.start && t < g.end)?.stage ?? "light";
+    out.push({ ts: t, ms: round(clamp(n.metrics.hrvMs * HRV_STAGE[stage] * Math.exp(0.12 * r.g()), 5, 250), 1) });
+  }
+  return out;
+}
+
 /** Karvonen shares of heart-rate reserve where LIGHT, MODERATE, VIGOROUS and PEAK start (demo values). */
 const ZONE_HRR = [0.4, 0.55, 0.7, 0.85];
 
@@ -615,6 +633,8 @@ export function generateDay(ctx: Ctx, i: number) {
     exercises: exerciseRows,
     nightly: lastNight && {
       availableAt: lastNight.wake + SLEEP_SYNC_DELAY_S,
+      /** Last night's 5-minute HRV samples, synced with the night. */
+      hrv: hrvSamples(i, lastNight),
       // Weekly, like Fitbit's resting-HR-based estimate.
       values: { ...lastNight.metrics, vo2maxDaily: i % 7 === 6 ? round(vo2 - 0.8 + 0.3 * r.g(), 1) : null, ...googleDerived(ctx, i, lastNight.rhr) },
     },
@@ -732,6 +752,7 @@ async function writeDays(store: Store, gs: SeedDay[], now: number, checkedIn: Se
   }
   await store.putHr(hr);
   await store.putSteps(steps);
+  await store.putHrv(gs.flatMap((g) => (g.nightly && g.nightly.availableAt <= now ? g.nightly.hrv : [])));
   await store.markIntradayDirty(dirty);
 
   const sleeps = gs.flatMap((g) => g.sleeps.filter((s) => s.availableAt <= now));

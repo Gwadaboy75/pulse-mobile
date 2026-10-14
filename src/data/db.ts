@@ -5,7 +5,7 @@
 import { deleteDatabaseAsync, openDatabaseAsync, type SQLiteDatabase } from "expo-sqlite";
 import { isDeadConnection } from "./deadConnection";
 import type { CoachChatRow, DayRange, EntrySource, JournalTagChange, JournalTagRow, LoggedEntryRow, ReportRow, ScoreRow, SeriesKind, Store } from "./store";
-import type { DailyValue, Exercise, HealthRecord, HrSample, JournalEntry, Metrics, Profile, Segment, Session, StepsMinute, SyncState } from "./types";
+import type { DailyValue, Exercise, HealthRecord, HrSample, HrvSample, JournalEntry, Metrics, Profile, Segment, Session, StepsMinute, SyncState } from "./types";
 import type { ActivityCostResult } from "@/core/algorithms/activityCost";
 import { slice } from "@/lib/yield";
 
@@ -36,6 +36,7 @@ create table if not exists exercises (
 create index if not exists exercises_day on exercises (day);
 create table if not exists hr_days (bucket integer primary key, offsets text not null, vals text not null);
 create table if not exists steps_days (bucket integer primary key, offsets text not null, vals text not null);
+create table if not exists hrv_days (bucket integer primary key, offsets text not null, vals text not null);
 create table if not exists daily_values (day text not null, key text not null, value real not null, primary key (day, key));
 create table if not exists journal_entries (day text not null, tag text not null, value real not null, primary key (day, tag));
 create table if not exists intraday_dirty (day text primary key);
@@ -326,9 +327,12 @@ class SqliteStore implements Store {
   async putSteps(minutes: StepsMinute[]) {
     await this.putSamples("steps_days", minutes);
   }
+  async putHrv(samples: HrvSample[]) {
+    await this.putSamples("hrv_days", samples.map((s) => ({ ts: s.ts, v: s.ms })));
+  }
 
   /** Merges samples into their UTC-day buckets, replacing by ts, in one transaction. */
-  private async putSamples(table: "hr_days" | "steps_days", samples: { ts: number; v: number }[]) {
+  private async putSamples(table: SampleTable, samples: { ts: number; v: number }[]) {
     if (!samples.length) return;
     const byBucket = new Map<number, { ts: number; v: number }[]>();
     for (const s of samples) {
@@ -384,12 +388,12 @@ class SqliteStore implements Store {
       await db.runAsync("delete from logged_entries where source = 'health_connect' and day >= ? and day <= ?", days);
       await db.runAsync("delete from daily_scores where day >= ? and day <= ?", days);
       await db.runAsync("delete from intraday_series where day >= ? and day <= ?", days);
-      if (toTs > fromTs) for (const table of ["hr_days", "steps_days"] as const) await this.dropSamples(db, table, fromTs, toTs);
+      if (toTs > fromTs) for (const table of ["hr_days", "steps_days", "hrv_days"] as const) await this.dropSamples(db, table, fromTs, toTs);
     });
   }
 
   /** Removes samples with lo <= ts < hi: whole buckets inside the span go, the two edge buckets are rewritten. */
-  private async dropSamples(db: SQLiteDatabase, table: "hr_days" | "steps_days", lo: number, hi: number) {
+  private async dropSamples(db: SQLiteDatabase, table: SampleTable, lo: number, hi: number) {
     const first = bucketOf(lo);
     const last = bucketOf(hi - 1);
     await db.runAsync(`delete from ${table} where bucket > ? and bucket < ?`, [first, last]);
@@ -486,7 +490,7 @@ class SqliteStore implements Store {
   }
 
   /** Samples with lo <= ts < hi from the buckets they can fall in, in time order. */
-  private async readSamples(table: "hr_days" | "steps_days", lo: number, hi: number) {
+  private async readSamples(table: SampleTable, lo: number, hi: number) {
     const out: { ts: number; v: number }[] = [];
     if (hi <= lo) return out;
     const rows = await this.db.getAllAsync<BucketRow>(`select bucket, offsets, vals from ${table} where bucket between ? and ? order by bucket`, [
@@ -510,6 +514,9 @@ class SqliteStore implements Store {
   }
   async readSteps(lo: number, hi: number) {
     return this.readSamples("steps_days", lo, hi);
+  }
+  async readHrv(lo: number, hi: number) {
+    return (await this.readSamples("hrv_days", lo, hi)).map((s) => ({ ts: s.ts, ms: s.v }));
   }
   async hrBounds() {
     const [lo, hi] = await Promise.all([
@@ -679,8 +686,11 @@ class SqliteStore implements Store {
   }
 }
 
+/** The bucketed sample tables: one row per UTC day of parallel offset and value arrays. */
+type SampleTable = "hr_days" | "steps_days" | "hrv_days";
+
 const TABLES = [
-  "profile", "sync_state", "daily_metrics", "sleep_sessions", "sleep_segments", "exercises", "hr_days", "steps_days", "daily_values",
+  "profile", "sync_state", "daily_metrics", "sleep_sessions", "sleep_segments", "exercises", "hr_days", "steps_days", "hrv_days", "daily_values",
   "journal_entries", "intraday_dirty", "daily_scores", "intraday_series", "reports", "activity_cost",
   "journal_tags", "logged_entries", "health_records",
 ];

@@ -12,6 +12,7 @@ import {
   mapExercisesSteps,
   mapExternalEntries,
   mapHrSteps,
+  mapHrv,
   mapMetricsSteps,
   mapSleep,
   largestSourceSteps,
@@ -42,9 +43,10 @@ export { forgetChanges };
  * record only to the read its start falls in), so the window's first day keeps the night that began the evening before:
  * every day became the first day of some incremental sync, which rewrote its row without that night (no skin
  * temperature, nightly vitals from the fallback windows, a nap promoted to the main sleep, the night's minutes counted
- * as sedentary); heart-rate and steps records running over midnight keep their samples after it.
+ * as sedentary); heart-rate and steps records running over midnight keep their samples after it. 4: every HRV sample is
+ * kept (`hrv_days`), not only the nightly mean, for the Pulse engine.
  */
-export const IMPORT_VERSION = 3;
+export const IMPORT_VERSION = 4;
 
 /**
  * How far before the window's first local midnight the reads start. Health Connect returns a record only to a read whose
@@ -390,6 +392,13 @@ export async function syncHealthConnect(store: Store, opts: SyncOptions): Promis
     // Water, food and cycle logs made in Fitbit: the window's rows are replaced, so what Fitbit deleted goes too.
     const external = inWindow(mapExternalEntries(input, tz));
 
+    // Every HRV sample (the Pulse engine labels them by sleep stage); their days rerun stage 1.
+    const hrv = mapHrv(input.HeartRateVariabilityRmssd ?? []);
+    if (hrv.length) {
+      await store.putHrv(hrv);
+      for (const s of hrv) dirty.push(localDay(s.ts, tz));
+    }
+    counts.hrv = hrv.length;
     if (sessions.length) await store.upsertSessions(sessions, segments);
     if (exercises.length) await store.upsertExercises(exercises);
     if (dailyValues.length) await store.upsertDailyValues(dailyValues);

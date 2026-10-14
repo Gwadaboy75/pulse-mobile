@@ -561,6 +561,19 @@ describe("extras and the Fitbit log", () => {
 
 describe("empty input", () => {
   it("maps to empty lists", () => {
-    expect(mapRecords({}, TZ)).toEqual({ metrics: [], sessions: [], segments: [], exercises: [], hr: [], steps: [], dailyValues: [], externalEntries: [] });
+    expect(mapRecords({}, TZ)).toEqual({ metrics: [], sessions: [], segments: [], exercises: [], hr: [], hrv: [], steps: [], dailyValues: [], externalEntries: [] });
+  });
+});
+
+describe("mapHrv", () => {
+  it("keeps every HRV sample, one per second, in time order (the Pulse engine labels each)", async () => {
+    const { mapHrv } = await import("./import");
+    const rec = (time: string, ms: number) => ({ time, heartRateVariabilityMillis: ms }) as never;
+    expect(
+      mapHrv([rec("2026-10-10T01:05:00Z", 40), rec("2026-10-10T01:00:00Z", 38), rec("2026-10-10T01:00:00.400Z", 39), rec("2026-10-10T01:10:00Z", 0)]),
+    ).toEqual([
+      { ts: ts("2026-10-10T01:00:00Z"), ms: 39 },
+      { ts: ts("2026-10-10T01:05:00Z"), ms: 40 },
+    ]);
   });
 });

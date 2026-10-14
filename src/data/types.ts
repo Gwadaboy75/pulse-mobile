@@ -110,6 +110,8 @@ export const emptyMetrics = (day: string): Metrics => ({
 });
 
 export type HrSample = { ts: number; bpm: number };
+/** One heart-rate variability reading (RMSSD, ms) at `ts`: Fitbit writes one every 5 minutes through the night. */
+export type HrvSample = { ts: number; ms: number };
 /** Steps in the minute starting at `ts` (a whole minute, unix seconds). */
 export type StepsMinute = { ts: number; v: number };
 

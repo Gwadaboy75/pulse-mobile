@@ -23,7 +23,7 @@ import type {
 } from "react-native-health-connect";
 
 import type { LoggedEntryRow } from "@/data/store";
-import type { DailyValue, Exercise, HrSample, Metrics, Segment, Session, Stage, StepsMinute } from "@/data/types";
+import type { DailyValue, Exercise, HrSample, HrvSample, Metrics, Segment, Session, Stage, StepsMinute } from "@/data/types";
 import { emptyMetrics } from "@/data/types";
 import { addDays, localDay, localMidnight } from "@/lib/time";
 import { finish, PAUSE_EVERY, type Steps } from "@/lib/yield";
@@ -259,6 +259,7 @@ export type MappedRecords = {
   segments: Segment[];
   exercises: Exercise[];
   hr: HrSample[];
+  hrv: HrvSample[];
   steps: StepsMinute[];
   dailyValues: DailyValue[];
   /** Water, food and cycle records as read-only log entries (`source: "health_connect"`). */
@@ -410,6 +411,16 @@ export function mapSleep(records: SleepSessionRecord[], tz: string): { sessions:
 }
 
 // ───────────────────────────── heart rate ─────────────────────────────
+
+/**
+ * Every HRV reading (RMSSD, ms), one per second, last wins, in time order: the Pulse engine labels each by sleep stage
+ * (Recovery's sleep-window mean, Stress during sleep), so the nightly mean on Metrics is not enough.
+ */
+export function mapHrv(records: HrvRecord[]): HrvSample[] {
+  const bySecond = new Map<number, number>();
+  for (const r of records) if (Number.isFinite(r.heartRateVariabilityMillis) && r.heartRateVariabilityMillis > 0) bySecond.set(ts(r.time), r.heartRateVariabilityMillis);
+  return [...bySecond].sort((a, b) => a[0] - b[0]).map(([t, ms]) => ({ ts: t, ms }));
+}
 
 /** One sample per second, last wins; `clip` keeps only samples with clip.startTs <= ts < clip.endTs. */
 export function mapHr(records: HeartRateRecord[], clip?: Interval): HrSample[] {
@@ -882,11 +893,12 @@ export function* mapMetricsSteps(input: MetricsInput, sessions: Session[], steps
 export function mapRecords(input: HealthInput, tz: string): MappedRecords {
   const { sessions, segments } = mapSleep(input.SleepSession ?? [], tz);
   const hr = mapHr(input.HeartRate ?? []);
+  const hrv = mapHrv(input.HeartRateVariabilityRmssd ?? []);
   const steps = mapSteps(input.Steps ?? []);
   const stepsByDay = stepsPerDay(input.Steps ?? [], tz);
   const exercises = mapExercises(input.ExerciseSession ?? [], input.ActiveCaloriesBurned, input.Distance, tz);
   const dailyValues = mapDailyValues(input, tz);
   const metrics = mapMetrics(input, sessions, stepsByDay, tz);
   const externalEntries = mapExternalEntries(input, tz);
-  return { metrics, sessions, segments, exercises, hr, steps, dailyValues, externalEntries };
+  return { metrics, sessions, segments, exercises, hr, hrv, steps, dailyValues, externalEntries };
 }

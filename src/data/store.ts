@@ -1,6 +1,6 @@
 // The storage contract every layer talks to: the importer writes rows, the pipeline reads rows and writes scores,
 // the screen queries read both. One implementation on expo-sqlite (db.ts); tests may use an in-memory one.
-import type { DailyValue, Exercise, HealthRecord, HrSample, JournalEntry, Metrics, Profile, Segment, Session, StepsMinute, SyncState } from "./types";
+import type { DailyValue, Exercise, HealthRecord, HrSample, HrvSample, JournalEntry, Metrics, Profile, Segment, Session, StepsMinute, SyncState } from "./types";
 import type { Stage1Activity, Stage1Day, Stage2Row } from "@/pipeline/types";
 import type { Report } from "@/core/algorithms/reports";
 import type { ActivityCostResult } from "@/core/algorithms/activityCost";
@@ -22,13 +22,15 @@ export interface Store {
   /** Samples are keyed by ts; re-imports overwrite. */
   putHr(samples: HrSample[]): Promise<void>;
   putSteps(minutes: StepsMinute[]): Promise<void>;
+  /** HRV samples, keyed by ts like heart rate; re-imports overwrite. */
+  putHrv(samples: HrvSample[]): Promise<void>;
   upsertDailyValues(rows: DailyValue[]): Promise<void>;
   setJournal(entry: JournalEntry): Promise<void>;
   deleteJournal(day: string, tag: string): Promise<void>;
   /**
    * Drops what an importer wrote for the days in `range` (daily metrics, sleep sessions and their segments, workouts,
    * daily values and health records, by their `day`), the Health Connect log entries there (`source:
-   * "health_connect"`), the heart-rate and step samples with fromTs <= ts < toTs, and those days' scores and series,
+   * "health_connect"`), the heart-rate, HRV and step samples with fromTs <= ts < toTs, and those days' scores and series,
    * before a re-import (or the other source) writes them afresh. Pulse's own logs, the journal and the profile stay.
    */
   clearImported(range: DayRange, fromTs: number, toTs: number): Promise<void>;
@@ -54,6 +56,8 @@ export interface Store {
   /** HR with lo <= ts < hi, ascending. */
   readHr(lo: number, hi: number): Promise<HrSample[]>;
   readSteps(lo: number, hi: number): Promise<StepsMinute[]>;
+  /** HRV with lo <= ts < hi, ascending. */
+  readHrv(lo: number, hi: number): Promise<HrvSample[]>;
   hrBounds(): Promise<{ first: number; last: number } | null>;
 
   // Scores (JSON blobs per day, the pipeline's memo and the screens' source)

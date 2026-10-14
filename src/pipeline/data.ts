@@ -6,6 +6,7 @@ import type { Exercise, Metrics, Segment, Session } from "@/data/types";
 import { addDays, daysBetween, localDay, localMidnight } from "@/lib/time";
 import type { PipelineOptions } from "./types";
 import { metricsWithLoggedBody } from "@/data/body";
+import { primaryOf } from "@/core/engine/context";
 
 export type { Exercise, Metrics, Segment, Session };
 export { sha } from "./hash";
@@ -52,8 +53,9 @@ export async function load(store: Store, { timeZone: tz }: PipelineOptions) {
   const sessionsByDay = groupBy(sessions, (s) => s.day);
   const mainOf = new Map<string, Session>();
   for (const [day, list] of sessionsByDay) {
-    const mains = list.filter((s) => s.isMain).sort((a, b) => b.endTs - b.startTs - (a.endTs - a.startTs) || a.id.localeCompare(b.id));
-    if (mains.length) mainOf.set(day, mains[0]);
+    // The longest; on a tie, the one that ends first (the Pulse engine's fix 13, context.ts primaryOf).
+    const main = primaryOf(list.filter((s) => s.isMain));
+    if (main) mainOf.set(day, main);
   }
   return {
     days,
