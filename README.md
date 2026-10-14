@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/images/icon.png" alt="" width="88" height="88">
+<img src="assets/brand/logo-round.svg" alt="" width="88" height="88">
 
 # Pulse Mobile
 
