@@ -20,9 +20,11 @@ import { minuteMeanHr, stress } from "@/core/algorithms/stress";
 import { BATCH_DAYS, type Data, type Exercise, type Progress, r1, round, type Segment, type Session, sha, touching } from "./data";
 import { MODERATE_FROM_HRR } from "./intensity";
 import { carriedRestingHr, estimateRestingHr, resolveRestingHr } from "./restingHr";
-import { type EngineDayAggs, type PipelineOptions, SCORING_VERSION, type Stage1Activity, type Stage1Day } from "./types";
+import { type EngineDayAggs, type EngineWorkout, type PipelineOptions, SCORING_VERSION, type Stage1Activity, type Stage1Day } from "./types";
 import type { Agg } from "@/core/engine/baselines";
-import { minuteHr, timeline } from "@/core/engine/context";
+import { contextAt, minuteHr, timeline, within } from "@/core/engine/context";
+import { baseline, BASELINE_DAYS } from "@/core/engine/baselines";
+import { dayStrain, epoc, hrRecovery as engineHrr, PASSIVE_GAP_S, segmentsOf, trimp, units, workoutStrain, zonesOf } from "@/core/engine/strain";
 import { dayAggregates } from "@/core/engine/days";
 import type { HrvSample } from "@/data/types";
 
@@ -71,7 +73,7 @@ export function wakingFloorFrom(prior: (number | null | undefined)[]): number | 
  * `carried`: the resting HR carried from earlier days, on a day without a daily one (restingHr.ts). `floor`: the waking
  * floor from the days before (wakingFloorFrom).
  */
-function stage1Key(data: Data, day: string, opts: PipelineOptions, carried: number | null, floor: number | null) {
+function stage1Key(data: Data, day: string, opts: PipelineOptions, carried: number | null, floor: number | null, rhrBase: number | null) {
   const lo = data.dayStart(day);
   const hi = data.dayStart(addDays(day, 1));
   const main = data.mainOf.get(day);
@@ -90,6 +92,7 @@ function stage1Key(data: Data, day: string, opts: PipelineOptions, carried: numb
       touching(data.exercises, lo, hi + 330).map((e) => [e.id, e.startTs, e.endTs, e.type, e.day]),
       AUTO_WORKOUT_VERSION, // mobile: a change to detection redoes every day
       vo2maxFor(data, day), // Training Effect's intensity scale (version 19)
+      rhrBase, // the engine's TRIMP and EPOC rest on the 60-day resting-HR baseline (version 21)
     ]),
   );
 }
@@ -144,7 +147,16 @@ export async function stage1(store: Store, data: Data, dirtyDays: string[], opts
   const waking = new Map<string, number>();
   for (const r of storedRows) if (r.strain?.wakingHrr != null && r.scoringVersion === SCORING_VERSION) waking.set(r.day, r.strain.wakingHrr);
   const floorFor = (d: string) => wakingFloorFrom(Array.from({ length: WAKING_FLOOR_DAYS }, (_, k) => waking.get(addDays(d, k - WAKING_FLOOR_DAYS))));
-  const keyOf = (d: string) => stage1Key(data, d, opts, carriedFor(d), floorFor(d));
+  // The engine's 60-day resting-HR baseline (sleep heart rate, pooled over the days before), as stored and then as
+  // recomputed in this run: workouts' TRIMP and EPOC rest on it, and a day's key holds it. Rows of any version seed it:
+  // a stale one only moves a first guess, which the next pass corrects once its day is redone (oldest first).
+  const rhrAggs = new Map<string, Agg>();
+  for (const r of storedRows) if (r.strain?.engine?.restingHR) rhrAggs.set(r.day, r.strain.engine.restingHR);
+  const rhrBaseFor = (d: string) => {
+    const b = baseline(Array.from({ length: BASELINE_DAYS }, (_, k) => rhrAggs.get(addDays(d, k - BASELINE_DAYS))), "combined");
+    return b && round(b.avg, 2);
+  };
+  const keyOf = (d: string) => stage1Key(data, d, opts, carriedFor(d), floorFor(d), rhrBaseFor(d));
   /** The days whose key changed (and the dirty ones), oldest first; sliced (src/lib/yield.ts), as a key reads every session. */
   const stale = async (withDirty: boolean) => {
     const out: string[] = [];
@@ -190,10 +202,15 @@ export async function stage1(store: Store, data: Data, dirtyDays: string[], opts
         const steps = between(stepsAll, b.start, b.end).map((s) => ({ ts: s.ts, steps: s.v }));
         const carried = carriedFor(b.day);
         const floor = floorFor(b.day);
-        const key = stage1Key(data, b.day, opts, carried, floor);
+        const rhrBase = rhrBaseFor(b.day);
+        const key = stage1Key(data, b.day, opts, carried, floor, rhrBase);
         const segs = b.main ? segmentRows.filter((g) => g.sessionId === b.main!.id) : [];
         const r = stage1Day(data, b.day, b.start, b.end, b.main, segs, b.exs, between(hrAll, b.lo, b.hi), steps, key, carried, floor, opts);
-        r.s1.engine = engineAggs(data, b, between(hrAll, b.lo, b.hi), between(hrvAll, b.lo, b.hi), segmentRows);
+        const eng = engineDay(data, b, between(hrAll, b.lo, b.hi), between(hrvAll, b.lo, b.hi), segmentRows, between(stepsAll, b.start, b.end), rhrBase, r.s1.restingHr, opts);
+        r.s1.engine = eng.day;
+        for (const a of r.activities) a.engine = eng.workouts.get(a.id);
+        if (eng.day.restingHR) rhrAggs.set(b.day, eng.day.restingHR);
+        else rhrAggs.delete(b.day);
         if (data.metrics.get(b.day)?.rhrBpm == null) {
           if (r.sessionRhr != null) known.set(b.day, r.sessionRhr);
           else known.delete(b.day);
@@ -222,14 +239,23 @@ export async function stage1(store: Store, data: Data, dirtyDays: string[], opts
 const r4 = (a: Agg | null): Agg | null =>
   a && { avg: round(a.avg, 4), sd: round(a.sd, 4), count: a.count, ...(a.hist && { hist: a.hist }) };
 
-/** The Pulse engine's sample-based aggregates for a day (src/core/engine/days.ts). */
-function engineAggs(
+/**
+ * The Pulse engine's per-day work (src/core/engine): the sample-based aggregates (days.ts), Daily Strain from the waking
+ * heart rate and steps and the day's workouts (strain.ts), and each workout's units, strain, TRIMP, EPOC and heart-rate
+ * recovery. `rhrBase`: the 60-day resting-HR baseline TRIMP rests on (null without one: no TRIMP); EPOC falls back to
+ * the day's resting HR.
+ */
+function engineDay(
   data: Data,
-  b: { start: number; end: number; main: Session | undefined; lo: number; hi: number },
+  b: { start: number; end: number; main: Session | undefined; lo: number; hi: number; exs: Exercise[] },
   hr: HrSample[],
   hrv: HrvSample[],
   segmentRows: Segment[],
-): EngineDayAggs {
+  steps: { ts: number; v: number }[],
+  rhrBase: number | null,
+  dayRestingHr: number,
+  opts: PipelineOptions,
+): { day: EngineDayAggs; workouts: Map<string, EngineWorkout> } {
   const sessions = touching(data.sessions, b.lo, b.hi);
   const ids = new Set(sessions.map((s) => s.id));
   const tl = timeline({
@@ -237,17 +263,45 @@ function engineAggs(
     segments: segmentRows.filter((g) => ids.has(g.sessionId)),
     workouts: touching(data.exercises, b.lo, b.hi),
   });
-  const a = dayAggregates({
-    dayStart: b.start,
-    dayEnd: b.end,
-    primary: b.main ?? null,
-    tl,
-    hr: minuteHr(hr),
-    hrv,
-    respBpm: null,
-    tempDeltaC: null,
-  });
-  return { restingHRV: r4(a.restingHRV), averageHRV: r4(a.averageHRV), restingHR: r4(a.restingHR), inactiveHR: r4(a.inactiveHR) };
+  const minutes = minuteHr(hr);
+  const a = dayAggregates({ dayStart: b.start, dayEnd: b.end, primary: b.main ?? null, tl, hr: minutes, hrv, respBpm: null, tempDeltaC: null });
+
+  const { maxHr, sex } = opts.profile;
+  const zones = zonesOf(maxHr);
+  const workouts = new Map<string, EngineWorkout>();
+  let workoutUnits = 0;
+  for (const e of b.exs) {
+    const xs = hr.filter((s) => s.ts >= e.startTs && s.ts < e.endTs);
+    const segs = segmentsOf(xs);
+    const u = units(segs, zones);
+    workoutUnits += u;
+    const t = trimp(segs, rhrBase, maxHr, sex);
+    const ep = segs.length ? epoc(segs, rhrBase ?? dayRestingHr, maxHr) : null;
+    const rec = engineHrr(hr.filter((s) => s.ts >= e.startTs && s.ts < e.endTs + 120), e.endTs, zones);
+    workouts.set(e.id, {
+      units: round(u, 1),
+      strain: round(workoutStrain(u), 2),
+      trimp: t == null ? null : round(t, 2),
+      epocPeak: ep && round(ep.peak, 2),
+      focus: ep && { lowAerobic: round(ep.focus.lowAerobic, 2), highAerobic: round(ep.focus.highAerobic, 2), anaerobic: round(ep.focus.anaerobic, 2) },
+      hrr: rec && { drop: round(rec.drop, 1), startHr: rec.startHr, endHr: rec.endHr, startTs: rec.startTs, endTs: rec.endTs },
+    });
+  }
+  // The waking (passive) pool: minute heart rate labelled awake, gaps capped at 30 minutes, zone 0 left out; steps taken
+  // awake (not asleep, not in a workout).
+  const awake = within(minutes, b.start, b.end).filter((m) => contextAt(tl, m.ts) === "awake");
+  const passive = units(segmentsOf(awake, PASSIVE_GAP_S), zones, true);
+  const awakeSteps = steps.reduce((n, s) => n + (contextAt(tl, s.ts, false) === "awake" ? s.v : 0), 0);
+  const day: EngineDayAggs = {
+    restingHRV: r4(a.restingHRV),
+    averageHRV: r4(a.averageHRV),
+    restingHR: r4(a.restingHR),
+    inactiveHR: r4(a.inactiveHR),
+    strain: hr.length || awakeSteps
+      ? { value: round(dayStrain(awakeSteps, passive + workoutUnits), 2), steps: awakeSteps, passiveUnits: round(passive, 1), workoutUnits: round(workoutUnits, 1) }
+      : null,
+  };
+  return { day, workouts };
 }
 
 /** The samples with lo <= ts < hi of a time-ordered list. */

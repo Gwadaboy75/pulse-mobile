@@ -18,6 +18,7 @@ import type { TrainingStatus } from "@/core/algorithms/trainingStatus";
 import type { StrainTarget } from "@/core/algorithms/strainTarget";
 import type { RestingHrSource } from "./restingHr";
 import type { DayAggs } from "@/core/engine/days";
+import type { LoadStatus } from "@/core/engine/strain";
 
 /**
  * Bump on any scoring change; a mismatch at startup reruns both stages for every day.
@@ -58,8 +59,11 @@ import type { DayAggs } from "@/core/engine/days";
  * 20 (the Pulse engine, docs/engine-plan.md Phase 3): Sleep Score, Sleep Bank, Consistency and Need, and Recovery from
  * every HRV and heart-rate sample labelled by sleep stage, against 60-day pooled baselines (src/core/engine); stage 1
  * keeps each day's aggregates (Stage1Day.engine).
+ * 21 (Phase 4): Daily Strain as a percent (awake steps, waking units above zone 1, workouts' units), each workout's
+ * units, TRIMP on the 60-day resting-HR baseline, EPOC and heart-rate recovery (Stage1Activity.engine), Cardio Load
+ * (training_load.cardio) and Target Strain on the percent scale; the sleep need's strain term reads the new strain.
  */
-export const SCORING_VERSION = 20;
+export const SCORING_VERSION = 21;
 
 export type PipelineOptions = {
   timeZone: string;
@@ -126,8 +130,27 @@ export type Stage1Day = {
   engine?: EngineDayAggs;
 };
 
-/** The sample-based part of the engine's DayAggs; respiratory rate and temperature come from the daily row in stage 2. */
-export type EngineDayAggs = Pick<DayAggs, "restingHRV" | "averageHRV" | "restingHR" | "inactiveHR">;
+/**
+ * The sample-based part of the engine's DayAggs (respiratory rate and temperature come from the daily row in stage 2),
+ * and (version 21) Daily Strain, a percent (src/core/engine/strain.ts): steps taken awake, the waking units above zone 1
+ * and the workouts' units; null on a day with no heart rate or steps.
+ */
+export type EngineDayAggs = Pick<DayAggs, "restingHRV" | "averageHRV" | "restingHR" | "inactiveHR"> & {
+  strain?: { value: number; steps: number; passiveUnits: number; workoutUnits: number } | null;
+};
+
+/**
+ * Version 21: a workout on the Pulse engine: its cardio units and strain (a percent), Banister TRIMP on the 60-day
+ * resting-HR baseline (null without one), peak EPOC and cardio focus, and heart-rate recovery (null below zone 4).
+ */
+export type EngineWorkout = {
+  units: number;
+  strain: number;
+  trimp: number | null;
+  epocPeak: number | null;
+  focus: { lowAerobic: number; highAerobic: number; anaerobic: number } | null;
+  hrr: { drop: number; startHr: number; endHr: number; startTs: number; endTs: number } | null;
+};
 
 /** Stage 1, `daily_scores.activities`. */
 export type Stage1Activity = {
@@ -149,6 +172,8 @@ export type Stage1Activity = {
   zoneSeconds: number[];
   zoneBelowSeconds?: number;
   hrr: HrRecoveryResult | null;
+  /** Version 21: the workout on the Pulse engine. */
+  engine?: EngineWorkout;
 };
 
 export type RecoveryRow = {
@@ -269,7 +294,15 @@ export type TrainingLoadRow = {
   ctl: number | null;
   atl: number | null;
   tsb: number | null;
+  /** Version 21: Cardio Load on the Pulse engine. */
+  cardio?: CardioLoadRow;
 };
+
+/**
+ * Version 21, `training_load.cardio`: the Pulse engine's Cardio Load (src/core/engine/strain.ts): the day's TRIMP, ATL
+ * and CTL, their ratio, how sure the status can be (0–1) and the status.
+ */
+export type CardioLoadRow = { load: number; atl: number; ctl: number; ratio: number | null; confidence: number; status: LoadStatus };
 
 export type StrainTargetRow = ({ reason: null } & StrainTarget) | { reason: ReasonCode; nightsLeft?: number };
 

@@ -27,13 +27,21 @@ import {
   scoreTraining,
   scorePlanner,
   scoreSleep,
-  scoreStrainTarget,
   scoreStress,
   scoreTrainingLoad,
 } from "./scores";
 import { type JournalImpactRow, type PipelineOptions, SCORING_VERSION, STAGE2_COLUMNS, type Stage2Row } from "./types";
 import { emptyScoreRow } from "./stage1";
-import { enginePlan, engineSleepRow, foldEngineDay, scoreEngineRecovery, scoreEngineSleep } from "./engine";
+import {
+  enginePlan,
+  engineSleepRow,
+  engineStrain,
+  foldEngineDay,
+  scoreCardioLoad,
+  scoreEngineRecovery,
+  scoreEngineSleep,
+  scoreEngineStrainTarget,
+} from "./engine";
 import { resume, snapshot } from "./checkpoint";
 
 export async function stage2(store: Store, data: Data, opts: PipelineOptions, onProgress?: Progress, rerun: string[] = []) {
@@ -90,9 +98,9 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
     const engineSleep = scoreEngineSleep(f, d, inputs, opts, tz);
     const sleep = engineSleepRow(scoreSleep(data, inputs, f, d, tz), engineSleep);
     const recovery = scoreEngineRecovery(f, d, engineSleep);
-    const trainingLoad = scoreTrainingLoad(f, d, recovery);
-    const strainTarget = scoreStrainTarget(f, recovery);
-    const planner = enginePlan(f, d, engineSleep, scorePlanner(f, d, sleep, tz), d.s1.effort);
+    const trainingLoad = { ...scoreTrainingLoad(f, d, recovery), cardio: scoreCardioLoad(f, d, recovery.value) };
+    const strainTarget = scoreEngineStrainTarget(f, recovery.value);
+    const planner = enginePlan(f, d, engineSleep, scorePlanner(f, d, sleep, tz), engineStrain(d));
     recovery.forecast = forecastOf(f, d, recovery, planner.plan, planner.tonightNeed);
     await slice();
     const stress = scoreStress(f, d, inputs);
@@ -127,7 +135,7 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
     f.respB = update(f.respB, recovery.inputs.resp, respCfg);
     f.skinB = update(f.skinB, d.dm?.nightlyTempC ?? null, skinTempCfg);
     f.efforts.push(d.s1.effort);
-    foldEngineDay(f, d, engineSleep, d.s1.effort);
+    foldEngineDay(f, d, engineSleep, engineStrain(d));
     f.prevAcwr = trainingLoad.acwr;
   }
   await flush();

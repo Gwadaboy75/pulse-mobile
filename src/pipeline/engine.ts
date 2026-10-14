@@ -24,7 +24,9 @@ import {
   tonightNeeded,
 } from "@/core/engine/sleep";
 import type { Day, Fold, Inputs, scorePlanner } from "./scores";
-import type { BaselineSummary, PipelineOptions, RecoveryRow, SleepPlannerRow, SleepRow } from "./types";
+import type { BaselineSummary, CardioLoadRow, PipelineOptions, RecoveryRow, SleepPlannerRow, SleepRow, StrainTargetRow } from "./types";
+import { loadConfidence, loadStatus, loadStep, targetBase, targetRange } from "@/core/engine/strain";
+import { band } from "@/core/scoring/recovery";
 
 /** Aggregates kept per day for the baselines (oldest first, at most BASELINE_DAYS). */
 type DayAggRow = { restingHRV: Agg | null; restingHR: Agg | null; inactiveHR: Agg | null; resp: Agg | null; temp: Agg | null };
@@ -47,6 +49,14 @@ export const newEngineFold = () => ({
   /** Day numbers with a Recovery (the calibration span), first and count. */
   recoveryFirst: null as number | null,
   recoveryDays: 0,
+  /** Cardio Load: ATL and CTL, the last 28 daily loads, whether each of the last 42 was active, the last 10 CTLs. */
+  atl: 0,
+  ctl: 0,
+  loads28: [] as number[],
+  active42: [] as boolean[],
+  ctls: [] as number[],
+  /** Daily Strain of the last 15 days (null without one), Target Strain's history. */
+  strainHist: [] as (number | null)[],
 });
 
 const push = <T>(xs: T[], x: T, max: number) => {
@@ -273,6 +283,7 @@ export function foldEngineDay(f: Fold, d: Day, s: EngineSleep, strain: number | 
     if (d.main.latencyMin != null) push(e.lats, d.main.latencyMin, 30);
   }
   if (s.score != null) push(e.sleepScores, s.score, 60);
+  push(e.strainHist, strain, 15);
 }
 
 /**
@@ -289,4 +300,55 @@ export function enginePlan(f: Fold, d: Day, s: EngineSleep, planner: ReturnType<
   f.prevPlan = { wakeDay, needMin: plan.needMin };
   const row: SleepPlannerRow = planner.row.reason === null ? { ...planner.row, ...plan } : { ...planner.row, needMin: plan.needMin };
   return { ...planner, row, plan };
+}
+
+/** Day D's Daily Strain on the engine (a percent), or null without one. */
+export const engineStrain = (d: Day): number | null => d.s1.engine?.strain?.value ?? null;
+
+/**
+ * Cardio Load for day D (strain-load.md § Cardio Load): the day's load is its workouts' TRIMP, ATL and CTL step from a
+ * zero seed, and the status reads the same day's Recovery.
+ */
+export function scoreCardioLoad(f: Fold, d: Day, recoveryValue: number | null): CardioLoadRow {
+  const e = f.engine;
+  const load = d.cache.activities.reduce((a, x) => a + (x.engine?.trimp ?? 0), 0);
+  push(e.loads28, load, 28);
+  push(e.active42, load > 5, 42);
+  const { atl, ctl } = loadStep(e, load);
+  e.atl = atl;
+  e.ctl = ctl;
+  push(e.ctls, ctl, 10);
+  const meanOf = (xs: number[]) => (xs.length ? xs.reduce((a, x) => a + x, 0) / xs.length : null);
+  const a = meanOf(e.ctls.slice(-5));
+  const b = e.ctls.length > 5 ? meanOf(e.ctls.slice(0, -5)) : null;
+  const ctlTrendPct = a != null && b != null && b !== 0 ? ((a - b) / b) * 100 : null;
+  const confidence = loadConfidence(e.loads28, e.active42.filter(Boolean).length);
+  const r4 = (x: number) => roundHalfAway(x, 4);
+  return {
+    load: r4(load),
+    atl: r4(atl),
+    ctl: r4(ctl),
+    ratio: ctl > 0 ? r4(atl / ctl) : null,
+    confidence: r4(confidence),
+    status: loadStatus({ atl, ctl, confidence, ctlTrendPct, recovery: recoveryValue }),
+  };
+}
+
+/**
+ * Target Strain for day D (strain-load.md § Target Strain): the 14 days before, folded, scaled by today's Recovery. On
+ * the percent scale; always present (a short history folds what there is).
+ */
+export function scoreEngineStrainTarget(f: Fold, recoveryValue: number | null): StrainTargetRow {
+  const hist = f.engine.strainHist;
+  const base = targetBase(hist);
+  const { low, high } = targetRange(base, recoveryValue);
+  return {
+    reason: null,
+    low: roundHalfAway(low, 1),
+    high: roundHalfAway(high, 1),
+    base: hist.length ? roundHalfAway(base, 1) : null,
+    band: band(recoveryValue ?? 50),
+    coldStart: hist.length < 14,
+    acwrRule: null,
+  };
 }
