@@ -90,6 +90,8 @@ export type PipelineOptions = {
     engineMaxHr?: number;
     heightCm?: number | null;
     waistCm?: number | null;
+    /** The profile's sleep goal, hours; null for the engine's 7.5 h. */
+    sleepGoalHours?: number | null;
   };
 };
 

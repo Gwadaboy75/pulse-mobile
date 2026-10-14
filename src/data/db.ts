@@ -77,6 +77,8 @@ const MIGRATIONS = [
   // The owner's display name and profile photo path (mobile).
   "alter table profile add column name text",
   "alter table profile add column photo text",
+  // The sleep goal, JSON { hours, method } (Settings › Goals).
+  "alter table profile add column sleep_goal text",
 ];
 
 const DAY = 86_400;
@@ -259,15 +261,16 @@ class SqliteStore implements Store {
   async getProfile() {
     const r = await this.db.getFirstAsync<{
       birth_date: string; sex: Profile["sex"]; max_hr: number | null; height_cm: number | null; waist_cm: number | null; time_zone: string;
-      name: string | null; photo: string | null;
-    }>("select birth_date, sex, max_hr, height_cm, waist_cm, time_zone, name, photo from profile where id = 1");
+      name: string | null; photo: string | null; sleep_goal: string | null;
+    }>("select birth_date, sex, max_hr, height_cm, waist_cm, time_zone, name, photo, sleep_goal from profile where id = 1");
     return r && {
       birthDate: r.birth_date, sex: r.sex, maxHr: r.max_hr, heightCm: r.height_cm, waistCm: r.waist_cm, timeZone: r.time_zone, name: r.name, photo: r.photo,
+      sleepGoal: parse<NonNullable<Profile["sleepGoal"]>>(r.sleep_goal),
     };
   }
   async setProfile(p: Profile) {
-    await this.tx((db) => db.runAsync("insert or replace into profile (id, birth_date, sex, max_hr, height_cm, waist_cm, time_zone, name, photo) values (1, ?, ?, ?, ?, ?, ?, ?, ?)", [
-      p.birthDate, p.sex, p.maxHr, p.heightCm, p.waistCm ?? null, p.timeZone, p.name ?? null, p.photo ?? null,
+    await this.tx((db) => db.runAsync("insert or replace into profile (id, birth_date, sex, max_hr, height_cm, waist_cm, time_zone, name, photo, sleep_goal) values (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+      p.birthDate, p.sex, p.maxHr, p.heightCm, p.waistCm ?? null, p.timeZone, p.name ?? null, p.photo ?? null, json(p.sleepGoal),
     ]));
   }
   async getSyncState(): Promise<SyncState> {

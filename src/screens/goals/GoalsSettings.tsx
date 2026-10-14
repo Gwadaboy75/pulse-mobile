@@ -18,6 +18,7 @@ import { Icon } from "@/ui/Icon";
 import { SectionShell } from "@/ui/shells/SectionShell";
 import { Text } from "@/ui/Text";
 import { toast } from "@/ui/Toast";
+import { SleepGoal } from "./SleepGoal";
 import { PLAN_ICON } from "./WeeklyPlan";
 
 const GOAL_HINT: Partial<Record<TargetKey, string>> = {
@@ -190,6 +191,7 @@ function WeeklyTargets() {
 export function GoalsSettings() {
   return (
     <>
+      <SleepGoal />
       <DailyGoals />
       <WeeklyTargets />
     </>

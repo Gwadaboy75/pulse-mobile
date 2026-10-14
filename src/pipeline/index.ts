@@ -83,6 +83,7 @@ export async function pipelineOptions(store: Store, profile: Profile, today: str
       engineMaxHr: engineMaxHr(profile, today),
       heightCm: height,
       waistCm: profile.waistCm ?? null,
+      sleepGoalHours: profile.sleepGoal?.hours ?? null,
     },
   };
 }

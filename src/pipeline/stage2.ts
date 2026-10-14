@@ -110,7 +110,7 @@ export async function stage2(store: Store, data: Data, opts: PipelineOptions, on
     // Halo's stress still feeds halo's training scorer; the stored Stress and Energy Bank are the engine's (engine.ts).
     const stress = scoreStress(f, d, inputs);
     const engineStress = scoreEngineStress(f, d, data, inputs);
-    const energy = scoreEngineEnergyBank(f, d, data, engineStress.slots);
+    const energy = scoreEngineEnergyBank(f, d, data, engineStress.slots, engineSleep.need.goalS);
     pending.push({ day, stress: engineStress.series, energy: energy.curve });
     await slice();
     const hrvStatusRow = scoreHrvStatus(f, recovery);

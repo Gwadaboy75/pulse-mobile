@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { continuityFactor, hrDip, sleepBank, sleepConsistency, sleepNeeded, sleepScore, sleepTargets, stageSums, tonightNeeded, type SleepSeg } from "./sleep";
+import { autoSleepGoal, continuityFactor, defaultSleepGoal, hrDip, sleepBank, sleepConsistency, sleepNeeded, sleepScore, sleepTargets, stageSums, tonightNeeded, type SleepSeg } from "./sleep";
 
 const H = 3600;
 /** Consecutive segments from [stage, hours] pairs, from t = 0. */
@@ -99,5 +99,24 @@ describe("Sleep Consistency", () => {
     expect(sleepConsistency([[[0, 480]], [[0, 480]], [[0, 480]]])).toBe(100);
     expect(sleepConsistency([[[0, 480]], [[480, 960]]])).toBeCloseTo(33.333, 2);
     expect(sleepConsistency([[[0, 480]]])).toBeNull();
+  });
+});
+
+describe("sleep goal", () => {
+  it("defaults by age as onboarding does", () => {
+    expect([19, 25, 35, 45, 65, 75].map(defaultSleepGoal)).toEqual([8, 8, 7.75, 7.5, 7.25, 7]);
+  });
+
+  it("averages the top 15 % of the last 90 nights by Recovery, plus 30 s, in whole minutes", () => {
+    // 100 nights: Recovery 1..100, asleep 6 h; the 13 best of the last 90 (88..100) slept 8 h.
+    const nights = Array.from({ length: 100 }, (_, i) => ({ recovery: i + 1, asleepS: i + 1 >= 88 ? 8 * 3600 : 6 * 3600 }));
+    expect(autoSleepGoal(nights)).toEqual({ status: "sufficient", hours: 8, nights: 90, high: 34 });
+  });
+
+  it("is an early estimate below 90 nights, and none without a night at 67", () => {
+    const few = Array.from({ length: 20 }, (_, i) => ({ recovery: 50 + i, asleepS: 7 * 3600 + 15 * 60 }));
+    expect(autoSleepGoal(few)).toEqual({ status: "insufficient", hours: 7.25, nights: 20, high: 3 });
+    expect(autoSleepGoal(few.map((n) => ({ ...n, recovery: 50 })))).toBeNull();
+    expect(autoSleepGoal(few.slice(0, 6))).toBeNull();
   });
 });

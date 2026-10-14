@@ -2,6 +2,7 @@
 // with pulse's rules; `save` writes the profile (src/state/app.ts saveProfile, which also reruns the scores).
 import { z } from "zod";
 import type { Profile } from "@/data/types";
+import { defaultSleepGoal } from "@/core/engine/sleep";
 import { wholeYears } from "@/lib/time";
 import { isTimeZone } from "@/lib/timeZone";
 
@@ -37,7 +38,10 @@ export function initials(name: string | null | undefined): string | null {
   return words.length === 1 ? first(words[0]!) : first(words[0]!) + first(words.at(-1)!);
 }
 
-/** Checks the form; on success saves `{ ...previous, ...fields }` (a waist set elsewhere stays) through `save`. */
+/**
+ * Checks the form; on success saves `{ ...previous, ...fields }` (a waist set elsewhere stays) through `save`. A first
+ * profile (onboarding) gets the age default sleep goal, automatic (reference study, sleep.md § Goal setting).
+ */
 export async function saveProfileAction(form: ProfileFields, previous: Profile | null, save: (p: Profile) => Promise<void>): Promise<ProfileFormState> {
   const r = ProfileInput.safeParse({
     birthDate: form.birthDate,
@@ -53,7 +57,8 @@ export async function saveProfileAction(form: ProfileFields, previous: Profile |
     return { ok: false, fields };
   }
   try {
-    await save({ ...previous, ...r.data });
+    const goal = { hours: defaultSleepGoal(wholeYears(r.data.birthDate, new Date().toISOString().slice(0, 10))), method: "automatic" as const };
+    await save({ ...(previous ?? { sleepGoal: goal }), ...r.data });
   } catch {
     return { ok: false, error: "Couldn’t save. Try again." };
   }

@@ -176,3 +176,40 @@ export function sleepConsistency(days: readonly (readonly [number, number][])[])
   for (const km of k) agr += km * (km - 1) + (N - km) * (N - km - 1);
   return (agr / ((N - 1) * N) / 1440) * 100;
 }
+
+/**
+ * The sleep goal onboarding sets from age, hours (reference study, sleep.md § Goal setting, defaults and read path,
+ * defaultGoalByAge): 8:00 under 30, 7:45 in the 30s, 7:30 from 40 to 59, 7:15 in the 60s, 7:00 from 70.
+ */
+export function defaultSleepGoal(age: number): number {
+  if (age >= 70) return 7;
+  if (age >= 60) return 7.25;
+  if (age >= 40) return 7.5;
+  if (age >= 30) return 7.75;
+  return 8;
+}
+
+/** A night for the automatic goal: Recovery with the Sleep Score taken as 100, and the main sleep's asleep seconds. */
+export type GoalNight = { recovery: number | null; asleepS: number | null };
+
+/**
+ * `sufficient` with 90 nights and 15 of them at Recovery 67 or more; `insufficient` still carries a goal. `nights`: the
+ * nights ranked; `high`: the nights at 67 or more.
+ */
+export type AutoSleepGoal = { status: "sufficient" | "insufficient"; hours: number; nights: number; high: number };
+
+/**
+ * The automatic sleep goal (reference study, sleep.md § Automatic goal estimator, dynamicGoal): over the last 120 days,
+ * oldest first, the last 90 nights with a Recovery and a main sleep, ranked by Recovery (ties keep their order); the mean
+ * asleep time of the top 15 %, plus 30 s, in whole minutes. Null when no night ranks or none reaches 67.
+ */
+export function autoSleepGoal(days: readonly GoalNight[]): AutoSleepGoal | null {
+  const last = days.filter((d) => d.recovery != null && d.asleepS != null).slice(-90);
+  const k = Math.trunc(last.length * 0.15);
+  const high = days.filter((d) => d.recovery != null && d.recovery >= 67).length;
+  if (k === 0 || high === 0) return null;
+  const top = [...last].sort((a, b) => b.recovery! - a.recovery!).slice(0, k);
+  const total = Math.round(top.reduce((a, d) => a + d.asleepS!, 0) / k) + 30;
+  const hours = Math.trunc(total / 3600) + (Math.trunc(total / 60) % 60) / 60;
+  return { status: last.length >= 90 && high >= 15 ? "sufficient" : "insufficient", hours, nights: last.length, high };
+}

@@ -19,6 +19,11 @@ export type Profile = {
   name?: string | null;
   /** The profile photo's file URI in the app's document directory (mobile, optional). The photo never leaves the phone. */
   photo?: string | null;
+  /**
+   * The sleep goal (Settings › Goals): hours, and how it was set, by hand or from the automatic estimate (reference
+   * study, shared-machinery.md § Sleep goal). Absent: 7.5 h. Onboarding sets the age default, automatic.
+   */
+  sleepGoal?: { hours: number; method: "manual" | "automatic" } | null;
 };
 
 /** One sleep session; `day` is the local wake day. */

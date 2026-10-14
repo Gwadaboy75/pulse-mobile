@@ -83,7 +83,8 @@ const push = <T>(xs: T[], x: T, max: number) => {
   if (xs.length > max) xs.splice(0, xs.length - max);
 };
 
-const goalHours = () => DEFAULT_SLEEP_GOAL_HOURS;
+/** The profile's sleep goal, hours; 7.5 h when it sets none (shared-machinery.md § Sleep goal). */
+const goalHours = (opts: PipelineOptions) => opts.profile.sleepGoalHours ?? DEFAULT_SLEEP_GOAL_HOURS;
 
 /** The primary sleep's stage segments; a night without stages is unstaged sleep over its asleep minutes. */
 function mainSegments(d: Day, inputs: Inputs): { segs: SleepSeg[]; staged: boolean } {
@@ -110,7 +111,7 @@ export type EngineSleep = {
 /** The Sleep family for day D: score, need, bank and consistency. */
 export function scoreEngineSleep(f: Fold, d: Day, inputs: Inputs, opts: PipelineOptions, tz: string): EngineSleep {
   const e = f.engine;
-  const goal = goalHours();
+  const goal = goalHours(opts);
   const previousBank = sleepBank(e.asleepS, goal);
   const need = sleepNeeded(goal, e.prevStrain, e.strains, previousBank);
   const { segs, staged } = mainSegments(d, inputs);
@@ -162,7 +163,7 @@ export function engineSleepRow(row: SleepRow, s: EngineSleep): SleepRow {
     reason: row.reason ?? (s.score == null && row.main ? "no_data" : null),
     parts: null,
     components: Object.fromEntries(Object.entries(s.components).map(([k, v]) => [k, r2(v)])) as EngineSleep["components"],
-    needHours: goalHours(),
+    needHours: s.need.goalS / 3600,
     needMin: roundHalfAway(s.need.needS / 60, 1),
     debtMin: roundHalfAway(Math.max(0, -s.bankMin), 1),
     bankMin: roundHalfAway(s.bankMin, 1),
@@ -277,7 +278,7 @@ function drivers(
 export function engineTonight(f: Fold, s: EngineSleep, strainToday: number | null) {
   const e = f.engine;
   const strains = strainToday == null ? e.strains : [...e.strains, strainToday].slice(-30);
-  const need = sleepNeeded(goalHours(), strainToday, strains, s.bankMin);
+  const need = sleepNeeded(s.need.goalS / 3600, strainToday, strains, s.bankMin);
   return tonightNeeded(need, e.effs, e.lats);
 }
 
@@ -485,12 +486,11 @@ const sleepWithin = (data: Data, lo: number, hi: number) =>
  * first day of history), shown from the eighth day it has run (fix 3). The last day runs to its last heart rate and
  * hands nothing on; every earlier day runs to midnight.
  */
-export function scoreEngineEnergyBank(f: Fold, d: Day, data: Data, slots: Slot[]): { row: EnergyBankRow; curve: (number | null)[] | null } {
+export function scoreEngineEnergyBank(f: Fold, d: Day, data: Data, slots: Slot[], sleepGoalS: number): { row: EnergyBankRow; curve: (number | null)[] | null } {
   const e = f.engine;
   const full = d.day < data.last;
   const until = full ? d.end : d.s1.lastHrTs != null ? Math.min(d.end, d.s1.lastHrTs + 60) : d.start;
   const awakeS = awakeSeconds(e.sleepS);
-  const sleepGoalS = goalHours() * 3600;
   const fromLevel = e.ebLevel ?? 0;
   let level = fromLevel;
   const before: (number | null)[] = [];

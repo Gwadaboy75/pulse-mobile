@@ -73,7 +73,7 @@ chose to fix them. Each fix needs a test that fails on the source behaviour.
 | 4 | Cycle variability defaults age to 40 | Not ported (cycle left out) |
 | 5 | Blood panel row order depends on SQLite | Not ported (blood left out) |
 | 6 | Three different rounding rules on screen | One rule everywhere: half away from zero |
-| 7 | Missing sleep goal reads 7.5 h | Keep 7.5 h as the default, but read the goal from the profile (Settings) when set |
+| 7 | Missing sleep goal reads 7.5 h | Keep 7.5 h as the default, but read the goal from the profile (Settings › Goals) when set. Onboarding saves the study's age default (automatic). The automatic estimate ranks stored Recovery with the Sleep Score taken as 100 (value + 30 × (1 − sleepPerf)); a new goal replays the history |
 | 8 | Recovery clamps to [1, 100] | Keep: not a bug |
 | 9 | Biological Age does not renormalize missing factors | Renormalize over the factors present, with a minimum of 5 factors before a value is shown |
 | 10 | Temperature = default baseline (97.9/98.1/95.7 F) + deviation; a baseline change shifts history | Use Health Connect's skin temperature delta against our own 60-day baseline; no default baseline |
