@@ -25,6 +25,9 @@ Grab `pulse-mobile-<version>-arm64.apk` from the [latest release](https://github
 
 Want it on a server instead, for the browser and several people? See [Pulse](https://github.com/adityaongit/pulse).
 
+This fork can also do both: pair the app with your own Pulse server (**Réglages › Mon serveur**) and it sends what it reads
+from Health Connect to the site after every sync, without a companion app. See [docs/server.md](docs/server.md).
+
 </div>
 
 ## What you get

@@ -2,7 +2,7 @@
 // loading.tsx: "Account & settings" (Profile, Data source, App, each a row to `/settings?s=`), Reports, Trends, Journal,
 // Help, Your data, then About. The account row is Profile (no accounts); Coach opens the coach's settings.
 import { View } from "react-native";
-import { Activity, Archive, Bell, Bluetooth, BotMessageSquare, BookOpen, CalendarDays, CalendarRange, ChartLine, Database, ListChecks, Palette, Plug, Target, UserRound, Wind } from "lucide-react-native";
+import { Activity, Archive, Bell, Bluetooth, BotMessageSquare, BookOpen, CalendarDays, CalendarRange, ChartLine, CloudUpload, Database, ListChecks, Palette, Plug, Target, UserRound, Wind } from "lucide-react-native";
 import { formatDay, rangeLabel } from "@/lib/format";
 import { SCORING_VERSION } from "@/pipeline";
 import { APP_VERSION, getMore } from "@/queries/settings";
@@ -16,6 +16,7 @@ import { SCORE_DOCS } from "./howItWorksContent";
 const settings: LinkListRow[] = [
   { icon: UserRound, label: "Profile", href: "/settings?s=profile" },
   { icon: Plug, label: "Data source", href: "/settings?s=source" },
+  { icon: CloudUpload, label: "Mon serveur", href: "/settings?s=server" },
   { icon: Palette, label: "App", href: "/settings?s=app" },
   { icon: Bell, label: "Notifications & background", href: "/settings?s=notifications" },
   { icon: Bluetooth, label: "Live heart rate", href: "/settings?s=live" },

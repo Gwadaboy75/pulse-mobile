@@ -11,6 +11,7 @@ import { timed } from "@/lib/perf";
 import { localDay } from "@/lib/time";
 import { setForeground } from "@/lib/yield";
 import { runPipeline } from "@/pipeline";
+import { pushAfterSync } from "@/push/push";
 import { notifyAfterRun } from "./alerts";
 import { releaseLock, takeLock, waitForLock, type RunOwner } from "./lock";
 
@@ -85,6 +86,12 @@ async function run(store: Store, profile: Profile, source: Source, opts: RunSync
       warnings.push(...(r.warnings ?? []));
     }
     await timed(`pipeline (${opts.owner})`, () => runPipeline(store, profile, { today: localDay(Date.now() / 1000, opts.timeZone), onProgress: opts.onProgress }));
+    // The fork's server push (src/push, docs/server.md): the new days to the paired Pulse server, after scoring, so a
+    // failure there never holds the scores back. A hint, never an error.
+    if (source === "health_connect") {
+      const hint = await timed(`push (${opts.owner})`, () => pushAfterSync(store, opts.timeZone));
+      if (hint) warnings.push(hint);
+    }
     return { ran: true, warnings };
   } finally {
     await releaseLock(opts.owner);

@@ -15,9 +15,10 @@ import { LiveHeartRate } from "./LiveHeartRate";
 import { NotificationsSection } from "./NotificationsSection";
 import { GoalsSettings } from "@/screens/goals/GoalsSettings";
 import { ProfileCard } from "./ProfileCard";
+import { ServerSection } from "./ServerSection";
 
-type SectionId = "profile" | "source" | "app" | "live" | "notifications" | "goals";
-const SECTIONS: SectionId[] = ["profile", "source", "app", "live", "notifications", "goals"];
+type SectionId = "profile" | "source" | "server" | "app" | "live" | "notifications" | "goals";
+const SECTIONS: SectionId[] = ["profile", "source", "server", "app", "live", "notifications", "goals"];
 /** Older names: ?s=sync, ?s=appearance, ?s=profile, and the web's ?s=account. */
 const ALIAS: Record<string, SectionId> = { sync: "source", appearance: "app", account: "profile" };
 
@@ -96,6 +97,8 @@ export function SettingsScreen() {
               <SectionSkeleton section={section} />
             ) : section === "source" ? (
               <DataSource now={data.now} />
+            ) : section === "server" ? (
+              <ServerSection now={data.now} />
             ) : section === "app" ? (
               <AppSettings prefs={data.prefs} />
             ) : (

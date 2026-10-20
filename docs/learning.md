@@ -717,3 +717,17 @@ flowchart LR
   HRV --> S1[Stage 1: night mean in sleep, the day's samples]
   S1 --> S2[Stage 2: Recovery, Stress, Energy Bank]
 ```
+
+## Sending data to a server from a serverless app (this fork)
+
+This fork pairs the phone with the owner's own Pulse server (docs/server.md). Three choices worth keeping:
+
+- **HMAC in pure JavaScript.** The signature is `@noble/hashes` (sha256 + hmac), not `expo-crypto`: Expo's digest API
+  has no HMAC, and a native module would force a new development build for a few hundred bytes of JS. It also runs
+  unchanged in Vitest, so the signature test is exact.
+- **The payload comes from the Store, not from Health Connect.** The rows in SQLite are already deduplicated and
+  filtered by the source policy, so the server receives what the app shows. Every window is sent as a complete
+  backfill (`backfill: true, window_complete: true`), which lets the server drop a night Fitbit rewrote.
+- **The push runs after scoring, as a hint.** `runSync` sends after `runPipeline`, and a failure is a warning
+  (`server_push_failed:<code>`), never an exception: the scores on the phone never wait for the network. The
+  background task gets the same push for free, since it calls the same `runSync`.
