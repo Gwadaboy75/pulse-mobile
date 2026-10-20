@@ -134,6 +134,36 @@ describe("pushToServer", () => {
     await expect(ping({ url: URL_OK, secret: SECRET, name: "Pulse" }, TZ, fakeServer(404).fetchFn, NOW)).rejects.toMatchObject({ code: "unknown_endpoint" });
   });
 
+  it("splits a window too big for the server: halves down to a day, then the day's heart rate in plain payloads", async () => {
+    await writeState({ lastDay: null, lastSequence: 0 });
+    const store = await storeWith(3);
+    // Three days of one-second heart rate: about 1 MB a day once sent.
+    const dense = [];
+    for (let d = 0; d < 3; d++) for (let s = 0; s < 10_000; s++) dense.push({ ts: localMidnight(addDays(TODAY, -d), TZ) + 9 * 3600 + s, bpm: 60 + (s % 40) });
+    await store.putHr(dense);
+    const maxBytes = 400_000;
+    const { calls, fetchFn } = fakeServer(202);
+    const r = await pushToServer(store, { timeZone: TZ, mode: "sync", now: NOW, fetchFn, maxBytes });
+    expect(r.days).toBe(3);
+    for (const c of calls) expect(new TextEncoder().encode(JSON.stringify(c.body)).length).toBeLessThanOrEqual(maxBytes);
+    // Every sample sent once, sequences rising one by one, each body signed over itself.
+    const times = calls.flatMap((c) => ((c.body.heart_rate as { time: string }[] | undefined) ?? []).map((h) => h.time));
+    expect(new Set(times).size).toBe(times.length);
+    expect(times.length).toBe((await store.readHr(localMidnight(addDays(TODAY, -2), TZ), NOW + 86_400)).length);
+    expect(calls.map((c) => c.body.sequence)).toEqual(calls.map((_, i) => i + 1));
+    for (const c of calls) expect(c.signature).toBe(signBody(JSON.stringify(c.body), SECRET));
+    // One complete window per day, with its night; the overflow is plain heart rate the server never prunes.
+    const complete = calls.filter((c) => c.body.window_complete === true);
+    expect(complete).toHaveLength(3);
+    for (const c of complete) expect((c.body.sleep as unknown[]).length).toBe(1);
+    const extra = calls.filter((c) => c.body.window_complete !== true);
+    expect(extra.length).toBeGreaterThan(0);
+    for (const c of extra) {
+      expect(c.body).toMatchObject({ backfill: false, source: "health_connect" });
+      expect(Object.keys(c.body).filter((k) => !["test", "source", "timestamp", "sequence", "app_version", "timezone", "backfill"].includes(k))).toEqual(["heart_rate"]);
+    }
+  });
+
   it("the after-sync hook never throws and says what it did", async () => {
     await clearPairing();
     expect(await pushAfterSync(new MemoryStore(), TZ)).toBeNull();

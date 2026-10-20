@@ -2,6 +2,7 @@
 // the days since the last push, a few days back for late nights; on request, the whole history. Each window is one
 // signed POST the server archives and applies in `sequence` order; it answers 202 (taken), 200 (already had these
 // bytes) or 204 (a ping). Nothing here reads Health Connect: the rows are the Store's, after the source policy.
+import { utf8ToBytes } from "@noble/hashes/utils";
 import { APP_VERSION } from "@/queries/settings";
 import type { Store } from "@/data/store";
 import { addDays, localDay, localMidnight } from "@/lib/time";
@@ -9,8 +10,16 @@ import { readPairing, readSecret, readState, writeState, type Pairing } from "./
 import { buildPayload, isEmptyPayload, testPayload, windows, type PushRows } from "./payload";
 import { SIGNATURE_HEADER, signBody } from "./sign";
 
-/** Days per payload: a week of 15-second heart rate is a few megabytes, well under the server's 12 MB. */
+/** Days per payload when it fits: a week of 15-second heart rate is a few megabytes. */
 export const WINDOW_DAYS = 7;
+/**
+ * The largest body sent: under the server's 12 MB and a reverse proxy's usual 10 MB. Heart rate is stored at up to one
+ * sample a second (about 100 bytes each once sent), so a busy week can pass it: the window is then halved, down to one
+ * day, and a day still too big sends its heart rate in extra payloads (splitBodies).
+ */
+export const MAX_BODY_BYTES = 8 * 1024 * 1024;
+/** What one sent row weighs, to split a window before building a body that would be too big. */
+const ROW_BYTES = { hr: 100, steps: 140, hrv: 120 } as const;
 /** A push after a sync re-sends this many days before the last one, for nights that arrived late. */
 export const RESEND_DAYS = 3;
 /** The first push after pairing, and "Envoyer l'historique". */
@@ -46,8 +55,9 @@ export type PushOptions = {
   now?: number;
   historyDays?: number;
   onProgress?: (done: number, total: number) => void;
-  /** Test seam. */
+  /** Test seams. */
   fetchFn?: typeof fetch;
+  maxBytes?: number;
 };
 
 /** One signed POST. Throws PushError on anything but 200, 202 or 204. */
@@ -116,6 +126,42 @@ export async function planWindow(store: Store, state: { lastDay: string | null }
 // `hrBounds` gives instants; the day is taken in UTC here only to pick the earlier of two starts, never for a row.
 const localDayOf = (ts: number) => new Date(ts * 1000).toISOString().slice(0, 10);
 
+const byteLength = (body: Record<string, unknown>) => utf8ToBytes(JSON.stringify(body)).length;
+const dayCount = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000) + 1;
+const ENVELOPE = ["test", "source", "timestamp", "sequence", "app_version", "timezone"] as const;
+
+/**
+ * The bodies for one window, each under `maxBytes`, in send order, their `sequence` still to set. The window whole when
+ * it fits; else its two halves, down to one day. A day still too big keeps everything but part of its heart rate in
+ * the complete-window body and sends the rest as plain (non-backfill) payloads: the server never prunes heart rate by
+ * window, so nothing the first body leaves out is dropped.
+ */
+export async function splitBodies(store: Store, w: { from: string; to: string }, o: { timeZone: string; now: number; maxBytes: number }): Promise<Record<string, unknown>[]> {
+  const rows = await readRows(store, w.from, w.to, o.timeZone);
+  const days = dayCount(w.from, w.to);
+  const halves = async () => {
+    const mid = addDays(w.from, Math.floor(days / 2) - 1);
+    return [...(await splitBodies(store, { from: w.from, to: mid }, o)), ...(await splitBodies(store, { from: addDays(mid, 1), to: w.to }, o))];
+  };
+  const estimate = rows.hr.length * ROW_BYTES.hr + rows.steps.length * ROW_BYTES.steps + rows.hrv.length * ROW_BYTES.hrv;
+  if (days > 1 && estimate > o.maxBytes) return halves();
+  const body = buildPayload(rows, { from: w.from, to: w.to, timeZone: o.timeZone, sequence: 0, now: o.now, appVersion: APP_VERSION });
+  if (isEmptyPayload(body)) return [];
+  const size = byteLength(body);
+  if (size <= o.maxBytes) return [body];
+  if (days > 1) return halves();
+  const hr = (body.heart_rate as unknown[] | undefined) ?? [];
+  if (!hr.length) return [body]; // Nothing left to split: the server says too_large and the screen explains it.
+  const rest = { ...body };
+  delete rest.heart_rate;
+  const room = Math.max(1, o.maxBytes - byteLength(rest));
+  const perPart = Math.max(1, Math.floor((hr.length * room) / (size - byteLength(rest)) * 0.9));
+  const envelope = Object.fromEntries(ENVELOPE.map((k) => [k, body[k]]));
+  const out: Record<string, unknown>[] = [{ ...rest, heart_rate: hr.slice(0, perPart) }];
+  for (let i = perPart; i < hr.length; i += perPart) out.push({ ...envelope, backfill: false, heart_rate: hr.slice(i, i + perPart) });
+  return out;
+}
+
 /**
  * Pushes the Store's rows to the paired server. Resolves with what was sent; throws PushError (and records it in
  * the state) when a window fails, leaving the earlier windows sent.
@@ -140,16 +186,18 @@ export async function pushToServer(store: Store, o: PushOptions): Promise<PushRe
   try {
     for (const [i, w] of parts.entries()) {
       o.onProgress?.(i, parts.length);
-      const rows = await readRows(store, w.from, w.to, o.timeZone);
-      sequence += 1;
-      const body = buildPayload(rows, { from: w.from, to: w.to, timeZone: o.timeZone, sequence, now, appVersion: APP_VERSION });
-      if (isEmptyPayload(body)) continue;
-      // The sequence is taken before the send: a retry after a lost answer gets a new one, and the server drops the
-      // same bytes by their hash anyway.
-      await writeState({ lastSequence: sequence });
-      await post(pairing, secret, body, fetchFn);
-      sent += 1;
-      await writeState({ lastDay: w.to, lastSentAt: now, lastError: null, lastDays: Math.round((Date.parse(w.to) - Date.parse(window.from)) / 86_400_000) + 1 });
+      const bodies = await splitBodies(store, w, { timeZone: o.timeZone, now, maxBytes: o.maxBytes ?? MAX_BODY_BYTES });
+      if (!bodies.length) continue;
+      for (const body of bodies) {
+        sequence += 1;
+        body.sequence = sequence;
+        // The sequence is taken before the send: a retry after a lost answer gets a new one, and the server drops the
+        // same bytes by their hash anyway.
+        await writeState({ lastSequence: sequence });
+        await post(pairing, secret, body, fetchFn);
+        sent += 1;
+      }
+      await writeState({ lastDay: w.to, lastSentAt: now, lastError: null, lastDays: dayCount(window.from, w.to) });
     }
     o.onProgress?.(parts.length, parts.length);
   } catch (e) {
@@ -157,8 +205,7 @@ export async function pushToServer(store: Store, o: PushOptions): Promise<PushRe
     await writeState({ lastError: code });
     throw e instanceof PushError ? e : new PushError(code, e instanceof Error ? e.message : String(e));
   }
-  const days = Math.round((Date.parse(window.to) - Date.parse(window.from)) / 86_400_000) + 1;
-  return { sent, days, from: window.from, to: window.to, empty: sent === 0 };
+  return { sent, days: dayCount(window.from, window.to), from: window.from, to: window.to, empty: sent === 0 };
 }
 
 /**

@@ -32,6 +32,10 @@ exercices, et par jour la FC de repos, la fréquence respiratoire, la SpO2, la t
 le poids, la masse grasse, la VO2max, les totaux du jour et la taille. Chaque fenêtre est déclarée complète : le
 serveur retire ce qui n'est plus dans l'app (une nuit réécrite par Fitbit, par exemple).
 
+Chaque envoi reste sous 8 Mo (le serveur accepte 12 Mo, un proxy souvent 10). La fréquence cardiaque est gardée à la
+seconde ; une semaine trop chargée est coupée en deux, jusqu'à un jour, et un jour encore trop gros envoie le reste
+de sa fréquence cardiaque dans des envois simples (le serveur ne retire jamais de fréquence cardiaque par fenêtre).
+
 Ne partent pas : le journal, les notes, les réglages, les scores. **Les scores ne sont pas partagés** : le téléphone
 et le site calculent chacun les leurs avec leur moteur, et les deux peuvent différer légèrement pour une même nuit.
 
